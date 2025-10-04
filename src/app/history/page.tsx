@@ -1,258 +1,261 @@
 "use client";
 
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppLayout } from "@/components/AppLayout";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  ArrowUpRight,
-  ArrowDownLeft,
-  CreditCard,
-  DollarSign,
-  Calendar,
-  Clock
-} from "lucide-react";
+import { ArrowUp, ArrowDown, Clock, CheckCircle, XCircle } from "lucide-react";
+import { apiClient } from '@/lib/api-client';
 
 export default function HistoryPage() {
-  const user = {
-    name: "gokazi",
-    level: "Silver",
-    avatar: "/placeholder-avatar.jpg"
+  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+      fetchTransactions();
+    } else {
+      router.push('/auth/login');
+    }
+  }, [router]);
+
+  const fetchTransactions = async () => {
+    try {
+      const response = await apiClient.getTransactions();
+      if (response.success) {
+        setTransactions(response.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const transactions = [
-    {
-      id: "TXN001",
-      type: "campaign_earning",
-      amount: "+Rs 5,592",
-      description: "Campaign P1IT7024 - TACO BELL",
-      date: "2024-01-15",
-      time: "14:30",
-      status: "completed",
-      icon: ArrowUpRight,
-      color: "text-green-600"
-    },
-    {
-      id: "TXN002",
-      type: "withdrawal",
-      amount: "-Rs 10,000",
-      description: "Withdrawal to Bank Account",
-      date: "2024-01-14",
-      time: "10:15",
-      status: "processing",
-      icon: ArrowDownLeft,
-      color: "text-red-600"
-    },
-    {
-      id: "TXN003",
-      type: "campaign_earning",
-      amount: "+Rs 74",
-      description: "Campaign P1IT7025 - RENAULT",
-      date: "2024-01-13",
-      time: "16:45",
-      status: "completed",
-      icon: ArrowUpRight,
-      color: "text-green-600"
-    },
-    {
-      id: "TXN004",
-      type: "deposit",
-      amount: "+Rs 50,000",
-      description: "Bank Deposit - Account Transfer",
-      date: "2024-01-12",
-      time: "09:20",
-      status: "completed",
-      icon: ArrowUpRight,
-      color: "text-blue-600"
-    },
-    {
-      id: "TXN005",
-      type: "campaign_earning",
-      amount: "+Rs 74",
-      description: "Campaign P1IT7023 - LOUIS PHILLIPPE",
-      date: "2024-01-11",
-      time: "13:30",
-      status: "completed",
-      icon: ArrowUpRight,
-      color: "text-green-600"
-    },
-    {
-      id: "TXN006",
-      type: "daily_bonus",
-      amount: "+Rs 100",
-      description: "Daily Check-in Bonus - Day 7",
-      date: "2024-01-10",
-      time: "08:00",
-      status: "completed",
-      icon: ArrowUpRight,
-      color: "text-purple-600"
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case 'processing':
+        return <Clock className="w-4 h-4 text-yellow-600" />;
+      case 'failed':
+        return <XCircle className="w-4 h-4 text-red-600" />;
+      default:
+        return <Clock className="w-4 h-4 text-gray-600" />;
     }
-  ];
-
-  const campaignHistory = [
-    {
-      id: "P1IT7024",
-      brand: "TACO BELL",
-      logo: "🌮",
-      startDate: "2024-01-15",
-      endDate: "2024-01-15",
-      status: "completed",
-      earnings: "Rs 5,592",
-      commission: "10%"
-    },
-    {
-      id: "P1IT7025",
-      brand: "RENAULT",
-      logo: "🚗",
-      startDate: "2024-01-13",
-      endDate: "2024-01-13",
-      status: "completed",
-      earnings: "Rs 74",
-      commission: "1%"
-    },
-    {
-      id: "P1IT7023",
-      brand: "LOUIS PHILLIPPE",
-      logo: "👔",
-      startDate: "2024-01-11",
-      endDate: "2024-01-11",
-      status: "completed",
-      earnings: "Rs 74",
-      commission: "1%"
-    }
-  ];
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "completed":
-        return "bg-green-50 text-green-700 border-green-200";
-      case "processing":
-        return "bg-yellow-50 text-yellow-700 border-yellow-200";
-      case "failed":
-        return "bg-red-50 text-red-700 border-red-200";
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'processing':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'failed':
+        return 'bg-red-100 text-red-800';
       default:
-        return "bg-gray-50 text-gray-700 border-gray-200";
+        return 'bg-gray-100 text-gray-800';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading history...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  const deposits = transactions.filter(t => t.type === 'deposit');
+  const withdrawals = transactions.filter(t => t.type === 'withdrawal');
+  const earnings = transactions.filter(t => t.type === 'earning');
 
   return (
     <AppLayout user={user}>
       <div className="space-y-6">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-xl font-bold text-gray-900">Transaction History</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Transaction History</h1>
+          <p className="text-gray-600">View all your deposits, withdrawals, and earnings</p>
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-gray-100">
-            <TabsTrigger value="all" className="text-sm">All Transactions</TabsTrigger>
-            <TabsTrigger value="campaigns" className="text-sm">Campaigns</TabsTrigger>
-            <TabsTrigger value="payments" className="text-sm">Payments</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 bg-gray-100">
+            <TabsTrigger value="all" className="text-sm">All</TabsTrigger>
+            <TabsTrigger value="deposits" className="text-sm">Deposits</TabsTrigger>
+            <TabsTrigger value="withdrawals" className="text-sm">Withdrawals</TabsTrigger>
+            <TabsTrigger value="earnings" className="text-sm">Earnings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="space-y-4 mt-6">
-            {transactions.map((transaction) => {
-              const Icon = transaction.icon;
-              return (
-                <Card key={transaction.id} className="p-4 border border-gray-200">
+            {transactions.length > 0 ? (
+              transactions.map((transaction: any) => (
+                <Card key={transaction._id} className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-full bg-gray-100`}>
-                        <Icon className={`w-4 h-4 ${transaction.color}`} />
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        transaction.type === 'deposit' ? 'bg-green-100' :
+                        transaction.type === 'withdrawal' ? 'bg-red-100' :
+                        'bg-blue-100'
+                      }`}>
+                        {transaction.type === 'deposit' ? (
+                          <ArrowDown className="w-5 h-5 text-green-600" />
+                        ) : transaction.type === 'withdrawal' ? (
+                          <ArrowUp className="w-5 h-5 text-red-600" />
+                        ) : (
+                          <CheckCircle className="w-5 h-5 text-blue-600" />
+                        )}
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{transaction.description}</p>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <Calendar className="w-3 h-3" />
-                          <span>{transaction.date}</span>
-                          <Clock className="w-3 h-3" />
-                          <span>{transaction.time}</span>
-                        </div>
+                        <p className="text-sm text-gray-500">
+                          {new Date(transaction.createdAt).toLocaleDateString()}
+                        </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className={`font-bold ${transaction.color}`}>{transaction.amount}</p>
+                      <p className={`font-bold ${
+                        transaction.type === 'deposit' ? 'text-green-600' :
+                        transaction.type === 'withdrawal' ? 'text-red-600' :
+                        'text-blue-600'
+                      }`}>
+                        {transaction.type === 'deposit' ? '+' : transaction.type === 'withdrawal' ? '-' : '+'}Rs {transaction.amount}
+                      </p>
                       <Badge className={getStatusColor(transaction.status)}>
-                        {transaction.status}
+                        {getStatusIcon(transaction.status)}
+                        <span className="ml-1">{transaction.status}</span>
                       </Badge>
                     </div>
                   </div>
                 </Card>
-              );
-            })}
-          </TabsContent>
-
-          <TabsContent value="campaigns" className="space-y-4 mt-6">
-            {campaignHistory.map((campaign) => (
-              <Card key={campaign.id} className="p-4 border border-gray-200">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-lg">
-                        {campaign.logo}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{campaign.brand}</h3>
-                        <p className="text-sm text-gray-500">Campaign {campaign.id}</p>
-                      </div>
-                    </div>
-                    <Badge className="bg-green-50 text-green-700 border-green-200">
-                      {campaign.status}
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <p className="text-gray-500">Start Date</p>
-                        <p className="text-gray-900">{campaign.startDate}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">End Date</p>
-                        <p className="text-gray-900">{campaign.endDate}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-teal-600">{campaign.earnings}</p>
-                      <p className="text-xs text-gray-500">Commission: {campaign.commission}</p>
-                    </div>
-                  </div>
-                </div>
+              ))
+            ) : (
+              <Card className="p-8 text-center">
+                <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Transactions Found</h3>
+                <p className="text-gray-600">Your transaction history will appear here</p>
               </Card>
-            ))}
+            )}
           </TabsContent>
 
-          <TabsContent value="payments" className="space-y-4 mt-6">
-            {transactions.filter(t => t.type === 'withdrawal' || t.type === 'deposit').map((transaction) => {
-              const Icon = transaction.icon;
-              return (
-                <Card key={transaction.id} className="p-4 border border-gray-200">
+          <TabsContent value="deposits" className="space-y-4 mt-6">
+            {deposits.length > 0 ? (
+              deposits.map((transaction: any) => (
+                <Card key={transaction._id} className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-full bg-gray-100`}>
-                        <Icon className={`w-4 h-4 ${transaction.color}`} />
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <ArrowDown className="w-5 h-5 text-green-600" />
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{transaction.description}</p>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <Calendar className="w-3 h-3" />
-                          <span>{transaction.date}</span>
-                          <Clock className="w-3 h-3" />
-                          <span>{transaction.time}</span>
-                        </div>
+                        <p className="text-sm text-gray-500">
+                          {new Date(transaction.createdAt).toLocaleDateString()}
+                        </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className={`font-bold ${transaction.color}`}>{transaction.amount}</p>
+                      <p className="font-bold text-green-600">+Rs {transaction.amount}</p>
                       <Badge className={getStatusColor(transaction.status)}>
-                        {transaction.status}
+                        {getStatusIcon(transaction.status)}
+                        <span className="ml-1">{transaction.status}</span>
                       </Badge>
                     </div>
                   </div>
                 </Card>
-              );
-            })}
+              ))
+            ) : (
+              <Card className="p-8 text-center">
+                <ArrowDown className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Deposits Found</h3>
+                <p className="text-gray-600">Your deposit history will appear here</p>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="withdrawals" className="space-y-4 mt-6">
+            {withdrawals.length > 0 ? (
+              withdrawals.map((transaction: any) => (
+                <Card key={transaction._id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                        <ArrowUp className="w-5 h-5 text-red-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{transaction.description}</p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(transaction.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-red-600">-Rs {transaction.amount}</p>
+                      <Badge className={getStatusColor(transaction.status)}>
+                        {getStatusIcon(transaction.status)}
+                        <span className="ml-1">{transaction.status}</span>
+                      </Badge>
+                    </div>
+                  </div>
+                </Card>
+              ))
+            ) : (
+              <Card className="p-8 text-center">
+                <ArrowUp className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Withdrawals Found</h3>
+                <p className="text-gray-600">Your withdrawal history will appear here</p>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="earnings" className="space-y-4 mt-6">
+            {earnings.length > 0 ? (
+              earnings.map((transaction: any) => (
+                <Card key={transaction._id} className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <CheckCircle className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{transaction.description}</p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(transaction.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-blue-600">+Rs {transaction.amount}</p>
+                      <Badge className={getStatusColor(transaction.status)}>
+                        {getStatusIcon(transaction.status)}
+                        <span className="ml-1">{transaction.status}</span>
+                      </Badge>
+                    </div>
+                  </div>
+                </Card>
+              ))
+            ) : (
+              <Card className="p-8 text-center">
+                <CheckCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Earnings Found</h3>
+                <p className="text-gray-600">Your earnings history will appear here</p>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>

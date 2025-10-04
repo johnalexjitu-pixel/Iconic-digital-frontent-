@@ -26,12 +26,12 @@ export function Header({ user }: HeaderProps) {
     <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
       {/* Logo */}
       <div className="flex items-center">
-        <div className="w-16 h-16 relative">
+        <div className="w-20 h-20 relative">
           <Image
             src="/logo/logo.png"
             alt="Iconic Digital"
-            width={64}
-            height={64}
+            width={80}
+            height={80}
             className="object-contain"
           />
         </div>

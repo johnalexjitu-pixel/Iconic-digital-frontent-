@@ -45,15 +45,16 @@ export default function HomePage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full">
           <div className="text-center mb-8">
-            <div className="w-24 h-24 relative mx-auto mb-4">
+            <div className="w-32 h-32 relative mx-auto mb-4">
               <Image
                 src="/logo/logo.png"
                 alt="Iconic Digital"
-                width={96}
-                height={96}
+                width={128}
+                height={128}
                 className="object-contain"
               />
             </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Iconic Digital</h1>
             <p className="text-gray-600">Award-winning creative & performance marketing agency</p>
           </div>
 
