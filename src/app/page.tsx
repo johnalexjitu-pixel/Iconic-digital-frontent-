@@ -6,6 +6,8 @@ import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight, Play, LogIn, UserPlus, Bell, HelpCircle, Phone, Plus, User, Menu, Crown, Headphones, LogOut } from "lucide-react";
+import { HomepageHeader } from "@/components/HomepageHeader";
+import { HomepageFooter } from "@/components/HomepageFooter";
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -43,55 +45,7 @@ export default function HomePage() {
   // Always show homepage for everyone
   return (
     <div className="min-h-screen bg-white">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-red-500 rounded flex items-center justify-center">
-                <span className="text-white font-bold text-sm">⚡</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900 font-lexend">ICONIC DIGITAL</span>
-            </div>
-            <div className="flex items-center gap-6 text-sm font-lexend text-gray-600">
-              <div className="flex items-center gap-2">
-                <Crown className="w-4 h-4" />
-                <span>Member Level</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <HelpCircle className="w-4 h-4" />
-                <span>Help</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Headphones className="w-4 h-4" />
-                <span>Support</span>
-              </div>
-              {user ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    localStorage.removeItem('user');
-                    window.location.reload();
-                  }}
-                  className="flex items-center gap-1 text-red-600 hover:text-red-700"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Logout</span>
-                </Button>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => router.push('/auth/login')}
-                  className="flex items-center gap-1"
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span>Login</span>
-                </Button>
-              )}
-            </div>
-          </div>
-        </header>
+        <HomepageHeader user={user} />
 
         {/* Hero Video Section */}
         <div className="relative bg-gray-800 py-16">
@@ -428,41 +382,7 @@ export default function HomePage() {
           </div>
         </footer>
 
-        {/* Bottom Navigation */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white text-gray-900 py-2 px-4 border-t border-gray-200 z-50">
-          <div className="flex items-center justify-around max-w-md mx-auto">
-            <Link href="/" className="flex flex-col items-center gap-1 min-w-0 flex-1">
-              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">🏠</span>
-              </div>
-              <span className="text-xs font-lexend text-green-500 font-medium">Home</span>
-            </Link>
-            <Link href="/services" className="flex flex-col items-center gap-1 min-w-0 flex-1">
-              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 text-sm">i</span>
-              </div>
-              <span className="text-xs font-lexend text-gray-600">Services</span>
-            </Link>
-            <Link href="/campaign" className="flex flex-col items-center gap-1 min-w-0 flex-1">
-              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 text-sm">📅</span>
-              </div>
-              <span className="text-xs font-lexend text-gray-600">Campaign</span>
-            </Link>
-            <Link href="/history" className="flex flex-col items-center gap-1 min-w-0 flex-1">
-              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 text-sm">🕒</span>
-              </div>
-              <span className="text-xs font-lexend text-gray-600">History</span>
-            </Link>
-            <Link href="/account" className="flex flex-col items-center gap-1 min-w-0 flex-1">
-              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 text-sm">👤</span>
-              </div>
-              <span className="text-xs font-lexend text-gray-600">Account</span>
-            </Link>
-          </div>
-        </div>
+        <HomepageFooter activePage="home" />
       </div>
     );
 

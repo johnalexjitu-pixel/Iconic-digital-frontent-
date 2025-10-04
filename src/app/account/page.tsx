@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Header } from "@/components/Header";
+import { HomepageHeader } from "@/components/HomepageHeader";
+import { HomepageFooter } from "@/components/HomepageFooter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -140,9 +141,9 @@ export default function AccountPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header user={user} />
-      <div className="max-w-6xl mx-auto px-4 py-6">
+    <div className="min-h-screen bg-white">
+      <HomepageHeader user={user} />
+      <div className="max-w-6xl mx-auto px-4 py-6 pb-20">
         <div className="space-y-6">
         {/* Profile Header */}
         <Card className="p-6 bg-gradient-to-br from-teal-50 to-cyan-50 border-teal-200">
@@ -294,6 +295,7 @@ export default function AccountPage() {
         </Card>
         </div>
       </div>
+      <HomepageFooter activePage="account" />
     </div>
   );
 }

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Header } from "@/components/Header";
+import { HomepageHeader } from "@/components/HomepageHeader";
+import { HomepageFooter } from "@/components/HomepageFooter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -80,9 +81,9 @@ export default function CampaignPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header user={user} />
-      <div className="max-w-6xl mx-auto px-4 py-6">
+    <div className="min-h-screen bg-white">
+      <HomepageHeader user={user} />
+      <div className="max-w-6xl mx-auto px-4 py-6 pb-20">
         <div className="space-y-6">
         {/* Header */}
         <div className="text-center">
@@ -163,6 +164,7 @@ export default function CampaignPage() {
         </div>
         </div>
       </div>
+      <HomepageFooter activePage="campaign" />
     </div>
   );
 }
