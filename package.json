@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0 --turbopack",
+    "dev:watch": "nodemon --watch src --ext ts,tsx,js,jsx --exec \"next dev -H 0.0.0.0 --turbopack\"",
     "dev:local": "cp .env.development .env.local && next dev -H 0.0.0.0 --turbopack",
     "dev:prod": "cp .env.production .env.local && next dev -H 0.0.0.0 --turbopack",
     "build": "next build",
@@ -54,6 +55,7 @@
     "@types/react-dom": "^18.3.7",
     "eslint": "^9.27.0",
     "eslint-config-next": "15.1.7",
+    "nodemon": "^3.1.10",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3"
