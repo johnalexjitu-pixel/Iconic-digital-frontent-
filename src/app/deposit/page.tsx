@@ -11,11 +11,23 @@ import { ArrowLeft, Wallet, Phone, Clock, Info, CheckCircle } from "lucide-react
 import Link from "next/link";
 import { apiClient } from '@/lib/api-client';
 
+interface Deposit {
+  _id: string;
+  id?: string;
+  type: string;
+  amount: number;
+  method: string;
+  status: string;
+  description: string;
+  createdAt: string;
+  date?: string;
+}
+
 export default function DepositPage() {
   const [user, setUser] = useState(null);
   const [depositAmount, setDepositAmount] = useState('');
   const [selectedMethod, setSelectedMethod] = useState('');
-  const [depositHistory, setDepositHistory] = useState([]);
+  const [depositHistory, setDepositHistory] = useState<Deposit[]>([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -67,7 +79,7 @@ export default function DepositPage() {
   };
 
   return (
-    <AppLayout user={user}>
+    <AppLayout user={user || undefined}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">

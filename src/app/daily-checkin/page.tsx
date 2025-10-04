@@ -9,9 +9,15 @@ import { ArrowLeft, Gift, CheckCircle, Star } from "lucide-react";
 import Link from "next/link";
 import { apiClient } from '@/lib/api-client';
 
+interface Reward {
+  day: number;
+  amount: string;
+  claimed: boolean;
+}
+
 export default function DailyCheckinPage() {
   const [user, setUser] = useState(null);
-  const [rewards, setRewards] = useState([]);
+  const [rewards, setRewards] = useState<Reward[]>([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -70,7 +76,7 @@ export default function DailyCheckinPage() {
   const nextReward = rewards.find(r => !r.claimed);
 
   return (
-    <AppLayout user={user}>
+    <AppLayout user={user || undefined}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">

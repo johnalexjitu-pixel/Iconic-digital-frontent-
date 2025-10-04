@@ -23,9 +23,31 @@ import {
 import Link from 'next/link';
 import { apiClient } from '@/lib/api-client';
 
+interface User {
+  _id: string;
+  id?: string;
+  name: string;
+  email: string;
+  level: string;
+  membershipId: string;
+  referralCode: string;
+  creditScore: number;
+  accountBalance: number;
+  totalEarnings: number;
+  campaignsCompleted: number;
+  lastLogin: Date;
+  dailyCheckIn: {
+    lastCheckIn?: Date;
+    streak: number;
+    daysClaimed: number[];
+  };
+  avatar?: string;
+  isDestructive?: boolean;
+}
+
 export default function AccountPage() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

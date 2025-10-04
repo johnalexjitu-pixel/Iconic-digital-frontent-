@@ -11,7 +11,7 @@ import { useState, useEffect } from "react";
 import { apiClient } from '@/lib/api-client';
 
 export default function WithdrawalInfoPage() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<{ name: string; level: string; avatar?: string } | null>(null);
   const [formData, setFormData] = useState({
     withdrawalMethod: "Bank Account",
     accountHolderName: "",
@@ -91,7 +91,7 @@ export default function WithdrawalInfoPage() {
   };
 
   return (
-    <AppLayout user={user}>
+    <AppLayout user={user || undefined}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">

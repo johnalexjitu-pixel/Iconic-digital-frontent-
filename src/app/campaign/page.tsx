@@ -9,10 +9,21 @@ import { Badge } from "@/components/ui/badge";
 import { Play, Users, Clock, DollarSign, Star } from "lucide-react";
 import { apiClient } from '@/lib/api-client';
 
+interface Campaign {
+  _id: string;
+  title: string;
+  description: string;
+  status: string;
+  reward: number;
+  participants: number;
+  duration: number;
+  createdAt: string;
+}
+
 export default function CampaignPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
-  const [campaigns, setCampaigns] = useState([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

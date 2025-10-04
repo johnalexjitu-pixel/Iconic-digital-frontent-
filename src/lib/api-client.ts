@@ -74,7 +74,7 @@ export class ApiClient {
       // Return mock data for development when backend is not available
       if (this.envConfig.isDevelopment && error instanceof Error && error.message.includes('Failed to fetch')) {
         console.log(`🔄 Using mock data for: ${endpoint}`);
-        return this.getMockData(endpoint);
+        return this.getMockData(endpoint) as ApiResponse<T>;
       }
 
       return {

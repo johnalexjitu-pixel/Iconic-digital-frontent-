@@ -10,10 +10,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowUp, ArrowDown, Clock, CheckCircle, XCircle } from "lucide-react";
 import { apiClient } from '@/lib/api-client';
 
+interface Transaction {
+  _id: string;
+  type: string;
+  amount: number;
+  status: string;
+  description: string;
+  method: string;
+  createdAt: string;
+}
+
 export default function HistoryPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
