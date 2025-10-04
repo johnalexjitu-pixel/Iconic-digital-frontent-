@@ -11,6 +11,11 @@ const lexend = Lexend({
 export const metadata: Metadata = {
   title: "Iconic Digital - Award-winning creative & performance marketing agency",
   description: "We blend creative and performance to deliver outstanding results for your brand.",
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({

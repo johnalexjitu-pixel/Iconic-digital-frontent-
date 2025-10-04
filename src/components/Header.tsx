@@ -25,7 +25,10 @@ export function Header({ user }: HeaderProps) {
   return (
     <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
       {/* Logo */}
-      <div className="flex items-center">
+      <div 
+        className="flex items-center cursor-pointer hover:opacity-80 transition-opacity"
+        onClick={() => router.push('/')}
+      >
         <div className="w-48 h-24 relative">
           <Image
             src="/logo/logo.png"

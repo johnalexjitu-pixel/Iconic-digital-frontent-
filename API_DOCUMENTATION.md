@@ -1,14 +1,96 @@
-# 📚 API Documentation - SocialTrend Frontend
+# Iconic Digital Frontend API Documentation
 
-## 🌐 Base URL
+## Overview
+This document provides comprehensive API documentation for the Iconic Digital frontend application. The API is designed to work with a backend server and includes environment-based configuration for different deployment scenarios.
+
+## Table of Contents
+1. [Environment Configuration](#environment-configuration)
+2. [API Endpoints](#api-endpoints)
+3. [Authentication](#authentication)
+4. [User Management](#user-management)
+5. [Campaign Management](#campaign-management)
+6. [Transaction Management](#transaction-management)
+7. [File Upload](#file-upload)
+8. [Error Handling](#error-handling)
+9. [Backend Integration](#backend-integration)
+
+## Environment Configuration
+
+### Required Environment Variables
+
+#### Development (.env.development)
+```env
+# Database
+MONGODB_URI=mongodb://localhost:27017/iconic-digital-dev
+
+# Authentication
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-secret-key-here
+
+# Environment
+NODE_ENV=development
+
+# URLs
+NEXT_PUBLIC_FRONTEND_URL=http://localhost:3000
+NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
+NEXT_PUBLIC_API_URL=http://localhost:5000/api
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
+
+# CORS
+NEXT_PUBLIC_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5000
+
+# External Services
+NEXT_PUBLIC_PAYMENT_API_URL=http://localhost:5000/api/payments
+NEXT_PUBLIC_NOTIFICATION_API_URL=http://localhost:5000/api/notifications
+NEXT_PUBLIC_UPLOAD_URL=http://localhost:5000/api/upload
+
+# API Configuration
+API_TIMEOUT=10000
+API_RETRY_ATTEMPTS=3
 ```
-Development: http://localhost:3001
-Production: https://your-domain.com
+
+#### Production (.env.production)
+```env
+# Database
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/iconic-digital-prod
+
+# Authentication
+NEXTAUTH_URL=https://iconicdigital.site
+NEXTAUTH_SECRET=your-production-secret-key
+
+# Environment
+NODE_ENV=production
+
+# URLs
+NEXT_PUBLIC_FRONTEND_URL=https://iconicdigital.site
+NEXT_PUBLIC_BACKEND_URL=https://api.iconicdigital.site
+NEXT_PUBLIC_API_URL=https://api.iconicdigital.site/api
+NEXT_PUBLIC_APP_URL=https://iconicdigital.site
+NEXT_PUBLIC_API_BASE_URL=https://api.iconicdigital.site
+
+# CORS
+NEXT_PUBLIC_ALLOWED_ORIGINS=https://iconicdigital.site,https://admin.iconicdigital.site
+
+# External Services
+NEXT_PUBLIC_PAYMENT_API_URL=https://api.iconicdigital.site/api/payments
+NEXT_PUBLIC_NOTIFICATION_API_URL=https://api.iconicdigital.site/api/notifications
+NEXT_PUBLIC_UPLOAD_URL=https://api.iconicdigital.site/api/upload
+
+# API Configuration
+API_TIMEOUT=15000
+API_RETRY_ATTEMPTS=5
 ```
 
-## 🔐 Authentication Endpoints
+## API Endpoints
 
-### POST /api/auth/register
+### Base URL Configuration
+- **Development**: `http://localhost:5000`
+- **Production**: `https://api.iconicdigital.site`
+
+### Authentication Endpoints
+
+#### POST /api/auth/register
 Register a new user account.
 
 **Request Body:**
@@ -16,8 +98,8 @@ Register a new user account.
 {
   "name": "John Doe",
   "email": "john@example.com",
-  "password": "password123",
-  "referralCode": "ABC123" // Optional
+  "password": "securePassword123",
+  "referralCode": "REF123456"
 }
 ```
 
@@ -25,31 +107,39 @@ Register a new user account.
 ```json
 {
   "success": true,
-  "message": "User registered successfully",
   "data": {
-    "_id": "68e09ac5d30baad87b6d81b0",
-    "name": "John Doe",
-    "email": "john@example.com",
-    "level": "Bronze",
-    "membershipId": "29935",
-    "referralCode": "9CNMVST9",
-    "creditScore": 100,
-    "accountBalance": 0,
-    "totalEarnings": 0,
-    "campaignsCompleted": 0,
-    "createdAt": "2025-10-04T03:55:49.940Z"
-  }
+    "user": {
+      "_id": "user_id",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "level": "Bronze",
+      "membershipId": "MEM123456",
+      "referralCode": "REF123456",
+      "accountBalance": 0,
+      "totalEarnings": 0,
+      "campaignsCompleted": 0,
+      "lastLogin": "2024-01-01T00:00:00.000Z",
+      "dailyCheckIn": {
+        "streak": 0,
+        "daysClaimed": []
+      },
+      "avatar": null,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    "token": "jwt_token_here"
+  },
+  "message": "User registered successfully"
 }
 ```
 
-### POST /api/auth/login
-Login with email and password.
+#### POST /api/auth/login
+Authenticate user and return access token.
 
 **Request Body:**
 ```json
 {
   "email": "john@example.com",
-  "password": "password123"
+  "password": "securePassword123"
 }
 ```
 
@@ -57,109 +147,100 @@ Login with email and password.
 ```json
 {
   "success": true,
-  "message": "Login successful",
   "data": {
-    "_id": "68e09ac5d30baad87b6d81b0",
+    "user": {
+      "_id": "user_id",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "level": "Bronze",
+      "accountBalance": 1000,
+      "totalEarnings": 500
+    },
+    "token": "jwt_token_here"
+  },
+  "message": "Login successful"
+}
+```
+
+### User Management Endpoints
+
+#### GET /api/user
+Get current user profile.
+
+**Headers:**
+```
+Authorization: Bearer <jwt_token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "user_id",
     "name": "John Doe",
     "email": "john@example.com",
     "level": "Bronze",
-    "membershipId": "29935",
-    "referralCode": "9CNMVST9",
-    "creditScore": 100,
-    "accountBalance": 0,
-    "totalEarnings": 0,
-    "campaignsCompleted": 0,
+    "membershipId": "MEM123456",
+    "referralCode": "REF123456",
+    "creditScore": 750,
+    "accountBalance": 1000,
+    "totalEarnings": 500,
+    "campaignsCompleted": 5,
+    "lastLogin": "2024-01-01T00:00:00.000Z",
     "dailyCheckIn": {
-      "streak": 0,
-      "daysClaimed": [],
-      "lastCheckIn": null
+      "streak": 3,
+      "daysClaimed": [1, 2, 3]
     },
-    "lastLogin": "2025-10-04T03:55:56.920Z",
-    "createdAt": "2025-10-04T03:55:49.940Z"
-  }
-}
-```
-
-## 👥 User Management Endpoints
-
-### GET /api/users
-Get all users with pagination and filtering.
-
-**Query Parameters:**
-- `page` (optional): Page number (default: 1)
-- `limit` (optional): Items per page (default: 10)
-- `level` (optional): Filter by membership level
-- `search` (optional): Search by name, email, or membership ID
-
-**Example:**
-```
-GET /api/users?page=1&limit=10&level=Gold&search=john
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "_id": "68e09ac5d30baad87b6d81b0",
-      "name": "John Doe",
-      "email": "john@example.com",
-      "level": "Gold",
-      "membershipId": "29935",
-      "accountBalance": 50000,
-      "totalEarnings": 25000,
-      "campaignsCompleted": 15,
-      "createdAt": "2025-10-04T03:55:49.940Z"
-    }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 10,
-    "total": 1,
-    "pages": 1
-  }
-}
-```
-
-### GET /api/users/[id]
-Get user by ID.
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "_id": "68e09ac5d30baad87b6d81b0",
-    "name": "John Doe",
-    "email": "john@example.com",
-    "level": "Gold",
-    "membershipId": "29935",
-    "referralCode": "9CNMVST9",
-    "creditScore": 100,
-    "accountBalance": 50000,
-    "totalEarnings": 25000,
-    "campaignsCompleted": 15,
-    "dailyCheckIn": {
-      "streak": 5,
-      "daysClaimed": [1, 2, 3, 4, 5],
-      "lastCheckIn": "2025-10-04T00:00:00.000Z"
+    "withdrawalInfo": {
+      "method": "Bank Account",
+      "accountHolderName": "John Doe",
+      "bankName": "Example Bank",
+      "accountNumber": "1234567890",
+      "branch": "Main Branch",
+      "documentsUploaded": true
     },
-    "createdAt": "2025-10-04T03:55:49.940Z",
-    "updatedAt": "2025-10-04T03:55:49.940Z"
+    "avatar": "avatar_url_here",
+    "createdAt": "2024-01-01T00:00:00.000Z"
   }
 }
 ```
 
-### PUT /api/users/[id]
-Update user information.
+#### PUT /api/user
+Update user profile.
+
+**Headers:**
+```
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+```
 
 **Request Body:**
 ```json
 {
   "name": "John Smith",
-  "level": "Silver",
-  "accountBalance": 75000
+  "dailyCheckIn": {
+    "streak": 4,
+    "daysClaimed": [1, 2, 3, 4]
+  },
+  "withdrawalInfo": {
+    "method": "Bank Account",
+    "accountHolderName": "John Smith",
+    "bankName": "New Bank",
+    "accountNumber": "9876543210",
+    "branch": "Downtown Branch",
+    "documentsUploaded": true,
+    "uploadedDocuments": [
+      {
+        "name": "id_document.jpg",
+        "size": 1024000,
+        "type": "image/jpeg",
+        "lastModified": 1640995200000
+      }
+    ]
+  },
+  "accountBalance": 1500,
+  "totalEarnings": 750
 }
 ```
 
@@ -167,209 +248,35 @@ Update user information.
 ```json
 {
   "success": true,
-  "message": "User updated successfully",
   "data": {
-    "_id": "68e09ac5d30baad87b6d81b0",
-    "name": "John Smith",
-    "email": "john@example.com",
-    "level": "Silver",
-    "membershipId": "29935",
-    "accountBalance": 75000,
-    "updatedAt": "2025-10-04T04:00:00.000Z"
-  }
-}
-```
-
-### DELETE /api/users/[id]
-Delete user account.
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "User deleted successfully"
-}
-```
-
-## 🎯 Campaign Management Endpoints
-
-### GET /api/campaigns
-Get all campaigns with filtering.
-
-**Query Parameters:**
-- `status` (optional): Filter by status (Active, Completed, Pending, Cancelled)
-- `type` (optional): Filter by type (Social, Paid, Creative, Influencer)
-
-**Example:**
-```
-GET /api/campaigns?status=Active&type=Social
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": [
-    {
-      "_id": "68e09adcd30baad87b6d81b4",
-      "campaignId": "P1IT9189",
-      "code": "6HFVFR",
-      "brand": "Test Brand",
-      "logo": "🏷️",
-      "description": "Test campaign description",
-      "type": "Social",
-      "commissionRate": 10,
-      "commissionAmount": 5000,
-      "baseAmount": 50000,
-      "profit": 5000,
-      "taskCode": "6HFVFR",
-      "status": "Active",
-      "requirements": ["Post on social media", "Use hashtags"],
-      "duration": 7,
-      "maxParticipants": 100,
-      "currentParticipants": 0,
-      "startDate": "2025-10-04T00:00:00.000Z",
-      "endDate": "2025-10-11T00:00:00.000Z",
-      "isActive": true,
-      "createdAt": "2025-10-04T03:56:12.103Z",
-      "updatedAt": "2025-10-04T03:56:12.103Z"
+    "user": {
+      "_id": "user_id",
+      "name": "John Smith",
+      "accountBalance": 1500,
+      "totalEarnings": 750,
+      "withdrawalInfo": {
+        "method": "Bank Account",
+        "accountHolderName": "John Smith",
+        "bankName": "New Bank",
+        "accountNumber": "9876543210",
+        "branch": "Downtown Branch",
+        "documentsUploaded": true
+      }
     }
-  ],
-  "total": 1
+  },
+  "message": "Profile updated successfully"
 }
 ```
 
-### POST /api/campaigns
-Create a new campaign.
+### Campaign Management Endpoints
 
-**Request Body:**
-```json
-{
-  "brand": "Nike",
-  "logo": "👟",
-  "description": "Nike shoe promotion campaign",
-  "type": "Social",
-  "commissionRate": 15,
-  "commissionAmount": 7500,
-  "baseAmount": 50000,
-  "profit": 7500,
-  "requirements": ["Post on Instagram", "Use #NikeShoes", "Tag @nike"],
-  "duration": 14,
-  "maxParticipants": 200,
-  "startDate": "2025-10-05T00:00:00.000Z",
-  "endDate": "2025-10-19T00:00:00.000Z"
-}
+#### GET /api/campaigns
+Get list of available campaigns.
+
+**Headers:**
 ```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Campaign created successfully",
-  "data": {
-    "_id": "68e09adcd30baad87b6d81b4",
-    "campaignId": "P1IT9189",
-    "code": "6HFVFR",
-    "brand": "Nike",
-    "logo": "👟",
-    "description": "Nike shoe promotion campaign",
-    "type": "Social",
-    "commissionRate": 15,
-    "commissionAmount": 7500,
-    "baseAmount": 50000,
-    "profit": 7500,
-    "taskCode": "6HFVFR",
-    "status": "Active",
-    "requirements": ["Post on Instagram", "Use #NikeShoes", "Tag @nike"],
-    "duration": 14,
-    "maxParticipants": 200,
-    "currentParticipants": 0,
-    "startDate": "2025-10-05T00:00:00.000Z",
-    "endDate": "2025-10-19T00:00:00.000Z",
-    "isActive": true,
-    "createdAt": "2025-10-04T03:56:12.103Z",
-    "updatedAt": "2025-10-04T03:56:12.103Z"
-  }
-}
+Authorization: Bearer <jwt_token>
 ```
-
-### GET /api/campaigns/[id]
-Get campaign by ID.
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "_id": "68e09adcd30baad87b6d81b4",
-    "campaignId": "P1IT9189",
-    "code": "6HFVFR",
-    "brand": "Nike",
-    "logo": "👟",
-    "description": "Nike shoe promotion campaign",
-    "type": "Social",
-    "commissionRate": 15,
-    "commissionAmount": 7500,
-    "baseAmount": 50000,
-    "profit": 7500,
-    "taskCode": "6HFVFR",
-    "status": "Active",
-    "requirements": ["Post on Instagram", "Use #NikeShoes", "Tag @nike"],
-    "duration": 14,
-    "maxParticipants": 200,
-    "currentParticipants": 0,
-    "startDate": "2025-10-05T00:00:00.000Z",
-    "endDate": "2025-10-19T00:00:00.000Z",
-    "isActive": true,
-    "createdAt": "2025-10-04T03:56:12.103Z",
-    "updatedAt": "2025-10-04T03:56:12.103Z"
-  }
-}
-```
-
-### PUT /api/campaigns/[id]
-Update campaign.
-
-**Request Body:**
-```json
-{
-  "status": "Completed",
-  "currentParticipants": 150,
-  "isActive": false
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Campaign updated successfully",
-  "data": {
-    "_id": "68e09adcd30baad87b6d81b4",
-    "campaignId": "P1IT9189",
-    "status": "Completed",
-    "currentParticipants": 150,
-    "isActive": false,
-    "updatedAt": "2025-10-04T04:00:00.000Z"
-  }
-}
-```
-
-### DELETE /api/campaigns/[id]
-Delete campaign.
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Campaign deleted successfully"
-}
-```
-
-## 💰 Transaction Management Endpoints
-
-### GET /api/transactions
-Get all transactions.
 
 **Response:**
 ```json
@@ -377,232 +284,533 @@ Get all transactions.
   "success": true,
   "data": [
     {
-      "_id": "68e09ae5d30baad87b6d81b5",
-      "transactionId": "TXN123456",
-      "userId": "68e09ac5d30baad87b6d81b0",
-      "type": "campaign_earning",
-      "amount": 5000,
-      "description": "Earning from Nike campaign",
-      "campaignId": "68e09adcd30baad87b6d81b4",
-      "status": "completed",
-      "method": "bank_transfer",
-      "reference": "REF123456",
-      "metadata": {
-        "campaignName": "Nike Shoe Promotion"
-      },
-      "createdAt": "2025-10-04T04:00:00.000Z",
-      "updatedAt": "2025-10-04T04:00:00.000Z"
+      "_id": "campaign_id_1",
+      "title": "Social Media Campaign",
+      "description": "Promote our brand on social media platforms",
+      "status": "active",
+      "reward": 100,
+      "participants": 25,
+      "duration": 7,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "campaign_id_2",
+      "title": "Product Review Campaign",
+      "description": "Write honest reviews for our products",
+      "status": "active",
+      "reward": 150,
+      "participants": 15,
+      "duration": 14,
+      "createdAt": "2024-01-01T00:00:00.000Z"
     }
   ]
 }
 ```
 
-### POST /api/transactions
-Create a new transaction.
+#### POST /api/campaigns
+Create a new campaign (Admin only).
+
+**Headers:**
+```
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+```
 
 **Request Body:**
 ```json
 {
-  "userId": "68e09ac5d30baad87b6d81b0",
-  "type": "campaign_earning",
-  "amount": 5000,
-  "description": "Earning from Nike campaign",
-  "campaignId": "68e09adcd30baad87b6d81b4",
-  "status": "completed",
-  "method": "bank_transfer",
-  "reference": "REF123456",
-  "metadata": {
-    "campaignName": "Nike Shoe Promotion"
-  }
+  "title": "New Campaign",
+  "description": "Campaign description",
+  "reward": 200,
+  "duration": 10,
+  "requirements": "Must have 100+ followers"
 }
+```
+
+#### GET /api/campaigns/:id
+Get specific campaign details.
+
+**Headers:**
+```
+Authorization: Bearer <jwt_token>
 ```
 
 **Response:**
 ```json
 {
   "success": true,
-  "message": "Transaction created successfully",
   "data": {
-    "_id": "68e09ae5d30baad87b6d81b5",
-    "transactionId": "TXN123456",
-    "userId": "68e09ac5d30baad87b6d81b0",
-    "type": "campaign_earning",
-    "amount": 5000,
-    "description": "Earning from Nike campaign",
-    "campaignId": "68e09adcd30baad87b6d81b4",
-    "status": "completed",
-    "method": "bank_transfer",
-    "reference": "REF123456",
-    "metadata": {
-      "campaignName": "Nike Shoe Promotion"
-    },
-    "createdAt": "2025-10-04T04:00:00.000Z",
-    "updatedAt": "2025-10-04T04:00:00.000Z"
+    "_id": "campaign_id",
+    "title": "Social Media Campaign",
+    "description": "Promote our brand on social media platforms",
+    "status": "active",
+    "reward": 100,
+    "participants": 25,
+    "duration": 7,
+    "requirements": "Must have 100+ followers",
+    "createdAt": "2024-01-01T00:00:00.000Z"
   }
 }
 ```
 
-### GET /api/transactions/[id]
-Get transaction by ID.
+### Transaction Management Endpoints
 
-### PUT /api/transactions/[id]
-Update transaction.
+#### GET /api/transactions
+Get user's transaction history.
 
-### DELETE /api/transactions/[id]
-Delete transaction.
+**Headers:**
+```
+Authorization: Bearer <jwt_token>
+```
 
-## 📊 Status & Health Endpoints
-
-### GET /api/status
-Get application status and environment information.
+**Query Parameters:**
+- `type`: Filter by transaction type (deposit, withdrawal, earning)
+- `status`: Filter by transaction status (pending, completed, failed)
+- `limit`: Number of transactions to return (default: 20)
+- `offset`: Number of transactions to skip (default: 0)
 
 **Response:**
 ```json
 {
   "success": true,
-  "data": {
-    "environment": {
-      "isDevelopment": true,
-      "isProduction": false,
-      "isTest": false
-    },
-    "api": {
-      "frontend": "http://localhost:3001",
-      "backend": "http://localhost:5000",
-      "status": {
-        "backendUrl": "http://localhost:5000",
-        "isAvailable": false,
-        "timestamp": "2025-10-04T03:52:43.557Z"
+  "data": [
+    {
+      "_id": "transaction_id_1",
+      "type": "deposit",
+      "amount": 500,
+      "status": "completed",
+      "description": "Account deposit",
+      "method": "Bank Transfer",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "metadata": {
+        "bankName": "Example Bank",
+        "transactionId": "TXN123456"
       }
     },
-    "features": {
-      "enableRealtime": false,
-      "enableAnalytics": false
-    },
-    "timestamp": "2025-10-04T03:52:43.557Z"
+    {
+      "_id": "transaction_id_2",
+      "type": "earning",
+      "amount": 100,
+      "status": "completed",
+      "description": "Campaign reward",
+      "method": "Campaign Completion",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "metadata": {
+        "campaignId": "campaign_id_1",
+        "campaignTitle": "Social Media Campaign"
+      }
+    }
+  ],
+  "pagination": {
+    "total": 50,
+    "limit": 20,
+    "offset": 0,
+    "hasMore": true
   }
 }
 ```
 
-## 🔧 Error Responses
+#### POST /api/transactions
+Create a new transaction.
 
-All endpoints return consistent error responses:
+**Headers:**
+```
+Authorization: Bearer <jwt_token>
+Content-Type: application/json
+```
 
+**Request Body:**
+```json
+{
+  "type": "withdrawal",
+  "amount": 200,
+  "method": "Bank Account",
+  "status": "processing",
+  "description": "Withdrawal to Bank Account - 1234567890",
+  "metadata": {
+    "accountHolderName": "John Doe",
+    "bankName": "Example Bank",
+    "accountNumber": "1234567890",
+    "branch": "Main Branch",
+    "documentsUploaded": true,
+    "documentCount": 2
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "_id": "transaction_id",
+    "type": "withdrawal",
+    "amount": 200,
+    "status": "processing",
+    "description": "Withdrawal to Bank Account - 1234567890",
+    "method": "Bank Account",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "metadata": {
+      "accountHolderName": "John Doe",
+      "bankName": "Example Bank",
+      "accountNumber": "1234567890",
+      "branch": "Main Branch",
+      "documentsUploaded": true,
+      "documentCount": 2
+    }
+  },
+  "message": "Transaction created successfully"
+}
+```
+
+### File Upload Endpoints
+
+#### POST /api/upload/document
+Upload identity verification documents.
+
+**Headers:**
+```
+Authorization: Bearer <jwt_token>
+Content-Type: multipart/form-data
+```
+
+**Request Body:**
+```
+FormData with files:
+- files: File[] (PNG, JPG, JPEG up to 10MB each)
+- type: "identity_verification"
+- userId: "user_id"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "uploadedFiles": [
+      {
+        "id": "file_id_1",
+        "name": "id_document.jpg",
+        "url": "https://api.iconicdigital.site/uploads/documents/file_id_1.jpg",
+        "size": 1024000,
+        "type": "image/jpeg",
+        "uploadedAt": "2024-01-01T00:00:00.000Z"
+      }
+    ],
+    "totalFiles": 1,
+    "totalSize": 1024000
+  },
+  "message": "Files uploaded successfully"
+}
+```
+
+#### POST /api/upload/avatar
+Upload user avatar.
+
+**Headers:**
+```
+Authorization: Bearer <jwt_token>
+Content-Type: multipart/form-data
+```
+
+**Request Body:**
+```
+FormData with file:
+- file: File (PNG, JPG, JPEG up to 5MB)
+- userId: "user_id"
+```
+
+## Error Handling
+
+### Standard Error Response Format
 ```json
 {
   "success": false,
-  "error": "Error message description",
-  "timestamp": "2025-10-04T04:00:00.000Z"
+  "error": "Error message",
+  "message": "Detailed error description",
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "code": "ERROR_CODE"
 }
 ```
 
-**Common HTTP Status Codes:**
-- `200` - Success
-- `400` - Bad Request (validation error)
-- `401` - Unauthorized (authentication required)
-- `404` - Not Found (resource doesn't exist)
-- `500` - Internal Server Error
+### Common Error Codes
+- `VALIDATION_ERROR`: Request validation failed
+- `UNAUTHORIZED`: Authentication required
+- `FORBIDDEN`: Access denied
+- `NOT_FOUND`: Resource not found
+- `CONFLICT`: Resource already exists
+- `RATE_LIMITED`: Too many requests
+- `SERVER_ERROR`: Internal server error
 
-## 🌐 CORS Configuration
+### HTTP Status Codes
+- `200`: Success
+- `201`: Created
+- `400`: Bad Request
+- `401`: Unauthorized
+- `403`: Forbidden
+- `404`: Not Found
+- `409`: Conflict
+- `422`: Unprocessable Entity
+- `429`: Too Many Requests
+- `500`: Internal Server Error
 
-For external connections, ensure CORS is properly configured:
+## Backend Integration
+
+### Database Schema
+
+#### User Collection
+```javascript
+{
+  _id: ObjectId,
+  name: String,
+  email: String (unique),
+  password: String (hashed),
+  level: String (Bronze, Silver, Gold, Platinum),
+  membershipId: String (unique),
+  referralCode: String (unique),
+  creditScore: Number,
+  accountBalance: Number,
+  totalEarnings: Number,
+  campaignsCompleted: Number,
+  lastLogin: Date,
+  dailyCheckIn: {
+    streak: Number,
+    daysClaimed: [Number]
+  },
+  withdrawalInfo: {
+    method: String,
+    accountHolderName: String,
+    bankName: String,
+    accountNumber: String,
+    branch: String,
+    documentsUploaded: Boolean,
+    uploadedDocuments: [Object]
+  },
+  withdrawalPassword: String (hashed),
+  avatar: String,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+#### Campaign Collection
+```javascript
+{
+  _id: ObjectId,
+  title: String,
+  description: String,
+  status: String (active, inactive, completed),
+  reward: Number,
+  participants: Number,
+  duration: Number,
+  requirements: String,
+  createdBy: ObjectId (User),
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+#### Transaction Collection
+```javascript
+{
+  _id: ObjectId,
+  userId: ObjectId (User),
+  type: String (deposit, withdrawal, earning),
+  amount: Number,
+  status: String (pending, processing, completed, failed),
+  description: String,
+  method: String,
+  metadata: Object,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### Required Backend Endpoints
+
+The backend server must implement the following endpoints:
+
+1. **Authentication**
+   - `POST /api/auth/register`
+   - `POST /api/auth/login`
+   - `POST /api/auth/logout`
+   - `POST /api/auth/refresh`
+
+2. **User Management**
+   - `GET /api/user`
+   - `PUT /api/user`
+   - `GET /api/users` (Admin)
+   - `POST /api/users` (Admin)
+   - `GET /api/users/:id` (Admin)
+   - `PUT /api/users/:id` (Admin)
+   - `DELETE /api/users/:id` (Admin)
+
+3. **Campaign Management**
+   - `GET /api/campaigns`
+   - `POST /api/campaigns` (Admin)
+   - `GET /api/campaigns/:id`
+   - `PUT /api/campaigns/:id` (Admin)
+   - `DELETE /api/campaigns/:id` (Admin)
+
+4. **Transaction Management**
+   - `GET /api/transactions`
+   - `POST /api/transactions`
+   - `GET /api/transactions/:id`
+   - `PUT /api/transactions/:id` (Admin)
+   - `DELETE /api/transactions/:id` (Admin)
+
+5. **File Upload**
+   - `POST /api/upload/document`
+   - `POST /api/upload/avatar`
+
+6. **Health Check**
+   - `GET /api/health`
+   - `GET /api/status`
+
+### CORS Configuration
+The backend must include proper CORS headers:
 
 ```javascript
-// next.config.js
-const nextConfig = {
-  async headers() {
-    return [
-      {
-        source: '/api/:path*',
-        headers: [
-          { key: 'Access-Control-Allow-Origin', value: '*' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS' },
-          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
-        ],
-      },
-    ];
-  },
+app.use(cors({
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+```
+
+### Authentication Middleware
+Implement JWT-based authentication:
+
+```javascript
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ success: false, error: 'Access token required' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ success: false, error: 'Invalid token' });
+    }
+    req.user = user;
+    next();
+  });
 };
 ```
 
-## 📱 Usage Examples
+## Frontend Integration
 
-### JavaScript/Node.js
+### API Client Usage
 ```javascript
-const API_BASE = 'http://localhost:3001';
+import { apiClient } from '@/lib/api-client';
 
 // Register user
-const registerUser = async (userData) => {
-  const response = await fetch(`${API_BASE}/api/auth/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(userData)
-  });
-  return response.json();
-};
+const response = await apiClient.register({
+  name: 'John Doe',
+  email: 'john@example.com',
+  password: 'password123',
+  referralCode: 'REF123456'
+});
+
+// Login user
+const loginResponse = await apiClient.login({
+  email: 'john@example.com',
+  password: 'password123'
+});
+
+// Get user profile
+const profile = await apiClient.getUserProfile();
+
+// Update user profile
+const updateResponse = await apiClient.updateUserProfile({
+  accountBalance: 1500,
+  totalEarnings: 750
+});
 
 // Get campaigns
-const getCampaigns = async () => {
-  const response = await fetch(`${API_BASE}/api/campaigns`);
-  return response.json();
-};
+const campaigns = await apiClient.getCampaigns();
+
+// Create transaction
+const transaction = await apiClient.createTransaction({
+  type: 'withdrawal',
+  amount: 200,
+  method: 'Bank Account',
+  status: 'processing',
+  description: 'Withdrawal request'
+});
 ```
 
-### Python
-```python
-import requests
+### Environment Setup
+1. Copy the appropriate environment file:
+   ```bash
+   cp .env.development .env.local
+   ```
 
-API_BASE = 'http://localhost:3001'
+2. Update the environment variables with your backend URL:
+   ```env
+   NEXT_PUBLIC_BACKEND_URL=http://your-backend-url:port
+   NEXT_PUBLIC_API_URL=http://your-backend-url:port/api
+   ```
 
-# Register user
-def register_user(user_data):
-    response = requests.post(f'{API_BASE}/api/auth/register', json=user_data)
-    return response.json()
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-# Get campaigns
-def get_campaigns():
-    response = requests.get(f'{API_BASE}/api/campaigns')
-    return response.json()
+## Testing
+
+### API Testing with Postman
+1. Import the provided Postman collection
+2. Set up environment variables in Postman
+3. Test all endpoints with proper authentication
+
+### Frontend Testing
+```bash
+# Run linting
+npm run lint
+
+# Run type checking
+npm run type-check
+
+# Run build
+npm run build
+
+# Start development server
+npm run dev
 ```
 
-### PHP
-```php
-<?php
-$api_base = 'http://localhost:3001';
+## Deployment
 
-// Register user
-function registerUser($userData) {
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $api_base . '/api/auth/register');
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($userData));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    
-    $response = curl_exec($ch);
-    curl_close($ch);
-    
-    return json_decode($response, true);
-}
-?>
+### Vercel Deployment
+1. Set environment variables in Vercel dashboard
+2. Deploy using:
+   ```bash
+   vercel --prod
+   ```
+
+### Docker Deployment
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "start"]
 ```
 
-## 🔒 Security Notes
+## Support
 
-1. **Authentication**: Currently uses localStorage for session management
-2. **Password Hashing**: Uses bcrypt with salt rounds
-3. **Input Validation**: Server-side validation on all endpoints
-4. **CORS**: Configure appropriately for production
-5. **Rate Limiting**: Consider implementing for production use
-
-## 📞 Support
-
-For API support or questions:
-- Check the application logs for detailed error messages
-- Verify environment variables are properly set
-- Ensure MongoDB connection is working
-- Test endpoints using curl or Postman
+For technical support or questions about the API:
+- Email: support@iconicdigital.site
+- Documentation: https://docs.iconicdigital.site
+- GitHub: https://github.com/iconicdigital1/iconic-digital-frontend
 
 ---
 
-এই API documentation ব্যবহার করে আপনি যেকোনো external application থেকে SocialTrend frontend এর সাথে connect করতে পারবেন! 🚀
+**Last Updated**: January 2024
+**Version**: 1.0.0
