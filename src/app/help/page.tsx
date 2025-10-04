@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, ChevronDown, ChevronUp, Send, Clock, MessageCircle } from "lucide-react";
-import { Header } from "@/components/Header";
+import { HomepageHeader } from "@/components/HomepageHeader";
+import { HomepageFooter } from "@/components/HomepageFooter";
 
 export default function HelpPage() {
   const router = useRouter();
@@ -52,10 +53,10 @@ export default function HelpPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header user={user || undefined} />
+    <div className="min-h-screen bg-white">
+      <HomepageHeader user={user || undefined} />
       
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-6 pb-20">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <Button
@@ -123,6 +124,7 @@ export default function HelpPage() {
           </div>
         </Card>
       </div>
+      <HomepageFooter activePage="account" />
     </div>
   );
 }

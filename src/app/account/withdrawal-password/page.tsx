@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { AppLayout } from "@/components/AppLayout";
+import { HomepageHeader } from "@/components/HomepageHeader";
+import { HomepageFooter } from "@/components/HomepageFooter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -98,8 +99,10 @@ export default function WithdrawalPasswordPage() {
   }
 
   return (
-    <AppLayout user={user}>
-      <div className="space-y-6">
+    <div className="min-h-screen bg-white">
+      <HomepageHeader user={user} />
+      <div className="max-w-4xl mx-auto px-4 py-6 pb-20">
+        <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
           <Link href="/account">
@@ -263,7 +266,9 @@ export default function WithdrawalPasswordPage() {
             </div>
           </div>
         </Card>
+        </div>
       </div>
-    </AppLayout>
+      <HomepageFooter activePage="account" />
+    </div>
   );
 }
