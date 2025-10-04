@@ -4,10 +4,24 @@
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0 --turbopack",
+    "dev:local": "cp .env.development .env.local && next dev -H 0.0.0.0 --turbopack",
+    "dev:prod": "cp .env.production .env.local && next dev -H 0.0.0.0 --turbopack",
     "build": "next build",
+    "build:dev": "cp .env.development .env.local && next build",
+    "build:prod": "cp .env.production .env.local && next build",
     "start": "next start",
+    "start:dev": "cp .env.development .env.local && next start",
+    "start:prod": "cp .env.production .env.local && next start",
     "lint": "bunx tsc --noEmit && next lint",
-    "format": "bunx biome format --write"
+    "format": "bunx biome format --write",
+    "env:check": "node -e \"console.log('Environment:', process.env.NODE_ENV); console.log('API URL:', process.env.NEXT_PUBLIC_API_URL); console.log('Frontend URL:', process.env.NEXT_PUBLIC_FRONTEND_URL);\"",
+    "test": "NODE_ENV=test jest",
+    "test:dev": "cp .env.development .env.local && NODE_ENV=development jest",
+    "test:prod": "cp .env.production .env.local && NODE_ENV=production jest",
+    "vercel-build": "next build",
+    "deploy": "vercel --prod",
+    "deploy:preview": "vercel",
+    "deploy:setup": "cp .env.production .env.local && vercel --prod"
   },
   "dependencies": {
     "@next-auth/mongodb-adapter": "^1.1.3",

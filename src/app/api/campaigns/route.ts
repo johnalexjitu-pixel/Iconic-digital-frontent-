@@ -132,12 +132,28 @@ export async function POST(request: NextRequest) {
 
     const campaignData = await request.json();
 
-    // For demo, just return success
-    // In production, create actual campaign document
+    // Generate unique IDs
+    const campaignId = `P1IT${Math.floor(1000 + Math.random() * 9000)}`;
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const taskCode = code;
+
+    // Create new campaign
+    const newCampaign = new Campaign({
+      ...campaignData,
+      campaignId,
+      code,
+      taskCode,
+      currentParticipants: 0,
+      status: 'Active',
+      isActive: true
+    });
+
+    await newCampaign.save();
 
     return NextResponse.json({
       success: true,
-      message: 'Campaign created successfully'
+      message: 'Campaign created successfully',
+      data: newCampaign
     });
   } catch (error) {
     console.error('Error creating campaign:', error);

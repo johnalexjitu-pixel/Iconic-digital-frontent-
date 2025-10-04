@@ -1,17 +1,83 @@
 "use client";
 
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, Play } from "lucide-react";
+import { ArrowRight, Play, LogIn, UserPlus } from "lucide-react";
+import Link from 'next/link';
 
 export default function HomePage() {
-  // Mock user data
-  const user = {
-    name: "gokazi",
-    level: "Silver",
-    avatar: "/placeholder-avatar.jpg"
+  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+    setLoading(false);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    setUser(null);
+    router.push('/auth/login');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl font-bold text-white">ST</span>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">SOCIALTREND</h1>
+            <p className="text-gray-600">Award-winning creative & performance marketing agency</p>
+          </div>
+
+          <Card className="p-6">
+            <div className="space-y-4">
+              <Link href="/auth/login">
+                <Button className="w-full h-12 text-lg">
+                  <LogIn className="w-5 h-5 mr-2" />
+                  Sign In
+                </Button>
+              </Link>
+              
+              <Link href="/auth/register">
+                <Button variant="outline" className="w-full h-12 text-lg">
+                  <UserPlus className="w-5 h-5 mr-2" />
+                  Create Account
+                </Button>
+              </Link>
+            </div>
+
+            <div className="mt-6 text-center">
+              <Link href="/admin" className="text-sm text-gray-500 hover:text-gray-700">
+                Admin Dashboard
+              </Link>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   const stats = [
     {

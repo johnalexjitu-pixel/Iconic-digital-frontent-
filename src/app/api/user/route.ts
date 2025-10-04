@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { apiClient } from '@/lib/api-client';
+import { config } from '@/lib/config';
 import { connectDB } from '@/lib/mongodb';
-import User from '@/models/User';
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
+    // Try to get data from backend server first
+    if (config.env.isDevelopment) {
+      const backendResponse = await apiClient.getUserProfile();
+      
+      if (backendResponse.success) {
+        return NextResponse.json(backendResponse);
+      }
+    }
 
-    // For demo purposes, return mock user data
-    // In production, you'd get the user ID from authentication
+    // Fallback to mock data if backend is not available
     const mockUser = {
       _id: "mock_user_id",
       name: "gokazi",
@@ -29,7 +36,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: mockUser
+      data: mockUser,
+      source: 'mock-data'
     });
   } catch (error) {
     console.error('Error fetching user data:', error);

@@ -2,8 +2,9 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Bell, HelpCircle, Menu, Phone } from "lucide-react";
+import { Bell, HelpCircle, Menu, Phone, LogOut } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 interface HeaderProps {
   user?: {
@@ -14,6 +15,13 @@ interface HeaderProps {
 }
 
 export function Header({ user }: HeaderProps) {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    router.push('/auth/login');
+  };
+
   return (
     <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
       {/* Logo */}
@@ -37,7 +45,7 @@ export function Header({ user }: HeaderProps) {
         {user && (
           <div className="flex items-center gap-2 text-sm">
             <Bell className="w-4 h-4 text-gray-500" />
-            <span className="text-gray-600">Member Level</span>
+            <span className="text-gray-600">{user.level} Member</span>
           </div>
         )}
 
@@ -48,12 +56,20 @@ export function Header({ user }: HeaderProps) {
 
         <Button variant="ghost" size="sm" className="flex items-center gap-1">
           <Phone className="w-4 h-4" />
-          <span className="hidden sm:inline">Customer Service</span>
+          <span className="hidden sm:inline">Support</span>
         </Button>
 
-        <Button variant="ghost" size="sm">
-          <Menu className="w-4 h-4" />
-        </Button>
+        {user && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleLogout}
+            className="flex items-center gap-1 text-red-600 hover:text-red-700"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Logout</span>
+          </Button>
+        )}
       </div>
     </header>
   );

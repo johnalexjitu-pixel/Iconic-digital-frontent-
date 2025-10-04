@@ -12,7 +12,7 @@ export interface ITransaction {
   method?: string; // For deposits/withdrawals
   reference?: string;
   metadata?: {
-    [key: string]: any;
+    [key: string]: unknown;
   };
   createdAt: Date;
   updatedAt: Date;
