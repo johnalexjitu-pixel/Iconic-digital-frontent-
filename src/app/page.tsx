@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, Play, LogIn, UserPlus, Bell, HelpCircle, Phone, Plus, User, Menu, Crown, Headphones } from "lucide-react";
+import { ArrowRight, Play, LogIn, UserPlus, Bell, HelpCircle, Phone, Plus, User, Menu, Crown, Headphones, LogOut } from "lucide-react";
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -44,17 +44,17 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white">
         {/* Header */}
-        <header className="bg-gray-900 px-6 py-4">
+        <header className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-red-500 rounded flex items-center justify-center">
                 <span className="text-white font-bold text-sm">⚡</span>
               </div>
-              <span className="text-xl font-bold text-white font-lexend">SOCIALTREND.</span>
+              <span className="text-xl font-bold text-gray-900 font-lexend">ICONIC DIGITAL</span>
             </div>
-            <div className="flex items-center gap-6 text-sm font-lexend text-white">
+            <div className="flex items-center gap-6 text-sm font-lexend text-gray-600">
               <div className="flex items-center gap-2">
-                <User className="w-4 h-4" />
+                <Crown className="w-4 h-4" />
                 <span>Member Level</span>
               </div>
               <div className="flex items-center gap-2">
@@ -62,12 +62,33 @@ export default function HomePage() {
                 <span>Help</span>
               </div>
               <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4" />
-                <span>Customer Service</span>
+                <Headphones className="w-4 h-4" />
+                <span>Support</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Menu className="w-4 h-4" />
-              </div>
+              {user ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    localStorage.removeItem('user');
+                    window.location.reload();
+                  }}
+                  className="flex items-center gap-1 text-red-600 hover:text-red-700"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Logout</span>
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => router.push('/auth/login')}
+                  className="flex items-center gap-1"
+                >
+                  <LogIn className="w-4 h-4" />
+                  <span>Login</span>
+                </Button>
+              )}
             </div>
           </div>
         </header>
@@ -134,17 +155,27 @@ export default function HomePage() {
         </div>
 
         {/* Brands Section */}
-        <div className="py-16 px-6 bg-white">
+        <div className="py-16 px-6 bg-white overflow-hidden">
           <div className="text-center mb-12">
             <h2 className="text-2xl font-bold text-gray-900 font-lexend mb-8">Brands that trust us.</h2>
-            <div className="flex items-center justify-center gap-8 flex-wrap">
-              <Image src="/homepage/UNIQLO_logo-C0xzmNex.png" alt="UNIQLO" width={120} height={60} className="opacity-60" />
-              <Image src="/homepage/arla-logo-black-and-white-CByUCCSa.png" alt="Arla" width={120} height={60} className="opacity-60" />
-              <Image src="/homepage/corston_logo_black-b-5-RcG5.png" alt="Corston" width={120} height={60} className="opacity-60" />
-              <Image src="/homepage/Easyjet-Holidays-Ciyzil3W.png" alt="EasyJet Holidays" width={120} height={60} className="opacity-60" />
-              <Image src="/homepage/Lumene-Logo-Bo_hRYRn.png" alt="Lumene" width={120} height={60} className="opacity-60" />
-              <Image src="/homepage/Passenger-Logo-Rectangle-Outline-Box-V2-Black-CAfMuM_n.png" alt="Passenger" width={120} height={60} className="opacity-60" />
-              <Image src="/homepage/Premier-Inn-D26Ark0T.png" alt="Premier Inn" width={120} height={60} className="opacity-60" />
+            <div className="relative">
+              <div className="flex animate-scroll gap-12 items-center">
+                <Image src="/homepage/UNIQLO_logo-C0xzmNex.png" alt="UNIQLO" width={120} height={60} className="opacity-60 flex-shrink-0" />
+                <Image src="/homepage/arla-logo-black-and-white-CByUCCSa.png" alt="Arla" width={120} height={60} className="opacity-60 flex-shrink-0" />
+                <Image src="/homepage/corston_logo_black-b-5-RcG5.png" alt="Corston" width={120} height={60} className="opacity-60 flex-shrink-0" />
+                <Image src="/homepage/Easyjet-Holidays-Ciyzil3W.png" alt="EasyJet Holidays" width={120} height={60} className="opacity-60 flex-shrink-0" />
+                <Image src="/homepage/Lumene-Logo-Bo_hRYRn.png" alt="Lumene" width={120} height={60} className="opacity-60 flex-shrink-0" />
+                <Image src="/homepage/Passenger-Logo-Rectangle-Outline-Box-V2-Black-CAfMuM_n.png" alt="Passenger" width={120} height={60} className="opacity-60 flex-shrink-0" />
+                <Image src="/homepage/Premier-Inn-D26Ark0T.png" alt="Premier Inn" width={120} height={60} className="opacity-60 flex-shrink-0" />
+                {/* Duplicate for seamless loop */}
+                <Image src="/homepage/UNIQLO_logo-C0xzmNex.png" alt="UNIQLO" width={120} height={60} className="opacity-60 flex-shrink-0" />
+                <Image src="/homepage/arla-logo-black-and-white-CByUCCSa.png" alt="Arla" width={120} height={60} className="opacity-60 flex-shrink-0" />
+                <Image src="/homepage/corston_logo_black-b-5-RcG5.png" alt="Corston" width={120} height={60} className="opacity-60 flex-shrink-0" />
+                <Image src="/homepage/Easyjet-Holidays-Ciyzil3W.png" alt="EasyJet Holidays" width={120} height={60} className="opacity-60 flex-shrink-0" />
+                <Image src="/homepage/Lumene-Logo-Bo_hRYRn.png" alt="Lumene" width={120} height={60} className="opacity-60 flex-shrink-0" />
+                <Image src="/homepage/Passenger-Logo-Rectangle-Outline-Box-V2-Black-CAfMuM_n.png" alt="Passenger" width={120} height={60} className="opacity-60 flex-shrink-0" />
+                <Image src="/homepage/Premier-Inn-D26Ark0T.png" alt="Premier Inn" width={120} height={60} className="opacity-60 flex-shrink-0" />
+              </div>
             </div>
           </div>
         </div>
@@ -152,7 +183,7 @@ export default function HomePage() {
         {/* We are Socialtrend Section */}
         <div className="py-20 px-6 bg-white">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-4xl font-bold text-gray-900 font-lexend mb-16 text-center">We are Socialtrend. Award-winning creative & performance marketing agency.</h2>
+            <h2 className="text-4xl font-bold text-gray-900 font-lexend mb-16 text-center">We are Iconic Digital. Award-winning creative & performance marketing agency.</h2>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               <div>
@@ -354,9 +385,9 @@ export default function HomePage() {
                   <div className="w-8 h-8 bg-red-500 rounded flex items-center justify-center">
                     <span className="text-white font-bold text-sm">⚡</span>
                   </div>
-                  <span className="text-xl font-bold font-lexend">SOCIALTREND.</span>
+                  <span className="text-xl font-bold font-lexend">ICONIC DIGITAL</span>
                 </div>
-                <p className="text-gray-400 font-lexend text-sm">©2023 Socialtrend. All rights reserved.</p>
+                <p className="text-gray-400 font-lexend text-sm">©2024 Iconic Digital. All rights reserved.</p>
               </div>
               <div>
                 <h3 className="text-lg font-semibold font-lexend mb-4">Our Services</h3>
@@ -398,35 +429,35 @@ export default function HomePage() {
         </footer>
 
         {/* Bottom Navigation */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white text-gray-900 py-4 px-6 border-t border-gray-200">
-          <div className="flex items-center justify-around">
-            <Link href="/" className="flex flex-col items-center gap-1">
-              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-xs">🏠</span>
+        <div className="fixed bottom-0 left-0 right-0 bg-white text-gray-900 py-2 px-4 border-t border-gray-200 z-50">
+          <div className="flex items-center justify-around max-w-md mx-auto">
+            <Link href="/" className="flex flex-col items-center gap-1 min-w-0 flex-1">
+              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-sm">🏠</span>
               </div>
-              <span className="text-xs font-lexend text-green-500">Home</span>
+              <span className="text-xs font-lexend text-green-500 font-medium">Home</span>
             </Link>
-            <Link href="/services" className="flex flex-col items-center gap-1">
-              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 text-xs">i</span>
+            <Link href="/services" className="flex flex-col items-center gap-1 min-w-0 flex-1">
+              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                <span className="text-gray-600 text-sm">i</span>
               </div>
               <span className="text-xs font-lexend text-gray-600">Services</span>
             </Link>
-            <Link href="/campaign" className="flex flex-col items-center gap-1">
-              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 text-xs">📅</span>
+            <Link href="/campaign" className="flex flex-col items-center gap-1 min-w-0 flex-1">
+              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                <span className="text-gray-600 text-sm">📅</span>
               </div>
               <span className="text-xs font-lexend text-gray-600">Campaign</span>
             </Link>
-            <Link href="/history" className="flex flex-col items-center gap-1">
-              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 text-xs">🕒</span>
+            <Link href="/history" className="flex flex-col items-center gap-1 min-w-0 flex-1">
+              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                <span className="text-gray-600 text-sm">🕒</span>
               </div>
               <span className="text-xs font-lexend text-gray-600">History</span>
             </Link>
-            <Link href="/account" className="flex flex-col items-center gap-1">
-              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                <span className="text-gray-600 text-xs">👤</span>
+            <Link href="/account" className="flex flex-col items-center gap-1 min-w-0 flex-1">
+              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                <span className="text-gray-600 text-sm">👤</span>
               </div>
               <span className="text-xs font-lexend text-gray-600">Account</span>
             </Link>

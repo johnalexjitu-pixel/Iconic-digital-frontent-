@@ -2,7 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Bell, HelpCircle, Menu, Phone, LogOut } from "lucide-react";
+import { Bell, HelpCircle, Menu, Phone, LogOut, Crown, Headphones, LogIn } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -26,7 +26,7 @@ export function Header({ user }: HeaderProps) {
     <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
       {/* Logo */}
       <div className="flex items-center">
-        <div className="w-48 relative">
+        <div className="w-48 h-24 relative">
           <Image
             src="/logo/logo.png"
             alt="Iconic Digital"
@@ -39,12 +39,10 @@ export function Header({ user }: HeaderProps) {
 
       {/* Right side menu */}
       <div className="flex items-center gap-3">
-        {user && (
-          <div className="flex items-center gap-2 text-sm">
-            <Bell className="w-4 h-4 text-gray-500" />
-            <span className="text-gray-600">{user.level} Member</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2 text-sm">
+          <Crown className="w-4 h-4 text-gray-500" />
+          <span className="text-gray-600">Member Level</span>
+        </div>
 
         <Button variant="ghost" size="sm" className="flex items-center gap-1">
           <HelpCircle className="w-4 h-4" />
@@ -52,11 +50,11 @@ export function Header({ user }: HeaderProps) {
         </Button>
 
         <Button variant="ghost" size="sm" className="flex items-center gap-1">
-          <Phone className="w-4 h-4" />
+          <Headphones className="w-4 h-4" />
           <span className="hidden sm:inline">Support</span>
         </Button>
 
-        {user && (
+        {user ? (
           <Button 
             variant="ghost" 
             size="sm" 
@@ -65,6 +63,16 @@ export function Header({ user }: HeaderProps) {
           >
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Logout</span>
+          </Button>
+        ) : (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => router.push('/auth/login')}
+            className="flex items-center gap-1"
+          >
+            <LogIn className="w-4 h-4" />
+            <span className="hidden sm:inline">Login</span>
           </Button>
         )}
       </div>

@@ -2,7 +2,7 @@
 
 ## 📋 Overview
 
-আপনার SocialTrend frontend এখন `iconicdigital.site` domain এর জন্য সম্পূর্ণভাবে configured।
+আপনার  frontend এখন `iconicdigital.site` domain এর জন্য সম্পূর্ণভাবে configured।
 
 ## 🔧 Domain Structure
 
