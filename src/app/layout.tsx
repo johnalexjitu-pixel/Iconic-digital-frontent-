@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Lexend } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const lexend = Lexend({ 
+  subsets: ["latin"],
+  variable: "--font-lexend",
+  weight: ["300", "400", "500", "600", "700", "800"]
+});
 
 export const metadata: Metadata = {
   title: "SocialTrend - Award-winning creative & performance marketing agency",
@@ -16,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${lexend.variable} font-lexend`}>
         {children}
       </body>
     </html>
