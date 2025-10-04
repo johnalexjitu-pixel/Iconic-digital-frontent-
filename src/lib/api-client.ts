@@ -33,7 +33,7 @@ export class ApiClient {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     if (this.enableLogging) {
       console.log(`🌐 API Call: ${options.method || 'GET'} ${url}`);
     }
@@ -58,7 +58,7 @@ export class ApiClient {
       }
 
       const data = await response.json();
-      
+
       if (this.enableLogging) {
         console.log(`✅ API Response: ${url}`, data);
       }
@@ -66,9 +66,15 @@ export class ApiClient {
       return data;
     } catch (error) {
       clearTimeout(timeoutId);
-      
+
       if (this.enableLogging) {
         console.error(`❌ API Error: ${url}`, error);
+      }
+
+      // Return mock data for development when backend is not available
+      if (this.envConfig.isDevelopment && error instanceof Error && error.message.includes('Failed to fetch')) {
+        console.log(`🔄 Using mock data for: ${endpoint}`);
+        return this.getMockData(endpoint);
       }
 
       return {
@@ -77,6 +83,87 @@ export class ApiClient {
         timestamp: new Date().toISOString(),
       };
     }
+  }
+
+  private getMockData(endpoint: string): ApiResponse {
+    // Mock data for different endpoints
+    const mockData: Record<string, any> = {
+      '/api/campaigns': {
+        success: true,
+        data: [
+          {
+            _id: '1',
+            title: 'Social Media Campaign',
+            description: 'Promote our brand on social media platforms',
+            status: 'active',
+            reward: 5000,
+            participants: 25,
+            duration: 7,
+            createdAt: new Date().toISOString()
+          },
+          {
+            _id: '2',
+            title: 'Content Creation',
+            description: 'Create engaging content for our products',
+            status: 'active',
+            reward: 3000,
+            participants: 15,
+            duration: 14,
+            createdAt: new Date().toISOString()
+          }
+        ]
+      },
+      '/api/transactions': {
+        success: true,
+        data: [
+          {
+            _id: '1',
+            type: 'deposit',
+            amount: 10000,
+            status: 'completed',
+            description: 'Initial deposit',
+            method: 'Bank Transfer',
+            createdAt: new Date(Date.now() - 86400000).toISOString()
+          },
+          {
+            _id: '2',
+            type: 'earning',
+            amount: 2500,
+            status: 'completed',
+            description: 'Campaign reward',
+            method: 'Campaign',
+            createdAt: new Date(Date.now() - 172800000).toISOString()
+          }
+        ]
+      },
+      '/api/user': {
+        success: true,
+        data: {
+          _id: "mock_user_id",
+          name: "gokazi",
+          email: "gokazi@example.com",
+          level: "Silver",
+          membershipId: "46235",
+          referralCode: "UXOX485U6",
+          creditScore: 100,
+          accountBalance: 61076,
+          totalEarnings: 0,
+          campaignsCompleted: 8,
+          lastLogin: new Date(),
+          dailyCheckIn: {
+            lastCheckIn: new Date(),
+            streak: 4,
+            daysClaimed: [1, 2, 3, 4]
+          }
+        }
+      }
+    };
+
+    return mockData[endpoint] || {
+      success: true,
+      data: [],
+      message: 'Mock data - Backend not available'
+    };
   }
 
   // Authentication API methods

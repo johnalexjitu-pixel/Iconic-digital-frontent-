@@ -31,9 +31,13 @@ export default function HistoryPage() {
       const response = await apiClient.getTransactions();
       if (response.success) {
         setTransactions(response.data || []);
+      } else {
+        // If API fails, show empty state
+        setTransactions([]);
       }
     } catch (error) {
       console.error('Error fetching transactions:', error);
+      setTransactions([]);
     } finally {
       setLoading(false);
     }

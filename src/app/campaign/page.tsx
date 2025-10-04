@@ -30,9 +30,13 @@ export default function CampaignPage() {
       const response = await apiClient.getCampaigns();
       if (response.success) {
         setCampaigns(response.data || []);
+      } else {
+        // If API fails, show empty state
+        setCampaigns([]);
       }
     } catch (error) {
       console.error('Error fetching campaigns:', error);
+      setCampaigns([]);
     } finally {
       setLoading(false);
     }
@@ -100,7 +104,7 @@ export default function CampaignPage() {
                       <div className="flex items-center justify-center gap-1 mb-1">
                         <DollarSign className="w-4 h-4 text-green-600" />
                         <span className="text-sm text-gray-600">Reward</span>
-                      </div>
+                    </div>
                       <p className="font-bold text-green-600">Rs {campaign.reward}</p>
                     </div>
                     <div className="text-center">
@@ -114,7 +118,7 @@ export default function CampaignPage() {
                       <div className="flex items-center justify-center gap-1 mb-1">
                         <Clock className="w-4 h-4 text-orange-600" />
                         <span className="text-sm text-gray-600">Duration</span>
-                      </div>
+                    </div>
                       <p className="font-bold text-orange-600">{campaign.duration} days</p>
                     </div>
                   </div>
