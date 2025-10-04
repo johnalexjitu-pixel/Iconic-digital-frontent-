@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { apiClient } from '@/lib/api-client';
 import { config } from '@/lib/config';
 import { connectDB } from '@/lib/mongodb';
+import User from '@/models/User';
+import bcrypt from 'bcryptjs';
 
 export async function GET(request: NextRequest) {
   try {
@@ -55,8 +57,32 @@ export async function PATCH(request: NextRequest) {
     const updateData = await request.json();
     const userId = "mock_user_id"; // In production, get from auth
 
-    // For demo, just return success
-    // In production, update the actual user document
+    // Handle password updates
+    if (updateData.currentPassword && updateData.newPassword) {
+      // Update login password
+      const hashedPassword = await bcrypt.hash(updateData.newPassword, 12);
+      await User.findByIdAndUpdate(userId, { password: hashedPassword });
+    }
+
+    if (updateData.currentWithdrawalPassword && updateData.newWithdrawalPassword) {
+      // Update withdrawal password
+      const hashedWithdrawalPassword = await bcrypt.hash(updateData.newWithdrawalPassword, 12);
+      await User.findByIdAndUpdate(userId, { withdrawalPassword: hashedWithdrawalPassword });
+    }
+
+    // Handle other updates
+    const allowedFields = ['dailyCheckIn', 'withdrawalInfo', 'accountBalance', 'totalEarnings'];
+    const updateFields: Record<string, any> = {};
+    
+    allowedFields.forEach(field => {
+      if (updateData[field] !== undefined) {
+        updateFields[field] = updateData[field];
+      }
+    });
+
+    if (Object.keys(updateFields).length > 0) {
+      await User.findByIdAndUpdate(userId, updateFields);
+    }
 
     return NextResponse.json({
       success: true,

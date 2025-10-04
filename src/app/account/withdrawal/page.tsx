@@ -42,31 +42,46 @@ export default function WithdrawalInfoPage() {
     
     setLoading(true);
     try {
-      const response = await apiClient.createTransaction({
-        type: 'withdrawal',
-        amount: parseFloat(formData.amount),
-        method: formData.withdrawalMethod,
-        status: 'processing',
-        description: `Withdrawal to ${formData.bankName} - ${formData.accountNumber}`,
-        metadata: {
+      // Save withdrawal info to user profile
+      const withdrawalInfoResponse = await apiClient.updateUserProfile({
+        withdrawalInfo: {
+          method: formData.withdrawalMethod,
           accountHolderName: formData.accountHolderName,
           bankName: formData.bankName,
           accountNumber: formData.accountNumber,
-          branch: formData.branch
+          branch: formData.branch,
+          documentsUploaded: false
         }
       });
 
-      if (response.success) {
-        setSuccess(true);
-        setFormData({
-          withdrawalMethod: "Bank Account",
-          accountHolderName: "",
-          bankName: "",
-          accountNumber: "",
-          branch: "",
-          amount: ""
+      if (withdrawalInfoResponse.success) {
+        // Create withdrawal transaction
+        const response = await apiClient.createTransaction({
+          type: 'withdrawal',
+          amount: parseFloat(formData.amount),
+          method: formData.withdrawalMethod,
+          status: 'processing',
+          description: `Withdrawal to ${formData.bankName} - ${formData.accountNumber}`,
+          metadata: {
+            accountHolderName: formData.accountHolderName,
+            bankName: formData.bankName,
+            accountNumber: formData.accountNumber,
+            branch: formData.branch
+          }
         });
-        setTimeout(() => setSuccess(false), 3000);
+
+        if (response.success) {
+          setSuccess(true);
+          setFormData({
+            withdrawalMethod: "Bank Account",
+            accountHolderName: "",
+            bankName: "",
+            accountNumber: "",
+            branch: "",
+            amount: ""
+          });
+          setTimeout(() => setSuccess(false), 3000);
+        }
       }
     } catch (error) {
       console.error('Error creating withdrawal:', error);

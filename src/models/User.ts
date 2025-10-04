@@ -5,6 +5,7 @@ export interface IUser {
   name: string;
   email: string;
   password: string;
+  withdrawalPassword?: string;
   level: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
   membershipId: string;
   referralCode: string;
@@ -46,6 +47,10 @@ const UserSchema = new mongoose.Schema<IUser>({
   password: {
     type: String,
     required: true
+  },
+  withdrawalPassword: {
+    type: String,
+    default: null
   },
   level: {
     type: String,
