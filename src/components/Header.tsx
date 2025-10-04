@@ -39,17 +39,32 @@ export function Header({ user }: HeaderProps) {
 
       {/* Right side menu */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 text-sm">
-          <Crown className="w-4 h-4 text-gray-500" />
-          <span className="text-gray-600">Member Level</span>
-        </div>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => router.push('/member-level')}
+          className="flex items-center gap-1"
+        >
+          <Crown className="w-4 h-4" />
+          <span className="hidden sm:inline">Member Level</span>
+        </Button>
 
-        <Button variant="ghost" size="sm" className="flex items-center gap-1">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => router.push('/help')}
+          className="flex items-center gap-1"
+        >
           <HelpCircle className="w-4 h-4" />
           <span className="hidden sm:inline">Help</span>
         </Button>
 
-        <Button variant="ghost" size="sm" className="flex items-center gap-1">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => router.push('/customer-service')}
+          className="flex items-center gap-1"
+        >
           <Headphones className="w-4 h-4" />
           <span className="hidden sm:inline">Support</span>
         </Button>

@@ -9,7 +9,7 @@ const lexend = Lexend({
 });
 
 export const metadata: Metadata = {
-  title: "SocialTrend - Award-winning creative & performance marketing agency",
+  title: "Iconic Digital - Award-winning creative & performance marketing agency",
   description: "We blend creative and performance to deliver outstanding results for your brand.",
 };
 

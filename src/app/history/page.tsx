@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { AppLayout } from "@/components/AppLayout";
+import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -99,8 +99,10 @@ export default function HistoryPage() {
   const earnings = transactions.filter(t => t.type === 'earning');
 
   return (
-    <AppLayout user={user}>
-      <div className="space-y-6">
+    <div className="min-h-screen bg-gray-50">
+      <Header user={user} />
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="space-y-6">
         {/* Header */}
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Transaction History</h1>
@@ -272,7 +274,8 @@ export default function HistoryPage() {
             )}
           </TabsContent>
         </Tabs>
+        </div>
       </div>
-    </AppLayout>
+    </div>
   );
 }
