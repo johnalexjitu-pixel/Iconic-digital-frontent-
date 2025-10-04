@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Upload, AlertCircle, CheckCircle } from "lucide-react";
+import { ArrowLeft, Upload, AlertCircle, CheckCircle, X, FileImage } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { apiClient } from '@/lib/api-client';
@@ -23,6 +23,8 @@ export default function WithdrawalInfoPage() {
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -38,8 +40,52 @@ export default function WithdrawalInfoPage() {
     }));
   };
 
+  const handleFileUpload = (files: FileList | null) => {
+    if (!files) return;
+    
+    const newFiles = Array.from(files).filter(file => {
+      const isValidType = file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/jpg';
+      const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB
+      return isValidType && isValidSize;
+    });
+
+    setUploadedFiles(prev => [...prev, ...newFiles]);
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileUpload(e.dataTransfer.files);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   const handleWithdrawal = async () => {
-    if (!formData.amount || !formData.accountNumber) return;
+    if (!formData.amount || !formData.accountNumber || uploadedFiles.length === 0) return;
     
     setLoading(true);
     try {
@@ -51,7 +97,13 @@ export default function WithdrawalInfoPage() {
           bankName: formData.bankName,
           accountNumber: formData.accountNumber,
           branch: formData.branch,
-          documentsUploaded: false
+          documentsUploaded: true,
+          uploadedDocuments: uploadedFiles.map(file => ({
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            lastModified: file.lastModified
+          }))
         }
       });
 
@@ -67,7 +119,9 @@ export default function WithdrawalInfoPage() {
             accountHolderName: formData.accountHolderName,
             bankName: formData.bankName,
             accountNumber: formData.accountNumber,
-            branch: formData.branch
+            branch: formData.branch,
+            documentsUploaded: true,
+            documentCount: uploadedFiles.length
           }
         });
 
@@ -81,6 +135,7 @@ export default function WithdrawalInfoPage() {
             branch: "",
             amount: ""
           });
+          setUploadedFiles([]);
           setTimeout(() => setSuccess(false), 3000);
         }
       }
@@ -208,13 +263,63 @@ export default function WithdrawalInfoPage() {
                 </p>
               </div>
 
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <Upload className="w-6 h-6 text-gray-400" />
-                </div>
-                <p className="text-sm text-gray-600 mb-1">Click to upload images</p>
-                <p className="text-xs text-gray-500">PNG or JPG up to 10MB each</p>
+              {/* File Upload Area */}
+              <div
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                  dragActive 
+                    ? 'border-teal-400 bg-teal-50' 
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+              >
+                <input
+                  type="file"
+                  multiple
+                  accept="image/png,image/jpeg,image/jpg"
+                  onChange={(e) => handleFileUpload(e.target.files)}
+                  className="hidden"
+                  id="file-upload"
+                />
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <Upload className="w-6 h-6 text-gray-400" />
+                  </div>
+                  <p className="text-sm text-gray-600 mb-1">Click to upload images</p>
+                  <p className="text-xs text-gray-500">PNG or JPG up to <span className="text-blue-600 font-semibold">10MB</span> each</p>
+                </label>
               </div>
+
+              {/* Uploaded Files List */}
+              {uploadedFiles.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700">Uploaded Documents:</p>
+                  <div className="space-y-2">
+                    {uploadedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <FileImage className="w-5 h-5 text-gray-500" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{file.name}</p>
+                            <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(index)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center gap-2 text-blue-600 text-sm">
                 <AlertCircle className="w-4 h-4" />
@@ -232,8 +337,8 @@ export default function WithdrawalInfoPage() {
             {/* Submit Button */}
             <Button
               onClick={handleWithdrawal}
-              disabled={!formData.amount || !formData.accountNumber || loading}
-              className="w-full h-12 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl"
+              disabled={!formData.amount || !formData.accountNumber || uploadedFiles.length === 0 || loading}
+              className="w-full h-12 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Processing...' : 'Submit Withdrawal Request'}
             </Button>
