@@ -90,12 +90,6 @@ export default function ChangePasswordPage() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle password change logic here
-    console.log('Password change submitted:', formData);
-  };
-
   return (
     <AppLayout user={user}>
       <div className="space-y-6">
