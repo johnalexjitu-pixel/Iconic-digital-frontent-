@@ -1,11 +1,12 @@
 import { MongoClient } from 'mongodb';
 import mongoose from 'mongoose';
 
-if (!process.env.MONGODB_URI) {
+// Use environment variable or fallback to default MongoDB URI
+const uri = process.env.MONGODB_URI || 'mongodb+srv://iconicdigital:iconicdigital@iconicdigital.t5nr2g9.mongodb.net/?retryWrites=true&w=majority&appName=iconicdigital';
+
+if (!uri) {
   throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
 }
-
-const uri = process.env.MONGODB_URI;
 const options = {};
 
 let client: MongoClient;
