@@ -26,18 +26,14 @@ export function Header({ user }: HeaderProps) {
     <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
       {/* Logo */}
       <div className="flex items-center">
-        <div className="w-24 h-24 relative">
+        <div className="w-48 relative">
           <Image
             src="/logo/logo.png"
             alt="Iconic Digital"
-            width={96}
-            height={96}
+            width={500}
+            height={500}
             className="object-contain"
           />
-        </div>
-        <div className="ml-3">
-          <h1 className="text-xl font-bold text-gray-900 font-lexend">iconic digital</h1>
-          <p className="text-sm text-gray-600 font-lexend">MARKETING CONSULTATION</p>
         </div>
       </div>
 
