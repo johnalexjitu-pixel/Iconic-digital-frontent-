@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -18,16 +20,48 @@ import {
   Copy,
   AlertCircle
 } from "lucide-react";
+import Link from 'next/link';
+import { apiClient } from '@/lib/api-client';
 
 export default function AccountPage() {
-  const user = {
-    name: "gokazi",
-    level: "Silver",
-    id: "46235",
-    referralCode: "UXOX485U6",
-    creditScore: "100%",
-    avatar: "/placeholder-avatar.jpg"
+  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+    setLoading(false);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    router.push('/auth/login');
   };
+
+  const copyReferralCode = () => {
+    if (user?.referralCode) {
+      navigator.clipboard.writeText(user.referralCode);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    router.push('/auth/login');
+    return null;
+  }
 
   const accountOptions = [
     {
@@ -51,8 +85,7 @@ export default function AccountPage() {
     {
       icon: LogOut,
       label: "Logout",
-      href: "/logout",
-      hasArrow: true,
+      onClick: handleLogout,
       isDestructive: true
     }
   ];
@@ -103,7 +136,7 @@ export default function AccountPage() {
               <p className="text-sm text-gray-600">Referral Code</p>
               <div className="flex items-center gap-2">
                 <span className="font-mono text-lg font-semibold text-gray-900">{user.referralCode}</span>
-                <Button size="sm" variant="ghost" className="p-1">
+                <Button size="sm" variant="ghost" className="p-1" onClick={copyReferralCode}>
                   <Copy className="w-4 h-4" />
                 </Button>
               </div>
@@ -117,14 +150,18 @@ export default function AccountPage() {
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-3 pt-2">
-              <Button className="bg-teal-500 hover:bg-teal-600 text-white">
-                <DollarSign className="w-4 h-4 mr-2" />
-                Deposit
-              </Button>
-              <Button className="bg-teal-500 hover:bg-teal-600 text-white">
-                <CreditCard className="w-4 h-4 mr-2" />
-                Withdraw
-              </Button>
+              <Link href="/deposit">
+                <Button className="w-full bg-teal-500 hover:bg-teal-600 text-white">
+                  <DollarSign className="w-4 h-4 mr-2" />
+                  Deposit
+                </Button>
+              </Link>
+              <Link href="/account/withdrawal">
+                <Button className="w-full bg-teal-500 hover:bg-teal-600 text-white">
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Withdraw
+                </Button>
+              </Link>
             </div>
 
             {/* Level Check */}
@@ -155,9 +192,11 @@ export default function AccountPage() {
                 <p className="text-sm text-gray-600">Earn rewards by checking in daily!</p>
               </div>
             </div>
-            <Button className="bg-red-500 hover:bg-red-600 text-white">
-              Check In
-            </Button>
+            <Link href="/daily-checkin">
+              <Button className="bg-red-500 hover:bg-red-600 text-white">
+                Check In
+              </Button>
+            </Link>
           </div>
         </Card>
 
@@ -168,14 +207,15 @@ export default function AccountPage() {
             {commonFunctions.map((func, index) => {
               const Icon = func.icon;
               return (
-                <Button
-                  key={index}
-                  variant="ghost"
-                  className="flex flex-col items-center gap-2 h-auto p-4"
-                >
-                  <Icon className="w-6 h-6 text-gray-600" />
-                  <span className="text-xs text-center text-gray-700">{func.label}</span>
-                </Button>
+                <Link key={index} href={func.href}>
+                  <Button
+                    variant="ghost"
+                    className="w-full flex flex-col items-center gap-2 h-auto p-4"
+                  >
+                    <Icon className="w-6 h-6 text-gray-600" />
+                    <span className="text-xs text-center text-gray-700">{func.label}</span>
+                  </Button>
+                </Link>
               );
             })}
           </div>
@@ -186,18 +226,35 @@ export default function AccountPage() {
           <div className="space-y-1">
             {accountOptions.map((option, index) => {
               const Icon = option.icon;
-              return (
-                <div key={index} className={`flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors ${option.isDestructive ? 'hover:bg-red-50' : ''}`}>
-                  <div className="flex items-center gap-3">
-                    <Icon className={`w-5 h-5 ${option.isDestructive ? 'text-red-500' : 'text-gray-600'}`} />
-                    <span className={`${option.isDestructive ? 'text-red-600' : 'text-gray-900'}`}>
-                      {option.label}
-                    </span>
+              if (option.onClick) {
+                return (
+                  <div key={index} onClick={option.onClick} className={`flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer ${option.isDestructive ? 'hover:bg-red-50' : ''}`}>
+                    <div className="flex items-center gap-3">
+                      <Icon className={`w-5 h-5 ${option.isDestructive ? 'text-red-500' : 'text-gray-600'}`} />
+                      <span className={`${option.isDestructive ? 'text-red-600' : 'text-gray-900'}`}>
+                        {option.label}
+                      </span>
+                    </div>
+                    {option.hasArrow && (
+                      <ChevronRight className={`w-4 h-4 ${option.isDestructive ? 'text-red-400' : 'text-gray-400'}`} />
+                    )}
                   </div>
-                  {option.hasArrow && (
-                    <ChevronRight className={`w-4 h-4 ${option.isDestructive ? 'text-red-400' : 'text-gray-400'}`} />
-                  )}
-                </div>
+                );
+              }
+              return (
+                <Link key={index} href={option.href || '#'}>
+                  <div className={`flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer ${option.isDestructive ? 'hover:bg-red-50' : ''}`}>
+                    <div className="flex items-center gap-3">
+                      <Icon className={`w-5 h-5 ${option.isDestructive ? 'text-red-500' : 'text-gray-600'}`} />
+                      <span className={`${option.isDestructive ? 'text-red-600' : 'text-gray-900'}`}>
+                        {option.label}
+                      </span>
+                    </div>
+                    {option.hasArrow && (
+                      <ChevronRight className={`w-4 h-4 ${option.isDestructive ? 'text-red-400' : 'text-gray-400'}`} />
+                    )}
+                  </div>
+                </Link>
               );
             })}
           </div>
