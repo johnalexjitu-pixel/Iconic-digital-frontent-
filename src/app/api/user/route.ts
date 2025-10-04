@@ -72,7 +72,7 @@ export async function PATCH(request: NextRequest) {
 
     // Handle other updates
     const allowedFields = ['dailyCheckIn', 'withdrawalInfo', 'accountBalance', 'totalEarnings'];
-    const updateFields: Record<string, any> = {};
+    const updateFields: Record<string, unknown> = {};
     
     allowedFields.forEach(field => {
       if (updateData[field] !== undefined) {

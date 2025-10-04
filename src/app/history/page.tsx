@@ -39,8 +39,8 @@ export default function HistoryPage() {
   const fetchTransactions = async () => {
     try {
       const response = await apiClient.getTransactions();
-      if (response.success) {
-        setTransactions(response.data || []);
+      if (response.success && Array.isArray(response.data)) {
+        setTransactions(response.data);
       } else {
         // If API fails, show empty state
         setTransactions([]);
@@ -118,7 +118,7 @@ export default function HistoryPage() {
 
           <TabsContent value="all" className="space-y-4 mt-6">
             {transactions.length > 0 ? (
-              transactions.map((transaction: any) => (
+              transactions.map((transaction: Transaction) => (
                 <Card key={transaction._id} className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -169,7 +169,7 @@ export default function HistoryPage() {
 
           <TabsContent value="deposits" className="space-y-4 mt-6">
             {deposits.length > 0 ? (
-              deposits.map((transaction: any) => (
+              deposits.map((transaction: Transaction) => (
                 <Card key={transaction._id} className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -204,7 +204,7 @@ export default function HistoryPage() {
 
           <TabsContent value="withdrawals" className="space-y-4 mt-6">
             {withdrawals.length > 0 ? (
-              withdrawals.map((transaction: any) => (
+              withdrawals.map((transaction: Transaction) => (
                 <Card key={transaction._id} className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -239,7 +239,7 @@ export default function HistoryPage() {
 
           <TabsContent value="earnings" className="space-y-4 mt-6">
             {earnings.length > 0 ? (
-              earnings.map((transaction: any) => (
+              earnings.map((transaction: Transaction) => (
                 <Card key={transaction._id} className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">

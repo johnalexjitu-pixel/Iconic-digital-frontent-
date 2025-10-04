@@ -39,8 +39,8 @@ export default function CampaignPage() {
   const fetchCampaigns = async () => {
     try {
       const response = await apiClient.getCampaigns();
-      if (response.success) {
-        setCampaigns(response.data || []);
+      if (response.success && Array.isArray(response.data)) {
+        setCampaigns(response.data);
       } else {
         // If API fails, show empty state
         setCampaigns([]);
@@ -91,7 +91,7 @@ export default function CampaignPage() {
         {/* Campaigns Grid */}
         <div className="grid gap-6">
           {campaigns.length > 0 ? (
-            campaigns.map((campaign: any) => (
+            campaigns.map((campaign: Campaign) => (
               <Card key={campaign._id} className="p-6">
                 <div className="space-y-4">
                   {/* Campaign Header */}

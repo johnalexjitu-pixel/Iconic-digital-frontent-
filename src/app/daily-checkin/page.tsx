@@ -33,8 +33,8 @@ export default function DailyCheckinPage() {
     try {
       const response = await apiClient.getUserProfile();
       if (response.success && response.data) {
-        const userData = response.data;
-        const dailyCheckIn = userData.dailyCheckIn || { streak: 0, daysClaimed: [] };
+        const userData = response.data as Record<string, unknown>;
+        const dailyCheckIn = (userData.dailyCheckIn as { streak: number; daysClaimed: number[] }) || { streak: 0, daysClaimed: [] };
         
         // Generate rewards based on user data
         const rewardsData = Array.from({ length: 30 }, (_, i) => ({

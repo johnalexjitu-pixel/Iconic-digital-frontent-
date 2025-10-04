@@ -45,6 +45,15 @@ interface User {
   isDestructive?: boolean;
 }
 
+interface AccountOption {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  href?: string;
+  onClick?: () => void;
+  hasArrow?: boolean;
+  isDestructive?: boolean;
+}
+
 export default function AccountPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -85,7 +94,7 @@ export default function AccountPage() {
     return null;
   }
 
-  const accountOptions = [
+  const accountOptions: AccountOption[] = [
     {
       icon: CreditCard,
       label: "Withdrawal information",

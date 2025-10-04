@@ -87,7 +87,7 @@ export class ApiClient {
 
   private getMockData(endpoint: string): ApiResponse {
     // Mock data for different endpoints
-    const mockData: Record<string, any> = {
+    const mockData: Record<string, unknown> = {
       '/api/campaigns': {
         success: true,
         data: [
@@ -159,7 +159,7 @@ export class ApiClient {
       }
     };
 
-    return mockData[endpoint] || {
+    return mockData[endpoint] as ApiResponse || {
       success: true,
       data: [],
       message: 'Mock data - Backend not available'

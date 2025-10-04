@@ -42,8 +42,8 @@ export default function DepositPage() {
   const fetchDepositHistory = async () => {
     try {
       const response = await apiClient.getTransactions();
-      if (response.success) {
-        const deposits = response.data?.filter(t => t.type === 'deposit') || [];
+      if (response.success && Array.isArray(response.data)) {
+        const deposits = response.data.filter((t: Deposit) => t.type === 'deposit') || [];
         setDepositHistory(deposits);
       }
     } catch (error) {
