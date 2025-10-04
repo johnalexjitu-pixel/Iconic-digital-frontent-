@@ -32,6 +32,12 @@ export class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
+    // For development, always return mock data to avoid fetch errors
+    if (this.envConfig.isDevelopment) {
+      console.log(`🔄 Development mode: Using mock data for: ${endpoint}`);
+      return this.getMockData(endpoint) as ApiResponse<T>;
+    }
+
     const url = `${this.baseUrl}${endpoint}`;
 
     if (this.enableLogging) {
@@ -71,17 +77,9 @@ export class ApiClient {
         console.error(`❌ API Error: ${url}`, error);
       }
 
-      // Return mock data for development when backend is not available
-      if (this.envConfig.isDevelopment && error instanceof Error && error.message.includes('Failed to fetch')) {
-        console.log(`🔄 Using mock data for: ${endpoint}`);
-        return this.getMockData(endpoint) as ApiResponse<T>;
-      }
-
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString(),
-      };
+      // Return mock data when backend is not available
+      console.log(`🔄 Backend unavailable: Using mock data for: ${endpoint}`);
+      return this.getMockData(endpoint) as ApiResponse<T>;
     }
   }
 

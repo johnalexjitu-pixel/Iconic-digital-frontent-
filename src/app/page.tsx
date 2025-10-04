@@ -40,9 +40,9 @@ export default function HomePage() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-white">
+  // Always show homepage for everyone
+  return (
+    <div className="min-h-screen bg-white">
         {/* Header */}
         <header className="bg-gray-900 px-6 py-4">
           <div className="flex items-center justify-between">
@@ -434,7 +434,6 @@ export default function HomePage() {
         </div>
       </div>
     );
-  }
 
   const stats = [
     {
@@ -464,7 +463,7 @@ export default function HomePage() {
   ];
 
   return (
-    <AppLayout user={user}>
+    <AppLayout user={user || undefined}>
       <div className="space-y-6">
         {/* Video Section */}
         <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-amber-100 to-orange-200 h-64">
