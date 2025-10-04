@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
-import User from '@/models/User';
+import { getCollection } from '@/lib/mongodb';
+import { ObjectId } from 'mongodb';
 
 // GET - Get user by ID
 export async function GET(
@@ -8,10 +8,13 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await connectDB();
+    const usersCollection = await getCollection('users');
     const { id } = await params;
 
-    const user = await User.findById(id).select('-password');
+    const user = await usersCollection.findOne(
+      { _id: new ObjectId(id) },
+      { projection: { password: 0 } }
+    );
     
     if (!user) {
       return NextResponse.json({
@@ -40,7 +43,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await connectDB();
+    const usersCollection = await getCollection('users');
     const { id } = await params;
 
     const updateData = await request.json();
@@ -50,18 +53,22 @@ export async function PUT(
     delete updateData._id;
     delete updateData.createdAt;
 
-    const user = await User.findByIdAndUpdate(
-      id,
-      { ...updateData, updatedAt: new Date() },
-      { new: true, runValidators: true }
-    ).select('-password');
+    const result = await usersCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { ...updateData, updatedAt: new Date() } }
+    );
 
-    if (!user) {
+    if (result.matchedCount === 0) {
       return NextResponse.json({
         success: false,
         error: 'User not found'
       }, { status: 404 });
     }
+
+    const user = await usersCollection.findOne(
+      { _id: new ObjectId(id) },
+      { projection: { password: 0 } }
+    );
 
     return NextResponse.json({
       success: true,
@@ -84,12 +91,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await connectDB();
+    const usersCollection = await getCollection('users');
     const { id } = await params;
 
-    const user = await User.findByIdAndDelete(id);
+    const result = await usersCollection.deleteOne({ _id: new ObjectId(id) });
     
-    if (!user) {
+    if (result.deletedCount === 0) {
       return NextResponse.json({
         success: false,
         error: 'User not found'

@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
-import User from '@/models/User';
+import { getCollection } from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
+import { ObjectId } from 'mongodb';
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-
+    const usersCollection = await getCollection('users');
     const { name, email, password, referralCode } = await request.json();
 
     // Validation
@@ -18,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await usersCollection.findOne({ email });
     if (existingUser) {
       return NextResponse.json({
         success: false,
@@ -33,8 +32,9 @@ export async function POST(request: NextRequest) {
     const membershipId = Math.floor(10000 + Math.random() * 90000).toString();
     const userReferralCode = Math.random().toString(36).substring(2, 10).toUpperCase();
 
-    // Create new user
-    const newUser = new User({
+    // Create new user document
+    const newUser = {
+      _id: new ObjectId(),
       name,
       email,
       password: hashedPassword,
@@ -48,10 +48,12 @@ export async function POST(request: NextRequest) {
       dailyCheckIn: {
         streak: 0,
         daysClaimed: []
-      }
-    });
+      },
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
 
-    await newUser.save();
+    await usersCollection.insertOne(newUser);
 
     // Return user data (without password)
     const userResponse = {

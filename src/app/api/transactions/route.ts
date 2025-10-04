@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
-import Transaction from '@/models/Transaction';
+import { getCollection } from '@/lib/mongodb';
+import { ObjectId } from 'mongodb';
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
+    const transactionsCollection = await getCollection('transactions');
 
     // Mock transactions data
     const mockTransactions = [
@@ -131,16 +131,34 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-
+    const transactionsCollection = await getCollection('transactions');
     const transactionData = await request.json();
 
-    // For demo, just return success
-    // In production, create actual transaction document
+    // Generate unique transaction ID
+    const transactionId = `TXN${Date.now()}${Math.floor(Math.random() * 1000)}`;
+
+    // Create new transaction document
+    const newTransaction = {
+      _id: new ObjectId(),
+      transactionId,
+      userId: transactionData.userId || "mock_user_id",
+      type: transactionData.type || "deposit",
+      amount: transactionData.amount || 0,
+      description: transactionData.description || "",
+      campaignId: transactionData.campaignId || null,
+      status: transactionData.status || "pending",
+      method: transactionData.method || null,
+      reference: transactionData.reference || null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    await transactionsCollection.insertOne(newTransaction);
 
     return NextResponse.json({
       success: true,
-      message: 'Transaction created successfully'
+      message: 'Transaction created successfully',
+      data: newTransaction
     });
   } catch (error) {
     console.error('Error creating transaction:', error);

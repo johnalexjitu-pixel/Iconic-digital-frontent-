@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
-import Campaign from '@/models/Campaign';
+import { getCollection } from '@/lib/mongodb';
+import { ObjectId } from 'mongodb';
 
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
+    const campaignsCollection = await getCollection('campaigns');
 
     // Mock campaigns data based on the screenshots
     const mockCampaigns = [
@@ -128,8 +128,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-
+    const campaignsCollection = await getCollection('campaigns');
     const campaignData = await request.json();
 
     // Generate unique IDs
@@ -137,18 +136,21 @@ export async function POST(request: NextRequest) {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     const taskCode = code;
 
-    // Create new campaign
-    const newCampaign = new Campaign({
+    // Create new campaign document
+    const newCampaign = {
+      _id: new ObjectId(),
       ...campaignData,
       campaignId,
       code,
       taskCode,
       currentParticipants: 0,
       status: 'Active',
-      isActive: true
-    });
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
 
-    await newCampaign.save();
+    await campaignsCollection.insertOne(newCampaign);
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
-import Campaign from '@/models/Campaign';
+import { getCollection } from '@/lib/mongodb';
+import { ObjectId } from 'mongodb';
 
 // GET - Get campaign by ID
 export async function GET(
@@ -8,10 +8,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await connectDB();
+    const campaignsCollection = await getCollection('campaigns');
     const { id } = await params;
 
-    const campaign = await Campaign.findById(id);
+    const campaign = await campaignsCollection.findOne({ _id: new ObjectId(id) });
     
     if (!campaign) {
       return NextResponse.json({
@@ -40,7 +40,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await connectDB();
+    const campaignsCollection = await getCollection('campaigns');
     const { id } = await params;
 
     const updateData = await request.json();
@@ -49,18 +49,19 @@ export async function PUT(
     delete updateData._id;
     delete updateData.createdAt;
 
-    const campaign = await Campaign.findByIdAndUpdate(
-      id,
-      { ...updateData, updatedAt: new Date() },
-      { new: true, runValidators: true }
+    const result = await campaignsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { ...updateData, updatedAt: new Date() } }
     );
 
-    if (!campaign) {
+    if (result.matchedCount === 0) {
       return NextResponse.json({
         success: false,
         error: 'Campaign not found'
       }, { status: 404 });
     }
+
+    const campaign = await campaignsCollection.findOne({ _id: new ObjectId(id) });
 
     return NextResponse.json({
       success: true,
@@ -83,12 +84,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await connectDB();
+    const campaignsCollection = await getCollection('campaigns');
     const { id } = await params;
 
-    const campaign = await Campaign.findByIdAndDelete(id);
+    const result = await campaignsCollection.deleteOne({ _id: new ObjectId(id) });
     
-    if (!campaign) {
+    if (result.deletedCount === 0) {
       return NextResponse.json({
         success: false,
         error: 'Campaign not found'

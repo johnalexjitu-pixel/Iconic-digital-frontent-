@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
-import User from '@/models/User';
+import { getCollection } from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
+import { ObjectId } from 'mongodb';
 
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-
+    const usersCollection = await getCollection('users');
     const { email, password } = await request.json();
 
     // Validation
@@ -18,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user
-    const user = await User.findOne({ email });
+    const user = await usersCollection.findOne({ email });
     if (!user) {
       return NextResponse.json({
         success: false,
@@ -36,8 +35,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Update last login
-    user.lastLogin = new Date();
-    await user.save();
+    await usersCollection.updateOne(
+      { _id: user._id },
+      { $set: { lastLogin: new Date() } }
+    );
 
     // Return user data (without password)
     const userResponse = {
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
       totalEarnings: user.totalEarnings,
       campaignsCompleted: user.campaignsCompleted,
       dailyCheckIn: user.dailyCheckIn,
-      lastLogin: user.lastLogin,
+      lastLogin: new Date(),
       createdAt: user.createdAt
     };
 

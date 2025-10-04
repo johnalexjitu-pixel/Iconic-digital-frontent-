@@ -1,5 +1,4 @@
-import { MongoClient } from 'mongodb';
-import mongoose from 'mongoose';
+import { MongoClient, Db } from 'mongodb';
 
 // Use environment variable or fallback to default MongoDB URI
 const uri = process.env.MONGODB_URI || 'mongodb+srv://iconicdigital:iconicdigital@iconicdigital.t5nr2g9.mongodb.net/?retryWrites=true&w=majority&appName=iconicdigital';
@@ -7,7 +6,12 @@ const uri = process.env.MONGODB_URI || 'mongodb+srv://iconicdigital:iconicdigita
 if (!uri) {
   throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
 }
-const options = {};
+
+const options = {
+  maxPoolSize: 10,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+};
 
 let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
@@ -30,41 +34,16 @@ if (process.env.NODE_ENV === 'development') {
   clientPromise = client.connect();
 }
 
-// Mongoose connection
-interface MongooseCache {
-  conn: typeof mongoose | null;
-  promise: Promise<typeof mongoose> | null;
+// Database connection helper
+async function connectDB(): Promise<Db> {
+  const client = await clientPromise;
+  return client.db('iconicdigital');
 }
 
-let cached: MongooseCache = (global as Record<string, unknown>).mongoose as MongooseCache;
-
-if (!cached) {
-  cached = (global as Record<string, unknown>).mongoose = { conn: null, promise: null } as MongooseCache;
+// Collection helpers
+async function getCollection(collectionName: string) {
+  const db = await connectDB();
+  return db.collection(collectionName);
 }
 
-async function connectDB() {
-  if (cached.conn) {
-    return cached.conn;
-  }
-
-  if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-    };
-
-    cached.promise = mongoose.connect(uri, opts).then((mongoose) => {
-      return mongoose;
-    });
-  }
-
-  try {
-    cached.conn = await cached.promise;
-  } catch (e) {
-    cached.promise = null;
-    throw e;
-  }
-
-  return cached.conn;
-}
-
-export { clientPromise, connectDB };
+export { clientPromise, connectDB, getCollection };

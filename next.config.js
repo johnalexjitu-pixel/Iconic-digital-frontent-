@@ -59,7 +59,7 @@ const nextConfig = {
   },
   
   // External packages for server components
-  serverExternalPackages: ['mongoose'],
+  serverExternalPackages: ['mongodb'],
   
   // Environment-based configuration
   env: {

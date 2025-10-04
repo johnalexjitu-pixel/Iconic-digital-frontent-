@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
-import Transaction from '@/models/Transaction';
+import { getCollection } from '@/lib/mongodb';
+import { ObjectId } from 'mongodb';
 
 // GET - Get transaction by ID
 export async function GET(
@@ -8,10 +8,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await connectDB();
+    const transactionsCollection = await getCollection('transactions');
     const { id } = await params;
 
-    const transaction = await Transaction.findById(id);
+    const transaction = await transactionsCollection.findOne({ _id: new ObjectId(id) });
     
     if (!transaction) {
       return NextResponse.json({
@@ -40,7 +40,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await connectDB();
+    const transactionsCollection = await getCollection('transactions');
     const { id } = await params;
 
     const updateData = await request.json();
@@ -49,18 +49,19 @@ export async function PUT(
     delete updateData._id;
     delete updateData.createdAt;
 
-    const transaction = await Transaction.findByIdAndUpdate(
-      id,
-      { ...updateData, updatedAt: new Date() },
-      { new: true, runValidators: true }
+    const result = await transactionsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { ...updateData, updatedAt: new Date() } }
     );
 
-    if (!transaction) {
+    if (result.matchedCount === 0) {
       return NextResponse.json({
         success: false,
         error: 'Transaction not found'
       }, { status: 404 });
     }
+
+    const transaction = await transactionsCollection.findOne({ _id: new ObjectId(id) });
 
     return NextResponse.json({
       success: true,
@@ -83,12 +84,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await connectDB();
+    const transactionsCollection = await getCollection('transactions');
     const { id } = await params;
 
-    const transaction = await Transaction.findByIdAndDelete(id);
+    const result = await transactionsCollection.deleteOne({ _id: new ObjectId(id) });
     
-    if (!transaction) {
+    if (result.deletedCount === 0) {
       return NextResponse.json({
         success: false,
         error: 'Transaction not found'

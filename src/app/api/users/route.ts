@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
-import User from '@/models/User';
+import { getCollection } from '@/lib/mongodb';
+import { ObjectId } from 'mongodb';
 
 // GET - Get all users (Admin only)
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
+    const usersCollection = await getCollection('users');
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -30,13 +30,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Get users with pagination
-    const users = await User.find(query)
-      .select('-password')
+    const users = await usersCollection
+      .find(query, { projection: { password: 0 } })
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
-      .limit(limit);
+      .limit(limit)
+      .toArray();
 
-    const total = await User.countDocuments(query);
+    const total = await usersCollection.countDocuments(query);
 
     return NextResponse.json({
       success: true,
@@ -61,18 +62,26 @@ export async function GET(request: NextRequest) {
 // POST - Create new user (Admin only)
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
-
+    const usersCollection = await getCollection('users');
     const userData = await request.json();
     
     // Remove password from userData if present (should be handled by auth/register)
     delete userData.password;
 
-    const newUser = new User(userData);
-    await newUser.save();
+    const newUser = {
+      _id: new ObjectId(),
+      ...userData,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    await usersCollection.insertOne(newUser);
 
     // Return user without password
-    const userResponse = await User.findById(newUser._id).select('-password');
+    const userResponse = await usersCollection.findOne(
+      { _id: newUser._id },
+      { projection: { password: 0 } }
+    );
 
     return NextResponse.json({
       success: true,

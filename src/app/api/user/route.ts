@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { apiClient } from '@/lib/api-client';
 import { config } from '@/lib/config';
-import { connectDB } from '@/lib/mongodb';
-import User from '@/models/User';
+import { getCollection } from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
+import { ObjectId } from 'mongodb';
 
 export async function GET(request: NextRequest) {
   try {
@@ -52,8 +52,7 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    await connectDB();
-
+    const usersCollection = await getCollection('users');
     const updateData = await request.json();
     const userId = "mock_user_id"; // In production, get from auth
 
@@ -61,13 +60,19 @@ export async function PATCH(request: NextRequest) {
     if (updateData.currentPassword && updateData.newPassword) {
       // Update login password
       const hashedPassword = await bcrypt.hash(updateData.newPassword, 12);
-      await User.findByIdAndUpdate(userId, { password: hashedPassword });
+      await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { $set: { password: hashedPassword } }
+      );
     }
 
     if (updateData.currentWithdrawalPassword && updateData.newWithdrawalPassword) {
       // Update withdrawal password
       const hashedWithdrawalPassword = await bcrypt.hash(updateData.newWithdrawalPassword, 12);
-      await User.findByIdAndUpdate(userId, { withdrawalPassword: hashedWithdrawalPassword });
+      await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { $set: { withdrawalPassword: hashedWithdrawalPassword } }
+      );
     }
 
     // Handle other updates
@@ -81,7 +86,10 @@ export async function PATCH(request: NextRequest) {
     });
 
     if (Object.keys(updateFields).length > 0) {
-      await User.findByIdAndUpdate(userId, updateFields);
+      await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { $set: updateFields }
+      );
     }
 
     return NextResponse.json({
