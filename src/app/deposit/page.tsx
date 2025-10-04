@@ -1,35 +1,70 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Wallet, Phone, Clock, Info } from "lucide-react";
+import { ArrowLeft, Wallet, Phone, Clock, Info, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { apiClient } from '@/lib/api-client';
 
 export default function DepositPage() {
-  const user = {
-    name: "gokazi",
-    level: "Silver",
-    avatar: "/placeholder-avatar.jpg"
+  const [user, setUser] = useState(null);
+  const [depositAmount, setDepositAmount] = useState('');
+  const [selectedMethod, setSelectedMethod] = useState('');
+  const [depositHistory, setDepositHistory] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+    fetchDepositHistory();
+  }, []);
+
+  const fetchDepositHistory = async () => {
+    try {
+      const response = await apiClient.getTransactions();
+      if (response.success) {
+        const deposits = response.data?.filter(t => t.type === 'deposit') || [];
+        setDepositHistory(deposits);
+      }
+    } catch (error) {
+      console.error('Error fetching deposit history:', error);
+    }
   };
 
-  const depositHistory = [
-    {
-      id: "DEP001",
-      amount: "Rs 50,000",
-      method: "Bank Transfer",
-      date: "2024-01-12",
-      status: "Completed"
-    },
-    {
-      id: "DEP002",
-      amount: "Rs 25,000",
-      method: "UPI Payment",
-      date: "2024-01-05",
-      status: "Completed"
+  const handleDeposit = async () => {
+    if (!depositAmount || !selectedMethod) return;
+    
+    setLoading(true);
+    try {
+      const response = await apiClient.createTransaction({
+        type: 'deposit',
+        amount: parseFloat(depositAmount),
+        method: selectedMethod,
+        status: 'processing',
+        description: `Deposit via ${selectedMethod}`
+      });
+
+      if (response.success) {
+        setSuccess(true);
+        setDepositAmount('');
+        setSelectedMethod('');
+        fetchDepositHistory();
+        setTimeout(() => setSuccess(false), 3000);
+      }
+    } catch (error) {
+      console.error('Error creating deposit:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   return (
     <AppLayout user={user}>
@@ -67,6 +102,85 @@ export default function DepositPage() {
               </div>
             </Card>
 
+            {/* Deposit Form */}
+            <Card className="p-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Make a Deposit</h3>
+                
+                <div>
+                  <Label htmlFor="amount">Deposit Amount (Rs)</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    placeholder="Enter amount"
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label>Payment Method</Label>
+                  <div className="mt-2 space-y-2">
+                    <label className="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="method"
+                        value="Bank Transfer"
+                        checked={selectedMethod === 'Bank Transfer'}
+                        onChange={(e) => setSelectedMethod(e.target.value)}
+                        className="text-teal-600"
+                      />
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <span className="text-blue-600 font-bold text-sm">B</span>
+                        </div>
+                        <div>
+                          <p className="font-medium">Bank Transfer</p>
+                          <p className="text-sm text-gray-500">Direct bank account transfer</p>
+                        </div>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="method"
+                        value="UPI Payment"
+                        checked={selectedMethod === 'UPI Payment'}
+                        onChange={(e) => setSelectedMethod(e.target.value)}
+                        className="text-teal-600"
+                      />
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                          <span className="text-green-600 font-bold text-sm">U</span>
+                        </div>
+                        <div>
+                          <p className="font-medium">UPI Payment</p>
+                          <p className="text-sm text-gray-500">Instant payment via UPI</p>
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {success && (
+                  <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <p className="text-green-800">Deposit request submitted successfully!</p>
+                  </div>
+                )}
+
+                <Button
+                  onClick={handleDeposit}
+                  disabled={!depositAmount || !selectedMethod || loading}
+                  className="w-full h-12 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl"
+                >
+                  {loading ? 'Processing...' : 'Submit Deposit Request'}
+                </Button>
+              </div>
+            </Card>
+
             {/* Contact Support */}
             <Card className="p-6 text-center">
               <div className="space-y-4">
@@ -75,11 +189,12 @@ export default function DepositPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">Contact customer support for assistance with deposits.</h3>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">Need Help?</h3>
+                  <p className="text-gray-600">Contact customer support for assistance with deposits.</p>
                 </div>
 
                 <Button
-                  className="w-full h-12 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl"
+                  className="w-full h-12 bg-gray-500 hover:bg-gray-600 text-white font-semibold rounded-xl"
                 >
                   Contact Support
                 </Button>

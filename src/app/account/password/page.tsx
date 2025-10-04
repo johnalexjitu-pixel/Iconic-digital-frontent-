@@ -5,17 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Lock, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Lock, Eye, EyeOff, CheckCircle } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { apiClient } from '@/lib/api-client';
 
 export default function ChangePasswordPage() {
-  const user = {
-    name: "gokazi",
-    level: "Silver",
-    avatar: "/placeholder-avatar.jpg"
-  };
-
+  const [user, setUser] = useState(null);
   const [formData, setFormData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -28,11 +24,63 @@ export default function ChangePasswordPage() {
     confirm: false
   });
 
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+    setError('');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess(false);
+
+    if (formData.newPassword !== formData.confirmPassword) {
+      setError('New passwords do not match');
+      return;
+    }
+
+    if (formData.newPassword.length < 6) {
+      setError('New password must be at least 6 characters');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await apiClient.updateUserProfile({
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword
+      });
+
+      if (response.success) {
+        setSuccess(true);
+        setFormData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: ""
+        });
+        setTimeout(() => setSuccess(false), 3000);
+      } else {
+        setError(response.error || 'Failed to change password');
+      }
+    } catch (error) {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const togglePasswordVisibility = (field: string) => {
@@ -151,12 +199,28 @@ export default function ChangePasswordPage() {
               </div>
             </div>
 
+            {/* Error Message */}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-800 text-sm">{error}</p>
+              </div>
+            )}
+
+            {/* Success Message */}
+            {success && (
+              <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <p className="text-green-800">Password changed successfully!</p>
+              </div>
+            )}
+
             {/* Change Password Button */}
             <Button
               type="submit"
+              disabled={loading}
               className="w-full h-12 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl"
             >
-              Change Password
+              {loading ? 'Changing Password...' : 'Change Password'}
             </Button>
           </form>
         </Card>

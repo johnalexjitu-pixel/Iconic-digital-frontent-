@@ -5,30 +5,74 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Upload, AlertCircle } from "lucide-react";
+import { ArrowLeft, Upload, AlertCircle, CheckCircle } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { apiClient } from '@/lib/api-client';
 
 export default function WithdrawalInfoPage() {
-  const user = {
-    name: "gokazi",
-    level: "Silver",
-    avatar: "/placeholder-avatar.jpg"
-  };
-
+  const [user, setUser] = useState(null);
   const [formData, setFormData] = useState({
     withdrawalMethod: "Bank Account",
     accountHolderName: "",
     bankName: "",
     accountNumber: "",
-    branch: ""
+    branch: "",
+    amount: ""
   });
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      setUser(JSON.parse(userData));
+    }
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleWithdrawal = async () => {
+    if (!formData.amount || !formData.accountNumber) return;
+    
+    setLoading(true);
+    try {
+      const response = await apiClient.createTransaction({
+        type: 'withdrawal',
+        amount: parseFloat(formData.amount),
+        method: formData.withdrawalMethod,
+        status: 'processing',
+        description: `Withdrawal to ${formData.bankName} - ${formData.accountNumber}`,
+        metadata: {
+          accountHolderName: formData.accountHolderName,
+          bankName: formData.bankName,
+          accountNumber: formData.accountNumber,
+          branch: formData.branch
+        }
+      });
+
+      if (response.success) {
+        setSuccess(true);
+        setFormData({
+          withdrawalMethod: "Bank Account",
+          accountHolderName: "",
+          bankName: "",
+          accountNumber: "",
+          branch: "",
+          amount: ""
+        });
+        setTimeout(() => setSuccess(false), 3000);
+      }
+    } catch (error) {
+      console.error('Error creating withdrawal:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -123,6 +167,19 @@ export default function WithdrawalInfoPage() {
               />
             </div>
 
+            {/* Withdrawal Amount */}
+            <div className="space-y-2">
+              <Label htmlFor="amount">Withdrawal Amount (Rs)</Label>
+              <Input
+                id="amount"
+                type="number"
+                placeholder="Enter withdrawal amount"
+                value={formData.amount}
+                onChange={(e) => handleInputChange('amount', e.target.value)}
+                className="h-12"
+              />
+            </div>
+
             {/* Identity Verification Documents */}
             <div className="space-y-3">
               <div>
@@ -147,12 +204,20 @@ export default function WithdrawalInfoPage() {
               </div>
             </div>
 
-            {/* Save Button */}
+            {success && (
+              <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <p className="text-green-800">Withdrawal request submitted successfully!</p>
+              </div>
+            )}
+
+            {/* Submit Button */}
             <Button
+              onClick={handleWithdrawal}
+              disabled={!formData.amount || !formData.accountNumber || loading}
               className="w-full h-12 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl"
             >
-              <Upload className="w-4 h-4 mr-2" />
-              Save Information
+              {loading ? 'Processing...' : 'Submit Withdrawal Request'}
             </Button>
           </div>
         </Card>

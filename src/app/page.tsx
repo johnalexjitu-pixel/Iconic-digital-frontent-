@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowRight, Play, LogIn, UserPlus } from "lucide-react";
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function HomePage() {
   const router = useRouter();
@@ -44,10 +45,16 @@ export default function HomePage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full">
           <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl font-bold text-white">ST</span>
+            <div className="w-20 h-20 relative mx-auto mb-4">
+              <Image
+                src="/logo/logo.png"
+                alt="Iconic Digital"
+                width={80}
+                height={80}
+                className="object-contain"
+              />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">SOCIALTREND</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Iconic Digital</h1>
             <p className="text-gray-600">Award-winning creative & performance marketing agency</p>
           </div>
 
