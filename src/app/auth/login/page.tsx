@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import Link from 'next/link';
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { login, user } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -41,24 +43,14 @@ function LoginForm() {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Store user data in localStorage (in production, use proper auth)
-        localStorage.setItem('user', JSON.stringify(data.data));
-        
-        // Redirect to dashboard
-        router.push('/');
+      const success = await login(formData.email, formData.password);
+      
+      if (success) {
+        // Redirect to intended page or home
+        const redirect = searchParams.get('redirect') || '/';
+        router.push(redirect);
       } else {
-        setError(data.error || 'Login failed');
+        setError('Invalid credentials. Please try again.');
       }
     } catch (error) {
       setError('Network error. Please try again.');

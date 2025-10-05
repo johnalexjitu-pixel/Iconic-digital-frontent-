@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { HomepageHeader } from "@/components/HomepageHeader";
 import { HomepageFooter } from "@/components/HomepageFooter";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,9 @@ import {
   LogOut,
   ChevronRight,
   Copy,
-  AlertCircle
+  AlertCircle,
+  Wallet,
+  RefreshCw
 } from "lucide-react";
 import Link from 'next/link';
 import { apiClient } from '@/lib/api-client';
@@ -34,6 +37,7 @@ interface User {
   referralCode: string;
   creditScore: number;
   accountBalance: number;
+  walletBalance: number;
   totalEarnings: number;
   campaignsCompleted: number;
   lastLogin: Date;
@@ -56,27 +60,78 @@ interface AccountOption {
 }
 
 export default function AccountPage() {
+  const { user, loading, logout, refreshUser } = useAuth();
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [realTimeData, setRealTimeData] = useState({
+    name: '',
+    walletBalance: 0,
+    level: '',
+    membershipId: '',
+    referralCode: '',
+    creditScore: 0
+  });
+
+  // Real-time data fetching
+  const fetchRealTimeData = async () => {
+    try {
+      if (!user?.email) return;
+      
+      const response = await fetch(`/api/user?email=${encodeURIComponent(user.email)}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          const userData = data.data;
+          setRealTimeData({
+            name: userData.name || '',
+            walletBalance: userData.walletBalance || 0,
+            level: userData.level || 'Bronze',
+            membershipId: userData.membershipId || '',
+            referralCode: userData.referralCode || '',
+            creditScore: userData.creditScore || 0
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching real-time data:', error);
+    }
+  };
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
+    if (!loading && !user) {
+      // No user data, redirect to login
+      router.push('/auth/login');
+      return;
     }
-    setLoading(false);
-  }, []);
+    
+    if (user) {
+      // Initial data fetch
+      fetchRealTimeData();
+      
+      // Auto-refresh every 3 seconds for real-time updates
+      const interval = setInterval(() => {
+        fetchRealTimeData();
+      }, 3000); // 3 seconds for more frequent updates
+
+      return () => clearInterval(interval);
+    }
+  }, [user, loading, router]);
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    router.push('/auth/login');
+    logout();
   };
 
   const copyReferralCode = () => {
-    if (user?.referralCode) {
-      navigator.clipboard.writeText(user.referralCode);
+    const referralCode = realTimeData.referralCode || user?.referralCode;
+    if (referralCode) {
+      navigator.clipboard.writeText(referralCode);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchRealTimeData();
+    setRefreshing(false);
   };
 
   if (loading) {
@@ -131,7 +186,7 @@ export default function AccountPage() {
     {
       icon: History,
       label: "Transaction History",
-      href: "/transaction-history"
+      href: "/history"
     },
     {
       icon: Settings,
@@ -153,15 +208,24 @@ export default function AccountPage() {
               <Avatar className="w-16 h-16">
                 <AvatarImage src={user.avatar} />
                 <AvatarFallback className="bg-teal-100 text-teal-600 text-xl">
-                  {user.name.charAt(0).toUpperCase()}
+                  {(realTimeData.name || user.name)?.charAt(0)?.toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-bold text-gray-900">{user.name}</h2>
-                  <Badge className="bg-gray-600 text-white">{user.level}</Badge>
+                  <h2 className="text-xl font-bold text-gray-900 animate-pulse">
+                    {realTimeData.name || user.name || 'User'}
+                  </h2>
+                  <Badge className={`${
+                    (realTimeData.level || user.level) === 'Gold' ? 'bg-yellow-500 text-white' :
+                    (realTimeData.level || user.level) === 'Silver' ? 'bg-gray-400 text-white' :
+                    (realTimeData.level || user.level) === 'Platinum' ? 'bg-purple-500 text-white' :
+                    'bg-orange-500 text-white'
+                  }`}>
+                    {realTimeData.level || user.level || 'Bronze'}
+                  </Badge>
                 </div>
-                <p className="text-gray-600">{user.id}</p>
+                <p className="text-gray-600 font-mono">{realTimeData.membershipId || user.membershipId || 'N/A'}</p>
               </div>
             </div>
 
@@ -169,7 +233,9 @@ export default function AccountPage() {
             <div className="space-y-1">
               <p className="text-sm text-gray-600">Referral Code</p>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-lg font-semibold text-gray-900">{user.referralCode}</span>
+                <span className="font-mono text-lg font-semibold text-gray-900">
+                  {realTimeData.referralCode || user.referralCode || 'N/A'}
+                </span>
                 <Button size="sm" variant="ghost" className="p-1" onClick={copyReferralCode}>
                   <Copy className="w-4 h-4" />
                 </Button>
@@ -179,7 +245,31 @@ export default function AccountPage() {
             {/* Credit Score */}
             <div className="space-y-1">
               <p className="text-sm text-gray-600">Credit Score</p>
-              <p className="text-lg font-semibold text-teal-600">{user.creditScore}</p>
+              <p className="text-lg font-semibold text-teal-600">
+                {realTimeData.creditScore || user.creditScore || 0}
+              </p>
+            </div>
+
+            {/* Wallet Balance */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-gray-600">Wallet Balance</p>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="p-1"
+                >
+                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Wallet className="w-6 h-6 text-green-600" />
+                <p className="text-3xl font-bold text-green-600 animate-pulse">
+                  Rs {(realTimeData.walletBalance || user.walletBalance || 0).toLocaleString()}
+                </p>
+              </div>
             </div>
 
             {/* Action Buttons */}
@@ -204,13 +294,17 @@ export default function AccountPage() {
                 <div className="flex items-center gap-3">
                   <User className="w-5 h-5" />
                   <div>
-                    <p className="font-semibold">Your current level {user.level}</p>
+                    <p className="font-semibold animate-pulse">
+                      Your current level {realTimeData.level || user.level || 'Bronze'}
+                    </p>
                     <p className="text-sm text-gray-300">Membership class gets more privileges</p>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" className="text-gray-900">
-                  Check
-                </Button>
+                <Link href="/member-level">
+                  <Button variant="outline" size="sm" className="text-gray-900">
+                    Check
+                  </Button>
+                </Link>
               </div>
             </Card>
           </div>

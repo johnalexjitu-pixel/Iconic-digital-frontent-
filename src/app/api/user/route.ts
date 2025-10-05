@@ -7,40 +7,55 @@ import { ObjectId } from 'mongodb';
 
 export async function GET(request: NextRequest) {
   try {
-    // Try to get data from backend server first
-    if (config.env.isDevelopment) {
-      const backendResponse = await apiClient.getUserProfile();
-      
-      if (backendResponse.success) {
-        return NextResponse.json(backendResponse);
-      }
+    // Get user data from database
+    const usersCollection = await getCollection('users');
+    
+    // Get user email from query parameters or default to test@test.com
+    const { searchParams } = new URL(request.url);
+    const email = searchParams.get('email') || 'test@test.com';
+    
+    // Get the specific user by email
+    const user = await usersCollection.findOne({ email });
+    
+    if (!user) {
+      return NextResponse.json({
+        success: false,
+        error: 'No user found'
+      }, { status: 404 });
     }
 
-    // Fallback to mock data if backend is not available
-    const mockUser = {
-      _id: "mock_user_id",
-      name: "gokazi",
-      email: "gokazi@example.com",
-      level: "Silver",
-      membershipId: "46235",
-      referralCode: "UXOX485U6",
-      creditScore: 100,
-      accountBalance: 61076,
-      totalEarnings: 0,
-      campaignsCompleted: 8,
-      lastLogin: new Date(),
-      dailyCheckIn: {
-        lastCheckIn: new Date(),
-        streak: 4,
-        daysClaimed: [1, 2, 3, 4]
-      }
+    // Return user data (without password)
+    const userResponse = {
+      _id: user._id,
+      name: user.name?.trim() || 'User',
+      email: user.email,
+      level: user.level || 'Bronze',
+      membershipId: user.membershipId || '',
+      referralCode: user.referralCode || '',
+      creditScore: user.creditScore || 100,
+      accountBalance: user.accountBalance || 0,
+      walletBalance: user.walletBalance || 0,
+      totalEarnings: user.totalEarnings || 0,
+      campaignsCompleted: user.campaignsCompleted || 0,
+      todayCommission: user.todayCommission || 0,
+      withdrawalAmount: user.withdrawalAmount || 0,
+      dailyCheckIn: user.dailyCheckIn || { 
+        lastCheckIn: null, 
+        streak: 0, 
+        daysClaimed: [] 
+      },
+      lastLogin: user.lastLogin,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      phoneNumber: user.phoneNumber || ''
     };
 
     return NextResponse.json({
       success: true,
-      data: mockUser,
-      source: 'mock-data'
+      data: userResponse,
+      source: 'database'
     });
+
   } catch (error) {
     console.error('Error fetching user data:', error);
     return NextResponse.json(
