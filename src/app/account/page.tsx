@@ -84,7 +84,7 @@ export default function AccountPage() {
           const userData = data.data;
           setRealTimeData({
             name: userData.name || '',
-            walletBalance: userData.walletBalance || 0,
+            walletBalance: userData.accountBalance || 0, // Use accountBalance instead of walletBalance
             level: userData.level || 'Bronze',
             membershipId: userData.membershipId || '',
             referralCode: userData.referralCode || '',
@@ -267,7 +267,7 @@ export default function AccountPage() {
               <div className="flex items-center gap-2">
                 <Wallet className="w-6 h-6 text-green-600" />
                 <p className="text-3xl font-bold text-green-600 animate-pulse">
-                  Rs {(realTimeData.walletBalance || user.walletBalance || 0).toLocaleString()}
+                  BDT {(realTimeData.walletBalance || user.walletBalance || 0).toLocaleString()}
                 </p>
               </div>
             </div>

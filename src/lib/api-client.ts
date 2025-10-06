@@ -21,8 +21,13 @@ export class ApiClient {
     // Get environment configuration
     this.envConfig = getEnvironmentConfig();
     
-    // Use environment-based URL configuration
-    this.baseUrl = this.envConfig.apiBaseUrl;
+    // In development, use local Next.js API routes instead of backend server
+    if (this.envConfig.isDevelopment) {
+      this.baseUrl = ''; // Use relative URLs for local API routes
+    } else {
+      this.baseUrl = this.envConfig.apiBaseUrl;
+    }
+    
     this.timeout = this.envConfig.timeout;
     this.retryAttempts = this.envConfig.retryAttempts;
     this.enableLogging = this.envConfig.enableLogging;
@@ -32,11 +37,7 @@ export class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    // For development, always return mock data to avoid fetch errors
-    if (this.envConfig.isDevelopment) {
-      console.log(`🔄 Development mode: Using mock data for: ${endpoint}`);
-      return this.getMockData(endpoint) as ApiResponse<T>;
-    }
+    // Always make real API calls - no more mock data fallback
 
     const url = `${this.baseUrl}${endpoint}`;
 
@@ -77,9 +78,8 @@ export class ApiClient {
         console.error(`❌ API Error: ${url}`, error);
       }
 
-      // Return mock data when backend is not available
-      console.log(`🔄 Backend unavailable: Using mock data for: ${endpoint}`);
-      return this.getMockData(endpoint) as ApiResponse<T>;
+      // Throw error instead of returning mock data
+      throw error;
     }
   }
 

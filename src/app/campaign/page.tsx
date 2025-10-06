@@ -7,105 +7,211 @@ import { HomepageFooter } from "@/components/HomepageFooter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Play, Users, Clock, DollarSign, Star, ArrowRight, Gift } from "lucide-react";
-import { apiClient } from '@/lib/api-client';
+import { ArrowRight, DollarSign, Users, Calendar, Play, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { useAuth } from '@/contexts/AuthContext';
 
-interface Campaign {
+interface CustomerTask {
   _id: string;
-  title: string;
-  description: string;
-  status: string;
-  reward: number;
-  participants: number;
-  duration: number;
-  createdAt: string;
+  customerId: string;
+  taskNumber: number;
+  taskPrice: number;
+  taskCommission: number;
+  taskTitle: string;
+  taskDescription: string;
+  platform: string;
+  status: 'pending' | 'active' | 'completed' | 'claimed';
+  claimedAt?: string;
+  completedAt?: string;
+  isClaimed: boolean;
 }
 
 interface UserStats {
   accountBalance: number;
   campaignsCompleted: number;
-  totalEarnings: number;
   todayCommission: number;
   withdrawalAmount: number;
+  dailyCampaignsCompleted: number;
 }
 
 export default function CampaignPage() {
+  const { user, loading } = useAuth();
   const router = useRouter();
-  const [user, setUser] = useState(null);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [userStats, setUserStats] = useState<UserStats>({
     accountBalance: 0,
     campaignsCompleted: 0,
-    totalEarnings: 0,
     todayCommission: 0,
-    withdrawalAmount: 0
+    withdrawalAmount: 0,
+    dailyCampaignsCompleted: 0
   });
-  const [loading, setLoading] = useState(true);
+  const [tasks, setTasks] = useState<CustomerTask[]>([]);
+  const [currentTask, setCurrentTask] = useState<CustomerTask | null>(null);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [showPlatform, setShowPlatform] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const user = JSON.parse(userData);
-      setUser(user);
-      fetchCampaigns();
-      fetchUserStats();
-    } else {
-      router.push('/auth/login');
-    }
-  }, [router]);
-
-  const fetchCampaigns = async () => {
-    try {
-      const response = await apiClient.getCampaigns();
-      if (response.success && Array.isArray(response.data)) {
-        setCampaigns(response.data);
-      } else {
-        // If API fails, show empty state
-        setCampaigns([]);
-      }
-    } catch (error) {
-      console.error('Error fetching campaigns:', error);
-      setCampaigns([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Fetch user stats from database
   const fetchUserStats = async () => {
     try {
-      const response = await apiClient.getUserProfile();
-      if (response.success && response.data) {
-        const userData = response.data as Record<string, unknown>;
-        setUserStats({
-          accountBalance: (userData.accountBalance as number) || 0,
-          campaignsCompleted: (userData.campaignsCompleted as number) || 0,
-          totalEarnings: (userData.totalEarnings as number) || 0,
-          todayCommission: 0, // This would be calculated from today's transactions
-          withdrawalAmount: 0 // This would be calculated from pending withdrawals
-        });
+      if (!user?.email) return;
+      
+      const response = await fetch(`/api/user?email=${encodeURIComponent(user.email)}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          const userData = data.data;
+          setUserStats({
+            accountBalance: userData.accountBalance || 0,
+            campaignsCompleted: userData.campaignsCompleted || 0,
+            todayCommission: userData.todayCommission || 0,
+            withdrawalAmount: userData.withdrawalAmount || 0,
+            dailyCampaignsCompleted: userData.dailyCampaignsCompleted || 0
+          });
+        }
       }
     } catch (error) {
       console.error('Error fetching user stats:', error);
     }
   };
 
-  const handleJoinCampaign = async (campaignId: string) => {
+  // Fetch user's tasks from database
+  const fetchTasks = async () => {
     try {
-      const response = await apiClient.joinCampaign(campaignId);
-      if (response.success) {
-        fetchCampaigns(); // Refresh campaigns
+      if (!user?._id) return;
+      
+      const response = await fetch(`/api/customer-tasks?customerId=${user._id}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && Array.isArray(data.data)) {
+          setTasks(data.data);
+          // Set first active task as current
+          const activeTask = data.data.find((t: CustomerTask) => t.status === 'active' && !t.isClaimed);
+          if (activeTask) {
+            setCurrentTask(activeTask);
+          }
+        }
       }
     } catch (error) {
-      console.error('Error joining campaign:', error);
+      console.error('Error fetching tasks:', error);
     }
   };
 
+  // Claim task
+  const claimTask = async (task: CustomerTask) => {
+    if (!user?._id) return;
+
+    setIsCompleting(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/customer-tasks/claim', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customerId: user._id,
+          taskId: task._id
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Refresh tasks and stats
+        await fetchTasks();
+        await fetchUserStats();
+      } else {
+        if (data.redirectTo === '/deposit') {
+          router.push('/deposit');
+        } else {
+          setError(data.message || 'Failed to claim task');
+        }
+      }
+    } catch (error) {
+      console.error('Error claiming task:', error);
+      setError('Failed to claim task');
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  // Complete task
+  const completeTask = async (task: CustomerTask) => {
+    if (!user?._id) return;
+
+    setIsCompleting(true);
+    setError(null);
+    
+    try {
+      // Show platform first
+      setShowPlatform(true);
+      
+      // Wait 2 seconds to simulate completion
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const response = await fetch('/api/customer-tasks/complete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customerId: user._id,
+          taskId: task._id
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update local state
+        setUserStats(prev => ({
+          ...prev,
+          accountBalance: data.data.newBalance,
+          campaignsCompleted: prev.campaignsCompleted + 1,
+          todayCommission: prev.todayCommission + task.taskCommission,
+          dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
+        }));
+
+        // Refresh tasks
+        await fetchTasks();
+      } else {
+        setError(data.message || 'Failed to complete task');
+      }
+    } catch (error) {
+      console.error('Error completing task:', error);
+      setError('Failed to complete task');
+    } finally {
+      setIsCompleting(false);
+      setShowPlatform(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/auth/login');
+      return;
+    }
+    
+    if (user) {
+      fetchUserStats();
+      fetchTasks();
+      
+      // Auto-refresh every 5 seconds
+      const interval = setInterval(() => {
+        fetchUserStats();
+        fetchTasks();
+      }, 5000);
+
+      return () => clearInterval(interval);
+    }
+  }, [user, loading, router]);
+
   if (loading) {
-    return (
+  return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading campaigns...</p>
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     );
@@ -119,180 +225,158 @@ export default function CampaignPage() {
     <div className="min-h-screen bg-white">
       <HomepageHeader user={user} />
       
-      {/* Mobile Video Background */}
-      <div className="relative bg-gray-800 py-8 md:hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <video
-          autoPlay
-          muted
-          loop
-          className="absolute inset-0 w-full h-full object-cover"
-        >
-          <source src="/homepage/herovideo.mp4" type="video/mp4" />
-        </video>
-        <div className="relative max-w-7xl mx-auto px-4 text-center">
-          <h1 className="text-2xl font-bold text-white mb-2 font-lexend">Campaign Center</h1>
-          <p className="text-white/90 font-lexend">Join campaigns to earn rewards and grow your account</p>
-        </div>
-      </div>
-
       <div className="max-w-6xl mx-auto px-4 py-6 pb-20">
-        <div className="space-y-6">
-        {/* Desktop Header */}
-        <div className="text-center hidden md:block">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Available Campaigns</h1>
-          <p className="text-gray-600">Join campaigns to earn rewards and grow your account</p>
-        </div>
+        {/* Hero Video Section */}
+        <div className="relative mb-8">
+          <div className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-2xl h-64 md:h-80 flex items-center justify-center overflow-hidden">
+            <video 
+              className="w-full h-full object-cover"
+              autoPlay 
+              muted 
+              loop
+              playsInline
+            >
+              <source src="/homepage/herovideo.mp4" type="video/mp4" />
+            </video>
+            <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+              <div className="text-center text-white">
+                <h1 className="text-4xl md:text-6xl font-bold mb-2">ICONIC DIGITAL</h1>
+                <div className="w-3 h-3 bg-red-500 rounded-full mx-auto"></div>
+              </div>
+            </div>
+                    </div>
+                  </div>
 
         {/* User Stats Dashboard */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <Card className="p-4 bg-teal-50 border-teal-200">
             <div className="text-center">
               <p className="text-sm text-teal-600 font-medium mb-1">Account Balance</p>
-              <p className="text-xl font-bold text-teal-800">Rs {userStats.accountBalance.toLocaleString()}</p>
+              <p className="text-xl font-bold text-teal-800">BDT {userStats.accountBalance.toLocaleString()}</p>
             </div>
           </Card>
           
           <Card className="p-4 bg-blue-50 border-blue-200">
             <div className="text-center">
-              <p className="text-sm text-blue-600 font-medium mb-1">Campaigns</p>
-              <p className="text-xl font-bold text-blue-800">{userStats.campaignsCompleted}/30</p>
+              <p className="text-sm text-blue-600 font-medium mb-1">Number of Campaigns</p>
+              <p className="text-xl font-bold text-blue-800">{userStats.dailyCampaignsCompleted}/30</p>
             </div>
           </Card>
           
           <Card className="p-4 bg-green-50 border-green-200">
             <div className="text-center">
               <p className="text-sm text-green-600 font-medium mb-1">Today's Commission</p>
-              <p className="text-xl font-bold text-green-800">Rs {userStats.todayCommission.toLocaleString()}</p>
-            </div>
+              <p className="text-xl font-bold text-green-800">BDT {userStats.todayCommission.toLocaleString()}</p>
+                    </div>
           </Card>
           
           <Card className="p-4 bg-orange-50 border-orange-200">
             <div className="text-center">
-              <p className="text-sm text-orange-600 font-medium mb-1">Withdrawal</p>
-              <p className="text-xl font-bold text-orange-800">Rs {userStats.withdrawalAmount.toLocaleString()}</p>
+              <p className="text-sm text-orange-600 font-medium mb-1">Withdrawal Amount</p>
+              <p className="text-xl font-bold text-orange-800">BDT {userStats.withdrawalAmount.toLocaleString()}</p>
+                    </div>
+          </Card>
+                  </div>
+
+        {/* Error Message */}
+        {error && (
+          <Card className="p-4 mb-6 bg-red-50 border-red-200">
+            <div className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="w-5 h-5" />
+              <span>{error}</span>
             </div>
           </Card>
-        </div>
+        )}
 
-        {/* Daily Check-in Campaign */}
-        <Card className="p-6 bg-gradient-to-r from-teal-50 to-blue-50 border-teal-200 mb-6">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-teal-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Gift className="w-8 h-8 text-white" />
+        {/* Current Task Section */}
+        {currentTask && (
+          <Card className="p-6 mb-8 bg-gradient-to-r from-red-50 to-pink-50 border-red-200">
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">Current Task</h3>
+              <p className="text-gray-600">{currentTask.taskTitle}</p>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Daily Check-In Rewards</h3>
-            <p className="text-gray-600 mb-4">Earn rewards by checking in daily after completing your work!</p>
             
-            {/* Daily Rewards */}
-            <div className="grid grid-cols-7 gap-2 mb-6">
-              {[2000, 4000, 6000, 8000, 100000, 150000, 200000].map((amount, index) => (
-                <div key={index} className="bg-white rounded-lg p-3 text-center border border-teal-200">
-                  <div className="w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <Gift className="w-4 h-4 text-teal-600" />
-                  </div>
-                  <p className="text-xs text-gray-600 mb-1">Day {index + 1}</p>
-                  <p className="text-sm font-bold text-teal-600">Rs {amount.toLocaleString()}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <DollarSign className="w-4 h-4 text-green-600" />
+                  <span className="text-sm text-gray-600">Commission</span>
                 </div>
-              ))}
+                <p className="font-bold text-green-600">BDT {currentTask.taskCommission.toLocaleString()}</p>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <Users className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm text-gray-600">Platform</span>
+                </div>
+                <p className="font-bold text-blue-600">{currentTask.platform}</p>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <Clock className="w-4 h-4 text-orange-600" />
+                  <span className="text-sm text-gray-600">Task Price</span>
+                </div>
+                <p className="font-bold text-orange-600">BDT {currentTask.taskPrice.toLocaleString()}</p>
+              </div>
             </div>
-            
+
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 text-center">{currentTask.taskDescription}</p>
+            </div>
+
+            {/* Action Button */}
             <Button 
-              onClick={() => router.push('/daily-checkin')}
-              className="bg-teal-500 hover:bg-teal-600 text-white px-8 py-3"
+              className={`w-full py-4 text-white font-bold rounded-lg transition-all duration-300 ${
+                userStats.dailyCampaignsCompleted >= 30 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : isCompleting 
+                    ? 'bg-yellow-500 animate-pulse' 
+                    : currentTask.isClaimed
+                      ? 'bg-green-500 hover:bg-green-600'
+                      : 'bg-red-500 hover:bg-red-600'
+              }`}
+              onClick={() => currentTask.isClaimed ? completeTask(currentTask) : claimTask(currentTask)}
+              disabled={userStats.dailyCampaignsCompleted >= 30 || isCompleting}
             >
-              <Gift className="w-5 h-5 mr-2" />
-              Claim Daily Rewards
+              {isCompleting ? (
+                <>
+                  <Play className="w-5 h-5 mr-2 animate-spin" />
+                  {showPlatform ? `Completing ${currentTask.platform} Task...` : 'Processing...'}
+                </>
+              ) : userStats.dailyCampaignsCompleted >= 30 ? (
+                'Daily Limit Reached (30/30)'
+              ) : currentTask.isClaimed ? (
+                <>
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Complete Task
+                </>
+              ) : (
+                <>
+                  <ArrowRight className="w-5 h-5 mr-2" />
+                  Claim Task
+                </>
+              )}
             </Button>
-          </div>
-        </Card>
 
-        {/* Launch Campaign Button */}
-        <div className="text-center mb-8">
-          <Button 
-            onClick={() => router.push('/deposit')}
-            className="bg-red-500 hover:bg-red-600 text-white px-8 py-4 text-lg font-semibold"
-          >
-            <ArrowRight className="w-6 h-6 mr-2" />
-            Launch Campaign
-          </Button>
-        </div>
+            {userStats.dailyCampaignsCompleted >= 30 && (
+              <p className="text-center text-sm text-gray-500 mt-2">
+                You've completed your daily limit. Come back tomorrow!
+              </p>
+            )}
+          </Card>
+        )}
 
-        {/* Available Campaigns */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Available Campaigns</h2>
-          {campaigns.length > 0 ? (
-            campaigns.map((campaign: Campaign) => (
-              <Card key={campaign._id} className="p-6">
-                <div className="space-y-4">
-                  {/* Campaign Header */}
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900">{campaign.title}</h3>
-                      <p className="text-gray-600">{campaign.description}</p>
-                    </div>
-                    <Badge className={`${
-                      campaign.status === 'active' ? 'bg-green-100 text-green-800' : 
-                      campaign.status === 'completed' ? 'bg-blue-100 text-blue-800' : 
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {campaign.status}
-                    </Badge>
-                  </div>
+        {/* No Tasks Available */}
+        {tasks.length === 0 && (
+          <Card className="p-8 text-center">
+            <h3 className="text-xl font-bold text-gray-800 mb-2">No Tasks Available</h3>
+            <p className="text-gray-600">Contact admin to get your tasks assigned.</p>
+          </Card>
+        )}
 
-                  {/* Campaign Stats */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-1 mb-1">
-                        <DollarSign className="w-4 h-4 text-green-600" />
-                        <span className="text-sm text-gray-600">Reward</span>
-                    </div>
-                      <p className="font-bold text-green-600">Rs {campaign.reward}</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-1 mb-1">
-                        <Users className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm text-gray-600">Participants</span>
-                      </div>
-                      <p className="font-bold text-blue-600">{campaign.participants || 0}</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-1 mb-1">
-                        <Clock className="w-4 h-4 text-orange-600" />
-                        <span className="text-sm text-gray-600">Duration</span>
-                    </div>
-                      <p className="font-bold text-orange-600">{campaign.duration} days</p>
-                    </div>
-                  </div>
-
-                  {/* Campaign Actions */}
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={() => handleJoinCampaign(campaign._id)}
-                      disabled={campaign.status !== 'active'}
-                      className="flex-1 bg-teal-500 hover:bg-teal-600 text-white"
-                    >
-                      {campaign.status === 'active' ? 'Join Campaign' : 'Campaign Ended'}
-                    </Button>
-                    <Button variant="outline" className="px-4">
-                      <Play className="w-4 h-4 mr-2" />
-                      Preview
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))
-          ) : (
-            <Card className="p-8 text-center">
-              <Star className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Campaigns Available</h3>
-              <p className="text-gray-600">Check back later for new campaigns to join!</p>
-            </Card>
-          )}
-        </div>
-        </div>
       </div>
-      <HomepageFooter activePage="campaign" />
+      
+      <HomepageFooter />
     </div>
   );
 }

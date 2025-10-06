@@ -25,30 +25,31 @@ export async function GET(request: NextRequest) {
     }
 
     // Return user data (without password)
-    const userResponse = {
-      _id: user._id,
-      name: user.name?.trim() || 'User',
-      email: user.email,
-      level: user.level || 'Bronze',
-      membershipId: user.membershipId || '',
-      referralCode: user.referralCode || '',
-      creditScore: user.creditScore || 100,
-      accountBalance: user.accountBalance || 0,
-      walletBalance: user.walletBalance || 0,
-      totalEarnings: user.totalEarnings || 0,
-      campaignsCompleted: user.campaignsCompleted || 0,
-      todayCommission: user.todayCommission || 0,
-      withdrawalAmount: user.withdrawalAmount || 0,
-      dailyCheckIn: user.dailyCheckIn || { 
-        lastCheckIn: null, 
-        streak: 0, 
-        daysClaimed: [] 
-      },
-      lastLogin: user.lastLogin,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-      phoneNumber: user.phoneNumber || ''
-    };
+        const userResponse = {
+          _id: user._id,
+          name: user.name?.trim() || 'User',
+          email: user.email,
+          level: user.level || 'Bronze',
+          membershipId: user.membershipId || '',
+          referralCode: user.referralCode || '',
+          creditScore: user.creditScore || 100,
+          accountBalance: user.accountBalance || 0,
+          walletBalance: user.walletBalance || 0,
+          totalEarnings: user.totalEarnings || 0,
+          campaignsCompleted: user.campaignsCompleted || 0,
+          todayCommission: user.todayCommission || 0,
+          withdrawalAmount: user.withdrawalAmount || 0,
+          dailyCampaignsCompleted: user.dailyCampaignsCompleted || 0,
+          dailyCheckIn: user.dailyCheckIn || { 
+            lastCheckIn: null, 
+            streak: 0, 
+            daysClaimed: [] 
+          },
+          lastLogin: user.lastLogin,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+          phoneNumber: user.phoneNumber || ''
+        };
 
     return NextResponse.json({
       success: true,

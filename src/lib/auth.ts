@@ -21,25 +21,8 @@ export interface User {
 
 export function getUserFromRequest(request: NextRequest): User | null {
   // In a real app, you'd get this from JWT token or session
-  // For now, we'll use a mock user for development
-  return {
-    _id: "mock_user_id",
-    name: "gokazi",
-    email: "gokazi@example.com",
-    level: "Silver",
-    membershipId: "46235",
-    referralCode: "UXOX485U6",
-    creditScore: 100,
-    accountBalance: 61076,
-    totalEarnings: 0,
-    campaignsCompleted: 8,
-    lastLogin: new Date(),
-    dailyCheckIn: {
-      lastCheckIn: new Date(),
-      streak: 4,
-      daysClaimed: [1, 2, 3, 4]
-    }
-  };
+  // For now, return null to force proper authentication
+  return null;
 }
 
 export function requireAuth(handler: (request: NextRequest, user: User) => Promise<Response>) {

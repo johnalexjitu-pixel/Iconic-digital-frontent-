@@ -32,6 +32,13 @@ export default function HistoryPage() {
     if (userData) {
       setUser(JSON.parse(userData));
       fetchTransactions();
+      
+      // Auto-refresh transactions every 5 seconds
+      const interval = setInterval(() => {
+        fetchTransactions();
+      }, 5000);
+      
+      return () => clearInterval(interval);
     } else {
       router.push('/auth/login');
     }
@@ -39,9 +46,12 @@ export default function HistoryPage() {
 
   const fetchTransactions = async () => {
     try {
-      const response = await apiClient.getTransactions();
-      if (response.success && Array.isArray(response.data)) {
-        setTransactions(response.data);
+      // Use direct fetch to local API instead of apiClient
+      const response = await fetch('/api/transactions');
+      const data = await response.json();
+      
+      if (data.success && Array.isArray(data.data)) {
+        setTransactions(data.data);
       } else {
         // If API fails, show empty state
         setTransactions([]);
@@ -151,7 +161,7 @@ export default function HistoryPage() {
                         transaction.type === 'withdrawal' ? 'text-red-600' :
                         'text-blue-600'
                       }`}>
-                        {transaction.type === 'deposit' ? '+' : transaction.type === 'withdrawal' ? '-' : '+'}Rs {transaction.amount}
+                        {transaction.type === 'deposit' ? '+' : transaction.type === 'withdrawal' ? '-' : '+'}BDT {transaction.amount}
                       </p>
                       <Badge className={getStatusColor(transaction.status)}>
                         {getStatusIcon(transaction.status)}
@@ -187,7 +197,7 @@ export default function HistoryPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-green-600">+Rs {transaction.amount}</p>
+                      <p className="font-bold text-green-600">+BDT {transaction.amount}</p>
                       <Badge className={getStatusColor(transaction.status)}>
                         {getStatusIcon(transaction.status)}
                         <span className="ml-1">{transaction.status}</span>
@@ -222,7 +232,7 @@ export default function HistoryPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-red-600">-Rs {transaction.amount}</p>
+                      <p className="font-bold text-red-600">-BDT {transaction.amount}</p>
                       <Badge className={getStatusColor(transaction.status)}>
                         {getStatusIcon(transaction.status)}
                         <span className="ml-1">{transaction.status}</span>
@@ -257,7 +267,7 @@ export default function HistoryPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-blue-600">+Rs {transaction.amount}</p>
+                      <p className="font-bold text-blue-600">+BDT {transaction.amount}</p>
                       <Badge className={getStatusColor(transaction.status)}>
                         {getStatusIcon(transaction.status)}
                         <span className="ml-1">{transaction.status}</span>

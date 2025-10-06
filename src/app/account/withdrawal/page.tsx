@@ -242,7 +242,7 @@ export default function WithdrawalInfoPage() {
 
             {/* Withdrawal Amount */}
             <div className="space-y-2">
-              <Label htmlFor="amount">Withdrawal Amount (Rs)</Label>
+              <Label htmlFor="amount">Withdrawal Amount (BDT)</Label>
               <Input
                 id="amount"
                 type="number"
