@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
-import CustomerTask from '@/models/CustomerTask';
-import CampaignClaim from '@/models/CampaignClaim';
-import User from '@/models/User';
+import { getCollection } from '@/lib/mongodb';
+import { ICustomerTask, CustomerTaskCollection } from '@/models/CustomerTask';
+import { ICampaignClaim, CampaignClaimCollection } from '@/models/CampaignClaim';
+import { IUser, UserCollection } from '@/models/User';
+import { ObjectId } from 'mongodb';
 
 // POST - Claim a task
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
+    const tasksCollection = await getCollection(CustomerTaskCollection);
+    const claimsCollection = await getCollection(CampaignClaimCollection);
+    const usersCollection = await getCollection(UserCollection);
     
     const { customerId, taskId } = await request.json();
     
@@ -19,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if task exists and belongs to customer
-    const task = await CustomerTask.findOne({ _id: taskId, customerId });
+    const task = await tasksCollection.findOne({ _id: new ObjectId(taskId), customerId });
     if (!task) {
       return NextResponse.json(
         { success: false, message: 'Task not found or does not belong to customer' },
@@ -28,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if task is already claimed
-    const existingClaim = await CampaignClaim.findOne({ customerId, taskId });
+    const existingClaim = await claimsCollection.findOne({ customerId, taskId });
     if (existingClaim) {
       return NextResponse.json(
         { success: false, message: 'Task already claimed' },
@@ -45,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check user balance
-    const user = await User.findOne({ _id: customerId });
+    const user = await usersCollection.findOne({ _id: new ObjectId(customerId) });
     if (!user) {
       return NextResponse.json(
         { success: false, message: 'User not found' },
@@ -65,31 +68,42 @@ export async function POST(request: NextRequest) {
     }
 
     // Deduct task price from user balance
-    await User.findByIdAndUpdate(customerId, {
-      $inc: { accountBalance: -task.taskPrice }
-    });
+    await usersCollection.updateOne(
+      { _id: new ObjectId(customerId) },
+      { $inc: { accountBalance: -task.taskPrice } }
+    );
 
     // Create claim record
-    const claim = new CampaignClaim({
+    const now = new Date();
+    const claim = {
       customerId,
       taskId,
       taskNumber: task.taskNumber,
       commissionEarned: task.taskCommission,
-      status: 'claimed'
-    });
+      status: 'claimed' as const,
+      claimedAt: now,
+      createdAt: now,
+      updatedAt: now
+    };
 
-    await claim.save();
+    const claimResult = await claimsCollection.insertOne(claim);
 
     // Update task status
-    await CustomerTask.findByIdAndUpdate(taskId, {
-      status: 'claimed',
-      claimedAt: new Date()
-    });
+    await tasksCollection.updateOne(
+      { _id: new ObjectId(taskId) },
+      {
+        $set: {
+          status: 'claimed',
+          claimedAt: now,
+          updatedAt: now
+        }
+      }
+    );
 
     return NextResponse.json({
       success: true,
       message: 'Task claimed successfully',
-      data: claim
+      data: { ...claim, _id: claimResult.insertedId }
     });
 
   } catch (error) {

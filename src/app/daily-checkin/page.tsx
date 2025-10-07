@@ -182,7 +182,7 @@ export default function DailyCheckinPage() {
 
             <div>
               <h3 className="text-lg font-bold text-gray-900 mb-2">Day 5 Reward</h3>
-              <p className="text-2xl font-bold text-teal-600 mb-1">Rs 100,000</p>
+              <p className="text-2xl font-bold text-teal-600 mb-1">BDT 100,000</p>
               <p className="text-sm text-gray-600">Available to claim</p>
             </div>
 

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 
 interface HomepageFooterProps {
-  activePage?: 'home' | 'services' | 'campaign' | 'history' | 'account';
+  activePage?: 'home' | 'services' | 'campaign' | 'history' | 'account' | 'about' | 'certification';
 }
 
 export function HomepageFooter({ activePage = 'home' }: HomepageFooterProps) {

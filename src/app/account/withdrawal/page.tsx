@@ -89,6 +89,13 @@ export default function WithdrawalInfoPage() {
     
     setLoading(true);
     try {
+      // Get user data to get customerId
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        throw new Error('User not found');
+      }
+      const user = JSON.parse(userData);
+
       // Save withdrawal info to user profile
       const withdrawalInfoResponse = await apiClient.updateUserProfile({
         withdrawalInfo: {
@@ -108,20 +115,16 @@ export default function WithdrawalInfoPage() {
       });
 
       if (withdrawalInfoResponse.success) {
-        // Create withdrawal transaction
-        const response = await apiClient.createTransaction({
-          type: 'withdrawal',
+        // Create withdrawal request using the proper withdrawal endpoint
+        const response = await apiClient.createWithdrawal({
+          customerId: user._id,
           amount: parseFloat(formData.amount),
-          method: formData.withdrawalMethod,
-          status: 'processing',
-          description: `Withdrawal to ${formData.bankName} - ${formData.accountNumber}`,
-          metadata: {
-            accountHolderName: formData.accountHolderName,
-            bankName: formData.bankName,
+          method: formData.withdrawalMethod.toLowerCase().replace(' ', '_'),
+          accountDetails: {
             accountNumber: formData.accountNumber,
-            branch: formData.branch,
-            documentsUploaded: true,
-            documentCount: uploadedFiles.length
+            bankName: formData.bankName,
+            mobileNumber: formData.accountHolderName, // Using account holder name as mobile number placeholder
+            provider: formData.bankName
           }
         });
 

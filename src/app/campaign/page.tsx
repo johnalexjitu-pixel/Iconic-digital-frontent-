@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { HomepageHeader } from "@/components/HomepageHeader";
 import { HomepageFooter } from "@/components/HomepageFooter";
@@ -50,7 +50,7 @@ export default function CampaignPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Fetch user stats from database
-  const fetchUserStats = async () => {
+  const fetchUserStats = useCallback(async () => {
     try {
       if (!user?.email) return;
       
@@ -71,10 +71,10 @@ export default function CampaignPage() {
     } catch (error) {
       console.error('Error fetching user stats:', error);
     }
-  };
+  }, [user?.email]);
 
   // Fetch user's tasks from database
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       if (!user?._id) return;
       
@@ -93,7 +93,7 @@ export default function CampaignPage() {
     } catch (error) {
       console.error('Error fetching tasks:', error);
     }
-  };
+  }, [user?._id]);
 
   // Claim task
   const claimTask = async (task: CustomerTask) => {
@@ -204,7 +204,7 @@ export default function CampaignPage() {
 
       return () => clearInterval(interval);
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, fetchUserStats, fetchTasks]);
 
   if (loading) {
   return (

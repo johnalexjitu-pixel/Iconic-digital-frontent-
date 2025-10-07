@@ -25,7 +25,7 @@ export default function MemberLevelPage() {
       icon: <Shield className="w-8 h-8 text-amber-600" />,
       color: "bg-amber-50 border-amber-200",
       textColor: "text-amber-700",
-      requirements: "Account Balance: Rs 0 - Rs 10,000",
+      requirements: "Account Balance: BDT 0 - BDT 10,000",
       benefits: [
         "Basic campaign access",
         "Standard support",
@@ -37,7 +37,7 @@ export default function MemberLevelPage() {
       icon: <Star className="w-8 h-8 text-gray-600" />,
       color: "bg-gray-50 border-gray-200",
       textColor: "text-gray-700",
-      requirements: "Account Balance: Rs 10,001 - Rs 50,000",
+      requirements: "Account Balance: BDT 10,001 - BDT 50,000",
       benefits: [
         "Premium campaign access",
         "Priority support",
@@ -50,7 +50,7 @@ export default function MemberLevelPage() {
       icon: <Crown className="w-8 h-8 text-yellow-600" />,
       color: "bg-yellow-50 border-yellow-200",
       textColor: "text-yellow-700",
-      requirements: "Account Balance: Rs 50,001 - Rs 100,000",
+      requirements: "Account Balance: BDT 50,001 - BDT 100,000",
       benefits: [
         "Exclusive campaign access",
         "VIP support",
@@ -64,7 +64,7 @@ export default function MemberLevelPage() {
       icon: <Zap className="w-8 h-8 text-purple-600" />,
       color: "bg-purple-50 border-purple-200",
       textColor: "text-purple-700",
-      requirements: "Account Balance: Rs 100,001+",
+      requirements: "Account Balance: BDT 100,001+",
       benefits: [
         "All campaign access",
         "24/7 dedicated support",

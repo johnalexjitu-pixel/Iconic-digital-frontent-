@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
-import Withdrawal from '@/models/Withdrawal';
+import { getCollection } from '@/lib/mongodb';
+import { IWithdrawal, WithdrawalCollection } from '@/models/Withdrawal';
+import { ObjectId } from 'mongodb';
 
 // POST - Approve withdrawal (Admin only)
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
+    const withdrawalsCollection = await getCollection(WithdrawalCollection);
     
     const { withdrawalId, adminId, adminNotes } = await request.json();
     
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const withdrawal = await Withdrawal.findById(withdrawalId);
+    const withdrawal = await withdrawalsCollection.findOne({ _id: new ObjectId(withdrawalId) });
     if (!withdrawal) {
       return NextResponse.json(
         { success: false, message: 'Withdrawal not found' },
@@ -32,12 +33,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Update withdrawal status
-    await Withdrawal.findByIdAndUpdate(withdrawalId, {
-      status: 'approved',
-      processedAt: new Date(),
-      processedBy: adminId,
-      adminNotes
-    });
+    const now = new Date();
+    await withdrawalsCollection.updateOne(
+      { _id: new ObjectId(withdrawalId) },
+      {
+        $set: {
+          status: 'approved',
+          processedAt: now,
+          processedBy: adminId,
+          adminNotes,
+          updatedAt: now
+        }
+      }
+    );
 
     return NextResponse.json({
       success: true,

@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
-import Withdrawal from '@/models/Withdrawal';
-import User from '@/models/User';
+import { getCollection } from '@/lib/mongodb';
+import { IWithdrawal, WithdrawalCollection } from '@/models/Withdrawal';
+import { IUser, UserCollection } from '@/models/User';
+import { ObjectId } from 'mongodb';
 
 // GET - Fetch user's withdrawals
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
+    const withdrawalsCollection = await getCollection(WithdrawalCollection);
     
     const { searchParams } = new URL(request.url);
     const customerId = searchParams.get('customerId');
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const withdrawals = await Withdrawal.find({ customerId }).sort({ createdAt: -1 });
+    const withdrawals = await withdrawalsCollection.find({ customerId }).sort({ createdAt: -1 }).toArray();
 
     return NextResponse.json({
       success: true,
@@ -37,7 +38,8 @@ export async function GET(request: NextRequest) {
 // POST - Create withdrawal request
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
+    const withdrawalsCollection = await getCollection(WithdrawalCollection);
+    const usersCollection = await getCollection(UserCollection);
     
     const { 
       customerId, 
@@ -61,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check user balance
-    const user = await User.findById(customerId);
+    const user = await usersCollection.findOne({ _id: new ObjectId(customerId) });
     if (!user) {
       return NextResponse.json(
         { success: false, message: 'User not found' },
@@ -77,24 +79,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Deduct amount from user balance (hold it)
-    await User.findByIdAndUpdate(customerId, {
-      $inc: { accountBalance: -amount }
-    });
+    await usersCollection.updateOne(
+      { _id: new ObjectId(customerId) },
+      { $inc: { accountBalance: -amount } }
+    );
 
-    const withdrawal = new Withdrawal({
+    const now = new Date();
+    const withdrawal = {
       customerId,
       amount,
       method,
       accountDetails,
-      status: 'pending'
-    });
+      status: 'pending' as const,
+      submittedAt: now,
+      createdAt: now,
+      updatedAt: now
+    };
 
-    await withdrawal.save();
+    const result = await withdrawalsCollection.insertOne(withdrawal);
 
     return NextResponse.json({
       success: true,
       message: 'Withdrawal request submitted successfully',
-      data: withdrawal
+      data: { ...withdrawal, _id: result.insertedId }
     });
 
   } catch (error) {

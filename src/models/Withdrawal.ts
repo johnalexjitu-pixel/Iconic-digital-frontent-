@@ -1,6 +1,7 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { ObjectId } from 'mongodb';
 
-export interface IWithdrawal extends Document {
+export interface IWithdrawal {
+  _id?: ObjectId;
   customerId: string;
   amount: number;
   method: 'bank_transfer' | 'mobile_banking' | 'cash' | 'other';
@@ -19,49 +20,5 @@ export interface IWithdrawal extends Document {
   updatedAt: Date;
 }
 
-const WithdrawalSchema = new Schema<IWithdrawal>({
-  customerId: {
-    type: String,
-    required: true,
-    index: true
-  },
-  amount: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  method: {
-    type: String,
-    enum: ['bank_transfer', 'mobile_banking', 'cash', 'other'],
-    required: true
-  },
-  accountDetails: {
-    accountNumber: String,
-    bankName: String,
-    mobileNumber: String,
-    provider: String
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'approved', 'rejected', 'processing'],
-    default: 'pending'
-  },
-  adminNotes: {
-    type: String
-  },
-  submittedAt: {
-    type: Date,
-    default: Date.now
-  },
-  processedAt: {
-    type: Date
-  },
-  processedBy: {
-    type: String
-  }
-}, {
-  timestamps: true
-});
-
-export default mongoose.models.Withdrawal || mongoose.model<IWithdrawal>('Withdrawal', WithdrawalSchema);
+export const WithdrawalCollection = 'withdrawals';
 

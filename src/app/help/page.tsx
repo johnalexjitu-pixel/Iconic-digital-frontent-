@@ -29,7 +29,19 @@ export default function HelpPage() {
     {
       id: "withdrawal",
       question: "About Withdrawal",
-      answer: "Withdrawals are processed within 24-48 hours during business days. Minimum withdrawal amount is Rs 500. All withdrawals are subject to verification and may require additional documentation for security purposes."
+      answer: `Before initiating a withdrawal request, please ensure that your bank details are correctly bound to the platform. Once completed, you may proceed by entering the desired withdrawal amount, clicking the 'Withdraw' button, and inputting your designated withdrawal password to confirm the transaction.
+
+Please be advised that withdrawals are permitted only after every 3 sets of campaign tasks have been successfully completed.
+
+For transactions exceeding BDT 3,000,000 in a single withdrawal, a 50% refundable security deposit is required. This measure is part of our first-time identity verification and anti-fraud protocol. The security deposit will be fully refunded within one hour upon successful verification.
+
+Important Notes:
+
+• The estimated arrival time for funds is typically 10 to 60 minutes after the withdrawal has been submitted.
+• Once the withdrawal is initiated, the remaining account balance must not exceed BDT 300,000.
+• Withdrawals are available Monday to Sunday from 9:00 AM to 9:00 PM.
+
+We appreciate your attention to these details as they are in place to ensure a smooth and secure transaction experience.`
     },
     {
       id: "exclusive-campaign",
@@ -75,7 +87,7 @@ export default function HelpPage() {
         <Card className="p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Frequently Asked Questions</h2>
           <p className="text-gray-600">
-            Find answers to the most common questions about our services. If you can't find what you're looking for, 
+            Find answers to the most common questions about Iconic Digital services. If you can't find what you're looking for, 
             please contact our customer support team.
           </p>
         </Card>
@@ -99,7 +111,7 @@ export default function HelpPage() {
                 </button>
                 {expandedFaq === faq.id && (
                   <div className="px-4 pb-4">
-                    <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
+                    <p className="text-gray-600 leading-relaxed whitespace-pre-line">{faq.answer}</p>
                   </div>
                 )}
               </div>
@@ -110,13 +122,17 @@ export default function HelpPage() {
         {/* Contact Support */}
         <Card className="p-6 mt-6">
           <div className="text-center">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Still need help?</h3>
-            <p className="text-gray-600 mb-6">
-              Can't find the answer you're looking for? Our support team is here to help.
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Need More Help?</h3>
+            <p className="text-gray-600 mb-4">
+              Our customer service team is available to assist you.
             </p>
+            <div className="mb-4">
+              <p className="font-medium mb-2">Service Hours:</p>
+              <p className="text-gray-600">Monday - Sunday: 9:00 AM to 9:00 PM</p>
+            </div>
             <Button
               onClick={() => router.push('/customer-service')}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3"
+              className="bg-black hover:bg-gray-800 text-white px-6 py-3 rounded-full transition-all duration-300 hover:shadow-md"
             >
               <MessageCircle className="w-4 h-4 mr-2" />
               Contact Support

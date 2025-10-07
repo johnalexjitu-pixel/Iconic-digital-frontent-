@@ -1,6 +1,7 @@
-import mongoose, { Document, Schema } from 'mongoose';
+import { ObjectId } from 'mongodb';
 
-export interface IDeposit extends Document {
+export interface IDeposit {
+  _id?: ObjectId;
   customerId: string;
   amount: number;
   method: 'bank_transfer' | 'mobile_banking' | 'cash' | 'other';
@@ -14,46 +15,5 @@ export interface IDeposit extends Document {
   updatedAt: Date;
 }
 
-const DepositSchema = new Schema<IDeposit>({
-  customerId: {
-    type: String,
-    required: true,
-    index: true
-  },
-  amount: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  method: {
-    type: String,
-    enum: ['bank_transfer', 'mobile_banking', 'cash', 'other'],
-    required: true
-  },
-  transactionId: {
-    type: String
-  },
-  status: {
-    type: String,
-    enum: ['pending', 'approved', 'rejected'],
-    default: 'pending'
-  },
-  adminNotes: {
-    type: String
-  },
-  submittedAt: {
-    type: Date,
-    default: Date.now
-  },
-  processedAt: {
-    type: Date
-  },
-  processedBy: {
-    type: String
-  }
-}, {
-  timestamps: true
-});
-
-export default mongoose.models.Deposit || mongoose.model<IDeposit>('Deposit', DepositSchema);
+export const DepositCollection = 'deposits';
 

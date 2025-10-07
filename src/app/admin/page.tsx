@@ -160,7 +160,7 @@ export default function AdminDashboard() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Earnings</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  Rs {users.reduce((sum, user) => sum + user.totalEarnings, 0).toLocaleString()}
+                  BDT {users.reduce((sum, user) => sum + user.totalEarnings, 0).toLocaleString()}
                 </p>
               </div>
               <TrendingUp className="w-8 h-8 text-orange-500" />
@@ -216,8 +216,8 @@ export default function AdminDashboard() {
                             {user.level}
                           </Badge>
                         </td>
-                        <td className="p-2">Rs {user.accountBalance.toLocaleString()}</td>
-                        <td className="p-2">Rs {user.totalEarnings.toLocaleString()}</td>
+                        <td className="p-2">BDT {user.accountBalance.toLocaleString()}</td>
+                        <td className="p-2">BDT {user.totalEarnings.toLocaleString()}</td>
                         <td className="p-2">{user.campaignsCompleted}</td>
                         <td className="p-2">
                           <div className="flex gap-1">
@@ -282,7 +282,7 @@ export default function AdminDashboard() {
                             {campaign.status}
                           </Badge>
                         </td>
-                        <td className="p-2">Rs {campaign.commissionAmount.toLocaleString()}</td>
+                        <td className="p-2">BDT {campaign.commissionAmount.toLocaleString()}</td>
                         <td className="p-2">{campaign.currentParticipants}/{campaign.maxParticipants}</td>
                         <td className="p-2">
                           <div className="flex gap-1">
@@ -338,7 +338,7 @@ export default function AdminDashboard() {
                         <td className="p-2">{transaction.transactionId}</td>
                         <td className="p-2">{transaction.userId}</td>
                         <td className="p-2">{transaction.type}</td>
-                        <td className="p-2">Rs {transaction.amount.toLocaleString()}</td>
+                        <td className="p-2">BDT {transaction.amount.toLocaleString()}</td>
                         <td className="p-2">
                           <Badge variant={transaction.status === 'completed' ? 'default' : 'secondary'}>
                             {transaction.status}

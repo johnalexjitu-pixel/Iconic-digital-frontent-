@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { HomepageHeader } from "@/components/HomepageHeader";
@@ -73,7 +73,7 @@ export default function AccountPage() {
   });
 
   // Real-time data fetching
-  const fetchRealTimeData = async () => {
+  const fetchRealTimeData = useCallback(async () => {
     try {
       if (!user?.email) return;
       
@@ -95,7 +95,7 @@ export default function AccountPage() {
     } catch (error) {
       console.error('Error fetching real-time data:', error);
     }
-  };
+  }, [user?.email]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -115,7 +115,7 @@ export default function AccountPage() {
 
       return () => clearInterval(interval);
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, fetchRealTimeData]);
 
   const handleLogout = () => {
     logout();

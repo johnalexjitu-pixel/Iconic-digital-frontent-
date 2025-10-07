@@ -389,7 +389,7 @@ export default function HomePage() {
   const stats = [
     {
       label: "Account Balance",
-      value: "Rs 61,076",
+      value: "BDT 61,076",
       bgColor: "bg-teal-50 border-teal-200",
       textColor: "text-teal-600"
     },
@@ -401,13 +401,13 @@ export default function HomePage() {
     },
     {
       label: "Today's Commission",
-      value: "Rs 0",
+      value: "BDT 0",
       bgColor: "bg-teal-50 border-teal-200",
       textColor: "text-teal-600"
     },
     {
       label: "Withdrawal Amount",
-      value: "Rs 0",
+      value: "BDT 0",
       bgColor: "bg-teal-50 border-teal-200",
       textColor: "text-teal-600"
     }

@@ -296,6 +296,58 @@ export class ApiClient {
     return this.makeRequest(apiConfig.endpoints.transactions.history);
   }
 
+  // Withdrawal API methods
+  async getWithdrawals(customerId?: string): Promise<ApiResponse> {
+    const endpoint = customerId 
+      ? `${apiConfig.endpoints.withdrawals.list}?customerId=${customerId}`
+      : apiConfig.endpoints.withdrawals.list;
+    return this.makeRequest(endpoint);
+  }
+
+  async createWithdrawal(data: Record<string, unknown>): Promise<ApiResponse> {
+    return this.makeRequest(apiConfig.endpoints.withdrawals.create, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getWithdrawalDetails(id: string): Promise<ApiResponse> {
+    return this.makeRequest(apiConfig.endpoints.withdrawals.get(id));
+  }
+
+  async approveWithdrawal(data: Record<string, unknown>): Promise<ApiResponse> {
+    return this.makeRequest(apiConfig.endpoints.withdrawals.approve, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Deposit API methods
+  async getDeposits(customerId?: string): Promise<ApiResponse> {
+    const endpoint = customerId 
+      ? `${apiConfig.endpoints.deposits.list}?customerId=${customerId}`
+      : apiConfig.endpoints.deposits.list;
+    return this.makeRequest(endpoint);
+  }
+
+  async createDeposit(data: Record<string, unknown>): Promise<ApiResponse> {
+    return this.makeRequest(apiConfig.endpoints.deposits.create, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getDepositDetails(id: string): Promise<ApiResponse> {
+    return this.makeRequest(apiConfig.endpoints.deposits.get(id));
+  }
+
+  async approveDeposit(data: Record<string, unknown>): Promise<ApiResponse> {
+    return this.makeRequest(apiConfig.endpoints.deposits.approve, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Dashboard API methods
   async getDashboardStats(): Promise<ApiResponse> {
     return this.makeRequest(apiConfig.endpoints.dashboard.stats);

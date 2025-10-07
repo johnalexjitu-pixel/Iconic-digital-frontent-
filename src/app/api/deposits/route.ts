@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
-import Deposit from '@/models/Deposit';
+import { getCollection } from '@/lib/mongodb';
+import { IDeposit, DepositCollection } from '@/models/Deposit';
 
 // GET - Fetch user's deposits
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
+    const depositsCollection = await getCollection(DepositCollection);
     
     const { searchParams } = new URL(request.url);
     const customerId = searchParams.get('customerId');
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const deposits = await Deposit.find({ customerId }).sort({ createdAt: -1 });
+    const deposits = await depositsCollection.find({ customerId }).sort({ createdAt: -1 }).toArray();
 
     return NextResponse.json({
       success: true,
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 // POST - Create deposit request
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
+    const depositsCollection = await getCollection(DepositCollection);
     
     const { customerId, amount, method, transactionId } = await request.json();
     
@@ -54,20 +54,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const deposit = new Deposit({
+    const now = new Date();
+    const deposit = {
       customerId,
       amount,
       method,
       transactionId,
-      status: 'pending'
-    });
+      status: 'pending' as const,
+      submittedAt: now,
+      createdAt: now,
+      updatedAt: now
+    };
 
-    await deposit.save();
+    const result = await depositsCollection.insertOne(deposit);
 
     return NextResponse.json({
       success: true,
       message: 'Deposit request submitted successfully',
-      data: deposit
+      data: { ...deposit, _id: result.insertedId }
     });
 
   } catch (error) {

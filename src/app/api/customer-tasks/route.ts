@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB } from '@/lib/mongodb';
-import CustomerTask from '@/models/CustomerTask';
-import CampaignClaim from '@/models/CampaignClaim';
+import { getCollection } from '@/lib/mongodb';
+import { ICustomerTask, CustomerTaskCollection } from '@/models/CustomerTask';
+import { ICampaignClaim, CampaignClaimCollection } from '@/models/CampaignClaim';
+import { ObjectId } from 'mongodb';
 
 // GET - Fetch user's tasks
 export async function GET(request: NextRequest) {
   try {
-    await connectDB();
+    const tasksCollection = await getCollection(CustomerTaskCollection);
+    const claimsCollection = await getCollection(CampaignClaimCollection);
     
     const { searchParams } = new URL(request.url);
     const customerId = searchParams.get('customerId');
@@ -19,15 +21,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user's tasks
-    const tasks = await CustomerTask.find({ customerId }).sort({ taskNumber: 1 });
+    const tasks = await tasksCollection.find({ customerId }).sort({ taskNumber: 1 }).toArray();
     
     // Get claimed tasks
-    const claimedTasks = await CampaignClaim.find({ customerId });
+    const claimedTasks = await claimsCollection.find({ customerId }).toArray();
     const claimedTaskIds = new Set(claimedTasks.map(ct => ct.taskId));
     
     // Mark tasks as claimed
     const tasksWithClaimStatus = tasks.map(task => ({
-      ...task.toObject(),
+      ...task,
       isClaimed: claimedTaskIds.has(task._id.toString())
     }));
 
@@ -48,7 +50,7 @@ export async function GET(request: NextRequest) {
 // POST - Create tasks for a customer (Admin only)
 export async function POST(request: NextRequest) {
   try {
-    await connectDB();
+    const tasksCollection = await getCollection(CustomerTaskCollection);
     
     const { customerId, taskCount = 30 } = await request.json();
     
@@ -60,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if tasks already exist for this customer
-    const existingTasks = await CustomerTask.find({ customerId });
+    const existingTasks = await tasksCollection.find({ customerId }).toArray();
     if (existingTasks.length > 0) {
       return NextResponse.json(
         { success: false, message: 'Tasks already exist for this customer' },
@@ -70,6 +72,7 @@ export async function POST(request: NextRequest) {
 
     // Create 30 tasks for the customer
     const tasks = [];
+    const now = new Date();
     for (let i = 1; i <= taskCount; i++) {
       tasks.push({
         customerId,
@@ -79,16 +82,18 @@ export async function POST(request: NextRequest) {
         taskTitle: `Task ${i}`,
         taskDescription: `Complete task ${i} to earn commission`,
         platform: 'General',
-        status: 'pending'
+        status: 'pending',
+        createdAt: now,
+        updatedAt: now
       });
     }
 
-    const createdTasks = await CustomerTask.insertMany(tasks);
+    const result = await tasksCollection.insertMany(tasks);
 
     return NextResponse.json({
       success: true,
       message: `${taskCount} tasks created successfully`,
-      data: createdTasks
+      data: Object.values(result.insertedIds)
     });
 
   } catch (error) {

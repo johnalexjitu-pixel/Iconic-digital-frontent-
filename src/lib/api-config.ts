@@ -62,6 +62,22 @@ export const apiConfig = {
       history: '/api/transactions/history',
     },
 
+    // Withdrawal endpoints
+    withdrawals: {
+      list: '/api/withdrawals',
+      create: '/api/withdrawals',
+      get: (id: string) => `/api/withdrawals/${id}`,
+      approve: '/api/withdrawals/approve',
+    },
+
+    // Deposit endpoints
+    deposits: {
+      list: '/api/deposits',
+      create: '/api/deposits',
+      get: (id: string) => `/api/deposits/${id}`,
+      approve: '/api/deposits/approve',
+    },
+
     // Dashboard endpoints
     dashboard: {
       stats: '/api/dashboard/stats',
