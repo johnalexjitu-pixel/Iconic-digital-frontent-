@@ -70,7 +70,16 @@ export async function PATCH(request: NextRequest) {
   try {
     const usersCollection = await getCollection('users');
     const updateData = await request.json();
-    const userId = "mock_user_id"; // In production, get from auth
+    
+    // Get user ID from the request body or headers
+    const userId = updateData.userId || updateData._id;
+    
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: 'User ID is required' },
+        { status: 400 }
+      );
+    }
 
     // Handle password updates
     if (updateData.currentPassword && updateData.newPassword) {
@@ -92,7 +101,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Handle other updates
-    const allowedFields = ['dailyCheckIn', 'withdrawalInfo', 'accountBalance', 'totalEarnings'];
+    const allowedFields = ['dailyCheckIn', 'withdrawalInfo', 'accountBalance', 'totalEarnings', 'name', 'phoneNumber'];
     const updateFields: Record<string, unknown> = {};
     
     allowedFields.forEach(field => {
@@ -102,6 +111,7 @@ export async function PATCH(request: NextRequest) {
     });
 
     if (Object.keys(updateFields).length > 0) {
+      updateFields.updatedAt = new Date();
       await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
         { $set: updateFields }

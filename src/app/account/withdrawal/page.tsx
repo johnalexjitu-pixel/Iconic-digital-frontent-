@@ -137,9 +137,28 @@ export default function WithdrawalInfoPage() {
       }
       const user = JSON.parse(userData);
 
+      // Upload documents to MongoDB first
+      const formDataToUpload = new FormData();
+      formDataToUpload.append('userId', user._id);
+      uploadedFiles.forEach(file => {
+        formDataToUpload.append('files', file);
+      });
+
+      const uploadResponse = await fetch('/api/upload/documents', {
+        method: 'POST',
+        body: formDataToUpload
+      });
+
+      const uploadResult = await uploadResponse.json();
+      
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.message || 'Failed to upload documents');
+      }
+
       // Prepare account details based on method
       let accountDetails: any = {
-        accountHolderName: formData.accountHolderName
+        accountHolderName: formData.accountHolderName,
+        uploadedDocuments: uploadResult.data.uploadedDocuments
       };
 
       switch (formData.withdrawalMethod) {
@@ -162,6 +181,7 @@ export default function WithdrawalInfoPage() {
 
       // Save withdrawal info to user profile
       const withdrawalInfoResponse = await apiClient.updateUserProfile({
+        userId: user._id,
         withdrawalInfo: {
           method: formData.withdrawalMethod,
           accountHolderName: formData.accountHolderName,
@@ -172,12 +192,7 @@ export default function WithdrawalInfoPage() {
           usdtAddress: formData.usdtAddress,
           usdtNetwork: formData.usdtNetwork,
           documentsUploaded: true,
-          uploadedDocuments: uploadedFiles.map(file => ({
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            lastModified: file.lastModified
-          }))
+          uploadedDocuments: uploadResult.data.uploadedDocuments
         }
       });
 
@@ -209,6 +224,7 @@ export default function WithdrawalInfoPage() {
       }
     } catch (error) {
       console.error('Error creating withdrawal:', error);
+      alert('Error creating withdrawal: ' + (error as Error).message);
     } finally {
       setLoading(false);
     }
