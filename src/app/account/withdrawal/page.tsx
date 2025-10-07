@@ -50,8 +50,7 @@ export default function WithdrawalInfoPage() {
     mobileNumber: "",
     usdtAddress: "",
     usdtNetwork: "TRC20",
-    amount: "",
-    withdrawalPassword: ""
+    amount: ""
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -320,8 +319,8 @@ export default function WithdrawalInfoPage() {
 
   const handleWithdrawal = async () => {
     // Validate required fields
-    if (!formData.amount || !formData.withdrawalPassword) {
-      showError('Please enter amount and withdrawal password', 'Validation Error');
+    if (!formData.amount) {
+      showError('Please enter withdrawal amount', 'Validation Error');
       return;
     }
 
@@ -372,9 +371,8 @@ export default function WithdrawalInfoPage() {
           mobileNumber: "",
           usdtAddress: "",
           usdtNetwork: "TRC20",
-          amount: "",
-          withdrawalPassword: ""
-        });
+            amount: ""
+          });
         // Refresh withdrawal history
         fetchWithdrawals(user._id);
           setTimeout(() => setSuccess(false), 3000);
@@ -500,45 +498,36 @@ export default function WithdrawalInfoPage() {
                 <Card className="p-4">
                   <h3 className="font-semibold text-gray-900 mb-4">Withdrawal Amount:</h3>
                   
-                  {/* Amount Input */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <Input
-                          placeholder="Enter amount"
-                          value={formData.amount}
-                          onChange={(e) => handleInputChange('amount', e.target.value)}
-                          className="h-12"
-                        />
+                    {/* Amount Input */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <Input
+                            placeholder="Enter amount"
+                            value={formData.amount}
+                            onChange={(e) => handleInputChange('amount', e.target.value)}
+                            className="h-12"
+                          />
+                        </div>
+                        <Button variant="outline" className="h-12 px-4">
+                          All
+                        </Button>
                       </div>
-                      <Button variant="outline" className="h-12 px-4">
-                        All
-                      </Button>
-                    </div>
 
-                    {/* Withdrawal Password */}
-                    <Input
-                      placeholder="Enter your withdrawal password"
-                      type="password"
-                      value={formData.withdrawalPassword}
-                      onChange={(e) => handleInputChange('withdrawalPassword', e.target.value)}
-                      className="h-12"
-                    />
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-3">
-                      <Button 
-                        className="flex-1 h-12 bg-teal-500 hover:bg-teal-600 text-white"
-                        onClick={handleWithdrawal}
-                        disabled={loading}
-                      >
-                        {loading ? 'Processing...' : 'Withdraw'}
-                      </Button>
-                      <Button variant="outline" className="h-12 px-6">
-                        Contact Support
-                      </Button>
+                      {/* Action Buttons */}
+                      <div className="flex gap-3">
+                        <Button 
+                          className="flex-1 h-12 bg-teal-500 hover:bg-teal-600 text-white"
+                          onClick={handleWithdrawal}
+                          disabled={loading}
+                        >
+                          {loading ? 'Processing...' : 'Withdraw'}
+                        </Button>
+                        <Button variant="outline" className="h-12 px-6">
+                          Contact Support
+                        </Button>
+                      </div>
                     </div>
-                  </div>
                 </Card>
               ) : (
                 <Card className="p-4 bg-gray-50">
