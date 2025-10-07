@@ -12,6 +12,7 @@ import { ArrowLeft, Upload, AlertCircle, CheckCircle, X, FileImage, DollarSign, 
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { apiClient } from '@/lib/api-client';
+import { useToastHelpers } from '@/components/ui/toast';
 
 interface WithdrawalRecord {
   _id: string;
@@ -38,6 +39,7 @@ interface WithdrawalRecord {
 }
 
 export default function WithdrawalInfoPage() {
+  const { success: showSuccess, error: showError, info: showInfo } = useToastHelpers();
   const [user, setUser] = useState<{ name: string; level: string; avatar?: string; _id?: string; accountBalance?: number } | null>(null);
   const [formData, setFormData] = useState({
     withdrawalMethod: "bkash",
@@ -194,14 +196,15 @@ export default function WithdrawalInfoPage() {
         });
         setShowWithdrawalSetup(false);
         setSuccess(true);
+        showSuccess('Withdrawal information saved successfully!', 'Setup Complete');
         setTimeout(() => setSuccess(false), 3000);
       } else {
-        // Show API error message as alert
-        alert(withdrawalInfoResponse.message || 'Failed to save withdrawal information');
+        // Show API error message as toast
+        showError(withdrawalInfoResponse.message || 'Failed to save withdrawal information', 'Setup Failed');
       }
     } catch (error) {
       console.error('Error setting up withdrawal info:', error);
-      alert('Error setting up withdrawal info: ' + (error as Error).message);
+      showError('Error setting up withdrawal info: ' + (error as Error).message, 'Setup Error');
     } finally {
       setSetupLoading(false);
     }
@@ -318,12 +321,12 @@ export default function WithdrawalInfoPage() {
   const handleWithdrawal = async () => {
     // Validate required fields
     if (!formData.amount || !formData.withdrawalPassword) {
-      alert('Please enter amount and withdrawal password');
+      showError('Please enter amount and withdrawal password', 'Validation Error');
       return;
     }
 
     if (!withdrawalInfo?.setupCompleted) {
-      alert('Please complete withdrawal information setup first');
+      showError('Please complete withdrawal information setup first', 'Setup Required');
       return;
     }
     
@@ -352,13 +355,14 @@ export default function WithdrawalInfoPage() {
       // Create withdrawal request using the saved withdrawal information
       const response = await apiClient.createWithdrawal({
         customerId: user._id,
-        amount: parseFloat(formData.amount),
+          amount: parseFloat(formData.amount),
         method: withdrawalInfo.method,
         accountDetails: accountDetails
         });
 
         if (response.success) {
           setSuccess(true);
+        showSuccess('Withdrawal request submitted successfully!', 'Success');
           setFormData({
           withdrawalMethod: "bkash",
             accountHolderName: "",
@@ -375,12 +379,12 @@ export default function WithdrawalInfoPage() {
         fetchWithdrawals(user._id);
           setTimeout(() => setSuccess(false), 3000);
       } else {
-        // Show API error message as alert
-        alert(response.message || 'Withdrawal request failed');
+        // Show API error message as toast
+        showError(response.message || 'Withdrawal request failed', 'Withdrawal Failed');
       }
     } catch (error) {
       console.error('Error creating withdrawal:', error);
-      alert('Error creating withdrawal: ' + (error as Error).message);
+      showError('Error creating withdrawal: ' + (error as Error).message, 'Error');
     } finally {
       setLoading(false);
     }
@@ -475,14 +479,14 @@ export default function WithdrawalInfoPage() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => alert('To edit withdrawal information, please contact our admin support team.')}
+                        onClick={() => showInfo('To edit withdrawal information, please contact our admin support team.', 'Edit Information')}
                       >
                         Edit Information
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => alert('Contact Admin: admin@iconicdigital.com\nPhone: +880-XXX-XXXXXX')}
+                        onClick={() => showInfo('Contact Admin: admin@iconicdigital.com\nPhone: +880-XXX-XXXXXX', 'Contact Admin')}
                       >
                         Contact Admin
                       </Button>

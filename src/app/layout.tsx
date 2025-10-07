@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Lexend } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ToastProvider } from "@/components/ui/toast";
 
 const lexend = Lexend({ 
   subsets: ["latin"],
@@ -44,9 +45,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${lexend.variable} font-lexend`} suppressHydrationWarning={true}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <ToastProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   );
