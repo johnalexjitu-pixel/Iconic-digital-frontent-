@@ -64,6 +64,9 @@ export default function HomePage() {
                 <div className="absolute top-4 left-4">
                   <span className="text-white font-bold text-lg font-lexend">GBNI</span>
                 </div>
+                <div className="absolute top-4 right-4">
+                  <span className="text-white font-bold text-2xl font-lexend bg-red-500 px-3 py-1 rounded-full">1</span>
+                </div>
                 <div className="absolute bottom-4 left-4 right-4">
                   <span className="text-white text-sm font-lexend">doing everything</span>
                 </div>
