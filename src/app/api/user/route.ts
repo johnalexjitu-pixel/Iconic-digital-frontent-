@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
             streak: 0, 
             daysClaimed: [] 
           },
+          withdrawalInfo: user.withdrawalInfo || null,
           lastLogin: user.lastLogin,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,

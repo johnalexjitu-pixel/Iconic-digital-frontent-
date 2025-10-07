@@ -43,7 +43,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${lexend.variable} font-lexend`}>
+      <body className={`${lexend.variable} font-lexend`} suppressHydrationWarning={true}>
         <AuthProvider>
           {children}
         </AuthProvider>

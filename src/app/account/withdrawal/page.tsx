@@ -87,11 +87,19 @@ export default function WithdrawalInfoPage() {
 
   const fetchUserWithdrawalInfo = async (userId: string) => {
     try {
-      const response = await fetch(`/api/user?email=${user?.email}`);
+      const userData = localStorage.getItem('user');
+      if (!userData) return;
+      
+      const parsedUser = JSON.parse(userData);
+      const response = await fetch(`/api/user?email=${parsedUser.email}`);
+      
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data.withdrawalInfo) {
+          console.log('Fetched withdrawal info:', data.data.withdrawalInfo);
           setWithdrawalInfo(data.data.withdrawalInfo);
+        } else {
+          console.log('No withdrawal info found for user');
         }
       }
     } catch (error) {
