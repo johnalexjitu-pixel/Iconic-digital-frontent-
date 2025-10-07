@@ -22,13 +22,17 @@ export default function DailyCheckinPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-    fetchRewards();
-  }, []);
+  const getUserLevel = () => {
+    if (!user) return 'Bronze';
+    const balance = user.accountBalance || 0;
+    if (balance >= 100001) return 'Platinum';
+    if (balance >= 50001) return 'Gold';
+    if (balance >= 10001) return 'Silver';
+    return 'Bronze';
+  };
+
+  const userLevel = getUserLevel();
+  const canCheckIn = userLevel !== 'Bronze';
 
   const fetchRewards = async () => {
     try {
@@ -98,18 +102,43 @@ export default function DailyCheckinPage() {
           </p>
         </Card>
 
-        {/* Current Streak */}
-        <Card className="p-4 bg-gradient-to-r from-teal-50 to-cyan-50 border-teal-200">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <Star className="w-6 h-6 text-teal-600" />
-              <h3 className="text-lg font-bold text-teal-800">Current Streak: {currentStreak} days</h3>
+        {/* Level Requirement Notice */}
+        {!canCheckIn && (
+          <Card className="p-6 mb-6 bg-amber-50 border-amber-200">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Star className="w-8 h-8 text-amber-600" />
+              </div>
+              <h3 className="text-lg font-bold text-amber-800 mb-2">Daily Check-In Not Available</h3>
+              <p className="text-amber-700 mb-4">
+                Daily check-in rewards are available for <strong>Silver level</strong> and above members.
+              </p>
+              <div className="bg-white rounded-lg p-4 border border-amber-200 mb-4">
+                <p className="text-sm text-gray-600 mb-2">Current Level: <strong className="text-amber-600">{userLevel}</strong></p>
+                <p className="text-sm text-gray-600 mb-2">Required Level: <strong className="text-green-600">Silver+</strong></p>
+                <p className="text-sm text-gray-600">Account Balance Required: <strong>BDT 10,001+</strong></p>
+              </div>
+              <p className="text-sm text-amber-600">
+                Increase your account balance to BDT 10,001+ to unlock daily check-in rewards!
+              </p>
             </div>
-            <p className="text-sm text-teal-600">
-              {nextReward ? `Next reward: ${nextReward.amount} on day ${nextReward.day}` : 'All rewards claimed!'}
-            </p>
-          </div>
-        </Card>
+          </Card>
+        )}
+
+        {/* Current Streak */}
+        {canCheckIn && (
+          <Card className="p-4 bg-gradient-to-r from-teal-50 to-cyan-50 border-teal-200">
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Star className="w-6 h-6 text-teal-600" />
+                <h3 className="text-lg font-bold text-teal-800">Current Streak: {currentStreak} days</h3>
+              </div>
+              <p className="text-sm text-teal-600">
+                {nextReward ? `Next reward: ${nextReward.amount} on day ${nextReward.day}` : 'All rewards claimed!'}
+              </p>
+            </div>
+          </Card>
+        )}
 
         {success && (
           <Card className="p-4 bg-green-50 border-green-200">
@@ -121,78 +150,82 @@ export default function DailyCheckinPage() {
         )}
 
         {/* Daily Rewards Grid */}
-        <div className="grid grid-cols-7 gap-2">
-          {rewards.map((reward) => (
-            <div key={reward.day} className="text-center">
-              <div className={`relative p-3 rounded-lg border-2 ${
-                reward.claimed
-                  ? 'bg-teal-50 border-teal-200'
-                  : 'bg-gray-50 border-gray-200'
-              }`}>
-                {/* Gift Icon */}
-                <div className={`w-8 h-8 mx-auto mb-2 rounded-full flex items-center justify-center ${
+        {canCheckIn && (
+          <div className="grid grid-cols-7 gap-2">
+            {rewards.map((reward) => (
+              <div key={reward.day} className="text-center">
+                <div className={`relative p-3 rounded-lg border-2 ${
                   reward.claimed
-                    ? 'bg-teal-100'
-                    : 'bg-gray-100'
+                    ? 'bg-teal-50 border-teal-200'
+                    : 'bg-gray-50 border-gray-200'
                 }`}>
-                  <Gift className={`w-4 h-4 ${
-                    reward.claimed ? 'text-teal-600' : 'text-gray-400'
-                  }`} />
-                </div>
-
-                {/* Check Mark for Claimed */}
-                {reward.claimed && (
-                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-teal-500 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-3 h-3 text-white" />
+                  {/* Gift Icon */}
+                  <div className={`w-8 h-8 mx-auto mb-2 rounded-full flex items-center justify-center ${
+                    reward.claimed
+                      ? 'bg-teal-100'
+                      : 'bg-gray-100'
+                  }`}>
+                    <Gift className={`w-4 h-4 ${
+                      reward.claimed ? 'text-teal-600' : 'text-gray-400'
+                    }`} />
                   </div>
-                )}
 
-                {/* Day Label */}
-                <p className="text-xs font-medium text-gray-600 mb-1">Day {reward.day}</p>
+                  {/* Check Mark for Claimed */}
+                  {reward.claimed && (
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-teal-500 rounded-full flex items-center justify-center">
+                      <CheckCircle className="w-3 h-3 text-white" />
+                    </div>
+                  )}
 
-                {/* Amount */}
-                <p className={`text-xs font-bold ${
-                  reward.claimed ? 'text-teal-600' : 'text-gray-500'
-                }`}>
-                  {reward.amount}
-                </p>
+                  {/* Day Label */}
+                  <p className="text-xs font-medium text-gray-600 mb-1">Day {reward.day}</p>
 
-                {/* Claim Button */}
-                {!reward.claimed && (
-                  <Button
-                    size="sm"
-                    onClick={() => handleClaimReward(reward.day)}
-                    disabled={loading}
-                    className="w-full mt-2 h-6 text-xs"
-                  >
-                    Claim
-                  </Button>
-                )}
+                  {/* Amount */}
+                  <p className={`text-xs font-bold ${
+                    reward.claimed ? 'text-teal-600' : 'text-gray-500'
+                  }`}>
+                    {reward.amount}
+                  </p>
+
+                  {/* Claim Button */}
+                  {!reward.claimed && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleClaimReward(reward.day)}
+                      disabled={loading}
+                      className="w-full mt-2 h-6 text-xs"
+                    >
+                      Claim
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Current Status */}
-        <Card className="p-6 text-center">
-          <div className="space-y-4">
-            <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto">
-              <Gift className="w-8 h-8 text-teal-600" />
-            </div>
+        {canCheckIn && (
+          <Card className="p-6 text-center">
+            <div className="space-y-4">
+              <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto">
+                <Gift className="w-8 h-8 text-teal-600" />
+              </div>
 
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">Day 5 Reward</h3>
-              <p className="text-2xl font-bold text-teal-600 mb-1">BDT 100,000</p>
-              <p className="text-sm text-gray-600">Available to claim</p>
-            </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">Day 5 Reward</h3>
+                <p className="text-2xl font-bold text-teal-600 mb-1">BDT 100,000</p>
+                <p className="text-sm text-gray-600">Available to claim</p>
+              </div>
 
-            <Button
-              className="w-full h-12 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl"
-            >
-              Claim Reward
-            </Button>
-          </div>
-        </Card>
+              <Button
+                className="w-full h-12 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl"
+              >
+                Claim Reward
+              </Button>
+            </div>
+          </Card>
+        )}
 
         {/* Progress Info */}
         <Card className="p-4 bg-amber-50 border-amber-200">

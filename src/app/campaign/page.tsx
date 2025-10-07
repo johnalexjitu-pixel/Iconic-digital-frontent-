@@ -217,9 +217,44 @@ export default function CampaignPage() {
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  const getLevelInfo = () => {
+    const balance = userStats.accountBalance;
+    if (balance >= 100001) {
+      return {
+        level: 'Platinum',
+        commissionRate: 15,
+        access: 'All campaign access',
+        color: 'purple',
+        benefits: ['All campaign access', '24/7 dedicated support', '15% commission rate', 'Monthly bonuses', 'Exclusive events', 'Priority withdrawal']
+      };
+    } else if (balance >= 50001) {
+      return {
+        level: 'Gold',
+        commissionRate: 10,
+        access: 'Exclusive campaign access',
+        color: 'yellow',
+        benefits: ['Exclusive campaign access', 'VIP support', '10% commission rate', 'Weekly bonuses', 'Referral rewards']
+      };
+    } else if (balance >= 10001) {
+      return {
+        level: 'Silver',
+        commissionRate: 7,
+        access: 'Premium campaign access',
+        color: 'gray',
+        benefits: ['Premium campaign access', 'Priority support', '7% commission rate', 'Daily check-in rewards']
+      };
+    } else {
+      return {
+        level: 'Bronze',
+        commissionRate: 5,
+        access: 'Basic campaign access',
+        color: 'amber',
+        benefits: ['Basic campaign access', 'Standard support', '5% commission rate']
+      };
+    }
+  };
+
+  const levelInfo = getLevelInfo();
 
   return (
     <div className="min-h-screen bg-white">
@@ -277,6 +312,89 @@ export default function CampaignPage() {
                     </div>
           </Card>
                   </div>
+
+        {/* Member Level Status */}
+        <Card className={`p-6 mb-8 bg-gradient-to-r ${
+          levelInfo.color === 'purple' ? 'from-purple-50 to-purple-100 border-purple-200' :
+          levelInfo.color === 'yellow' ? 'from-yellow-50 to-yellow-100 border-yellow-200' :
+          levelInfo.color === 'gray' ? 'from-gray-50 to-gray-100 border-gray-200' :
+          'from-amber-50 to-amber-100 border-amber-200'
+        }`}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                levelInfo.color === 'purple' ? 'bg-purple-100' :
+                levelInfo.color === 'yellow' ? 'bg-yellow-100' :
+                levelInfo.color === 'gray' ? 'bg-gray-100' :
+                'bg-amber-100'
+              }`}>
+                <span className={`text-lg font-bold ${
+                  levelInfo.color === 'purple' ? 'text-purple-600' :
+                  levelInfo.color === 'yellow' ? 'text-yellow-600' :
+                  levelInfo.color === 'gray' ? 'text-gray-600' :
+                  'text-amber-600'
+                }`}>
+                  {levelInfo.level.charAt(0)}
+                </span>
+              </div>
+              <div>
+                <h3 className={`text-xl font-bold ${
+                  levelInfo.color === 'purple' ? 'text-purple-800' :
+                  levelInfo.color === 'yellow' ? 'text-yellow-800' :
+                  levelInfo.color === 'gray' ? 'text-gray-800' :
+                  'text-amber-800'
+                }`}>
+                  {levelInfo.level} Member
+                </h3>
+                <p className={`text-sm ${
+                  levelInfo.color === 'purple' ? 'text-purple-600' :
+                  levelInfo.color === 'yellow' ? 'text-yellow-600' :
+                  levelInfo.color === 'gray' ? 'text-gray-600' :
+                  'text-amber-600'
+                }`}>
+                  {levelInfo.access} • {levelInfo.commissionRate}% Commission Rate
+                </p>
+              </div>
+            </div>
+            <Badge className={`${
+              levelInfo.color === 'purple' ? 'bg-purple-100 text-purple-800 border-purple-200' :
+              levelInfo.color === 'yellow' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+              levelInfo.color === 'gray' ? 'bg-gray-100 text-gray-800 border-gray-200' :
+              'bg-amber-100 text-amber-800 border-amber-200'
+            }`}>
+              {levelInfo.commissionRate}% Commission
+            </Badge>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">Your Benefits:</h4>
+              <ul className="space-y-1">
+                {levelInfo.benefits.map((benefit, index) => (
+                  <li key={index} className="flex items-center gap-2 text-sm text-gray-700">
+                    <div className={`w-1.5 h-1.5 rounded-full ${
+                      levelInfo.color === 'purple' ? 'bg-purple-500' :
+                      levelInfo.color === 'yellow' ? 'bg-yellow-500' :
+                      levelInfo.color === 'gray' ? 'bg-gray-500' :
+                      'bg-amber-500'
+                    }`}></div>
+                    {benefit}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            <div className="text-center">
+              <h4 className="font-semibold text-gray-900 mb-2">Commission Calculation</h4>
+              <div className="bg-white rounded-lg p-4 border">
+                <p className="text-sm text-gray-600 mb-2">Task Commission = Task Price × {levelInfo.commissionRate}%</p>
+                <p className="text-lg font-bold text-green-600">
+                  Example: BDT 1,000 × {levelInfo.commissionRate}% = BDT {(1000 * levelInfo.commissionRate / 100).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
 
         {/* Error Message */}
         {error && (
