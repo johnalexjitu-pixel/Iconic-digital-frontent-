@@ -61,7 +61,17 @@ export class ApiClient {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Try to get error message from response body
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch {
+          // If parsing fails, use the default error message
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
