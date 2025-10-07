@@ -158,6 +158,12 @@ export default function AccountPage() {
       hasArrow: true
     },
     {
+      icon: History,
+      label: "Withdrawal history",
+      href: "/account/withdrawal-history",
+      hasArrow: true
+    },
+    {
       icon: Key,
       label: "Login password",
       href: "/account/password",

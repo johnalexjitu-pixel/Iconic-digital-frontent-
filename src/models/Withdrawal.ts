@@ -4,14 +4,18 @@ export interface IWithdrawal {
   _id?: ObjectId;
   customerId: string;
   amount: number;
-  method: 'bank_transfer' | 'mobile_banking' | 'cash' | 'other';
+  method: 'bkash' | 'nagad' | 'roket' | 'bank' | 'usdt';
   accountDetails: {
     accountNumber?: string;
     bankName?: string;
     mobileNumber?: string;
     provider?: string;
+    accountHolderName?: string;
+    branch?: string;
+    usdtAddress?: string;
+    usdtNetwork?: string;
   };
-  status: 'pending' | 'approved' | 'rejected' | 'processing';
+  status: 'pending' | 'processing' | 'completed' | 'rejected';
   adminNotes?: string;
   submittedAt: Date;
   processedAt?: Date;

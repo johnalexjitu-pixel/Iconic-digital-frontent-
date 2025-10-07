@@ -14,11 +14,14 @@ import { apiClient } from '@/lib/api-client';
 export default function WithdrawalInfoPage() {
   const [user, setUser] = useState<{ name: string; level: string; avatar?: string } | null>(null);
   const [formData, setFormData] = useState({
-    withdrawalMethod: "Bank Account",
+    withdrawalMethod: "bkash",
     accountHolderName: "",
     bankName: "",
     accountNumber: "",
     branch: "",
+    mobileNumber: "",
+    usdtAddress: "",
+    usdtNetwork: "TRC20",
     amount: ""
   });
   const [loading, setLoading] = useState(false);
@@ -85,7 +88,45 @@ export default function WithdrawalInfoPage() {
   };
 
   const handleWithdrawal = async () => {
-    if (!formData.amount || !formData.accountNumber || uploadedFiles.length === 0) return;
+    // Validate required fields based on withdrawal method
+    let isValid = true;
+    let errorMessage = '';
+    
+    if (!formData.amount || !formData.accountHolderName || uploadedFiles.length === 0) {
+      isValid = false;
+      errorMessage = 'Please fill all required fields and upload documents';
+    }
+    
+    // Validate method-specific fields
+    if (isValid) {
+      switch (formData.withdrawalMethod) {
+        case 'bkash':
+        case 'nagad':
+        case 'roket':
+          if (!formData.mobileNumber) {
+            isValid = false;
+            errorMessage = 'Please enter mobile number';
+          }
+          break;
+        case 'bank':
+          if (!formData.bankName || !formData.accountNumber || !formData.branch) {
+            isValid = false;
+            errorMessage = 'Please fill all bank details';
+          }
+          break;
+        case 'usdt':
+          if (!formData.usdtAddress) {
+            isValid = false;
+            errorMessage = 'Please enter USDT wallet address';
+          }
+          break;
+      }
+    }
+    
+    if (!isValid) {
+      alert(errorMessage);
+      return;
+    }
     
     setLoading(true);
     try {
@@ -96,6 +137,29 @@ export default function WithdrawalInfoPage() {
       }
       const user = JSON.parse(userData);
 
+      // Prepare account details based on method
+      let accountDetails: any = {
+        accountHolderName: formData.accountHolderName
+      };
+
+      switch (formData.withdrawalMethod) {
+        case 'bkash':
+        case 'nagad':
+        case 'roket':
+          accountDetails.mobileNumber = formData.mobileNumber;
+          accountDetails.provider = formData.withdrawalMethod;
+          break;
+        case 'bank':
+          accountDetails.accountNumber = formData.accountNumber;
+          accountDetails.bankName = formData.bankName;
+          accountDetails.branch = formData.branch;
+          break;
+        case 'usdt':
+          accountDetails.usdtAddress = formData.usdtAddress;
+          accountDetails.usdtNetwork = formData.usdtNetwork;
+          break;
+      }
+
       // Save withdrawal info to user profile
       const withdrawalInfoResponse = await apiClient.updateUserProfile({
         withdrawalInfo: {
@@ -104,6 +168,9 @@ export default function WithdrawalInfoPage() {
           bankName: formData.bankName,
           accountNumber: formData.accountNumber,
           branch: formData.branch,
+          mobileNumber: formData.mobileNumber,
+          usdtAddress: formData.usdtAddress,
+          usdtNetwork: formData.usdtNetwork,
           documentsUploaded: true,
           uploadedDocuments: uploadedFiles.map(file => ({
             name: file.name,
@@ -119,23 +186,21 @@ export default function WithdrawalInfoPage() {
         const response = await apiClient.createWithdrawal({
           customerId: user._id,
           amount: parseFloat(formData.amount),
-          method: formData.withdrawalMethod.toLowerCase().replace(' ', '_'),
-          accountDetails: {
-            accountNumber: formData.accountNumber,
-            bankName: formData.bankName,
-            mobileNumber: formData.accountHolderName, // Using account holder name as mobile number placeholder
-            provider: formData.bankName
-          }
+          method: formData.withdrawalMethod,
+          accountDetails: accountDetails
         });
 
         if (response.success) {
           setSuccess(true);
           setFormData({
-            withdrawalMethod: "Bank Account",
+            withdrawalMethod: "bkash",
             accountHolderName: "",
             bankName: "",
             accountNumber: "",
             branch: "",
+            mobileNumber: "",
+            usdtAddress: "",
+            usdtNetwork: "TRC20",
             amount: ""
           });
           setUploadedFiles([]);
@@ -183,9 +248,11 @@ export default function WithdrawalInfoPage() {
                   onChange={(e) => handleInputChange('withdrawalMethod', e.target.value)}
                   className="w-full p-3 border border-gray-300 rounded-lg bg-white appearance-none pr-10"
                 >
-                  <option value="Bank Account">Bank Account</option>
-                  <option value="UPI">UPI</option>
-                  <option value="Digital Wallet">Digital Wallet</option>
+                  <option value="bkash">Bkash</option>
+                  <option value="nagad">Nagad</option>
+                  <option value="roket">Roket</option>
+                  <option value="bank">Bank</option>
+                  <option value="usdt">USDT</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                   <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -207,41 +274,121 @@ export default function WithdrawalInfoPage() {
               />
             </div>
 
-            {/* Bank Name */}
-            <div className="space-y-2">
-              <Label htmlFor="bankName">Bank Name</Label>
-              <Input
-                id="bankName"
-                placeholder="Enter bank name"
-                value={formData.bankName}
-                onChange={(e) => handleInputChange('bankName', e.target.value)}
-                className="h-12"
-              />
-            </div>
+            {/* Conditional Fields Based on Withdrawal Method */}
+            {formData.withdrawalMethod === 'bkash' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="mobileNumber">Bkash Mobile Number</Label>
+                  <Input
+                    id="mobileNumber"
+                    placeholder="Enter Bkash mobile number (e.g., 01712345678)"
+                    value={formData.mobileNumber}
+                    onChange={(e) => handleInputChange('mobileNumber', e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+              </>
+            )}
 
-            {/* Account Number */}
-            <div className="space-y-2">
-              <Label htmlFor="accountNumber">Account Number</Label>
-              <Input
-                id="accountNumber"
-                placeholder="Enter Account Number"
-                value={formData.accountNumber}
-                onChange={(e) => handleInputChange('accountNumber', e.target.value)}
-                className="h-12"
-              />
-            </div>
+            {formData.withdrawalMethod === 'nagad' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="mobileNumber">Nagad Mobile Number</Label>
+                  <Input
+                    id="mobileNumber"
+                    placeholder="Enter Nagad mobile number (e.g., 01712345678)"
+                    value={formData.mobileNumber}
+                    onChange={(e) => handleInputChange('mobileNumber', e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+              </>
+            )}
 
-            {/* Branch */}
-            <div className="space-y-2">
-              <Label htmlFor="branch">Branch</Label>
-              <Input
-                id="branch"
-                placeholder="Enter branch name"
-                value={formData.branch}
-                onChange={(e) => handleInputChange('branch', e.target.value)}
-                className="h-12"
-              />
-            </div>
+            {formData.withdrawalMethod === 'roket' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="mobileNumber">Roket Mobile Number</Label>
+                  <Input
+                    id="mobileNumber"
+                    placeholder="Enter Roket mobile number (e.g., 01712345678)"
+                    value={formData.mobileNumber}
+                    onChange={(e) => handleInputChange('mobileNumber', e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+              </>
+            )}
+
+            {formData.withdrawalMethod === 'bank' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="bankName">Bank Name</Label>
+                  <Input
+                    id="bankName"
+                    placeholder="Enter bank name"
+                    value={formData.bankName}
+                    onChange={(e) => handleInputChange('bankName', e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="accountNumber">Account Number</Label>
+                  <Input
+                    id="accountNumber"
+                    placeholder="Enter Account Number"
+                    value={formData.accountNumber}
+                    onChange={(e) => handleInputChange('accountNumber', e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="branch">Branch</Label>
+                  <Input
+                    id="branch"
+                    placeholder="Enter branch name"
+                    value={formData.branch}
+                    onChange={(e) => handleInputChange('branch', e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+              </>
+            )}
+
+            {formData.withdrawalMethod === 'usdt' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="usdtAddress">USDT Wallet Address</Label>
+                  <Input
+                    id="usdtAddress"
+                    placeholder="Enter USDT wallet address"
+                    value={formData.usdtAddress}
+                    onChange={(e) => handleInputChange('usdtAddress', e.target.value)}
+                    className="h-12"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="usdtNetwork">USDT Network</Label>
+                  <div className="relative">
+                    <select
+                      id="usdtNetwork"
+                      value={formData.usdtNetwork}
+                      onChange={(e) => handleInputChange('usdtNetwork', e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg bg-white appearance-none pr-10"
+                    >
+                      <option value="TRC20">TRC20 (Tron)</option>
+                      <option value="ERC20">ERC20 (Ethereum)</option>
+                      <option value="BEP20">BEP20 (BSC)</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Withdrawal Amount */}
             <div className="space-y-2">
@@ -340,7 +487,7 @@ export default function WithdrawalInfoPage() {
             {/* Submit Button */}
             <Button
               onClick={handleWithdrawal}
-              disabled={!formData.amount || !formData.accountNumber || uploadedFiles.length === 0 || loading}
+              disabled={loading}
               className="w-full h-12 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Processing...' : 'Submit Withdrawal Request'}
