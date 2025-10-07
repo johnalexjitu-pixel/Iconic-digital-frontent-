@@ -51,7 +51,7 @@ export default function HomePage() {
         <div className="relative bg-gray-800 py-16">
           <div className="max-w-7xl mx-auto px-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Video 1 */}
+              {/* Video 1 - Always visible */}
               <div className="relative rounded-2xl overflow-hidden bg-black aspect-[9/16]">
                 <video
                   autoPlay
@@ -72,8 +72,8 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Video 2 */}
-              <div className="relative rounded-2xl overflow-hidden bg-black aspect-[9/16]">
+              {/* Video 2 - Hidden on mobile, visible on desktop */}
+              <div className="hidden md:block relative rounded-2xl overflow-hidden bg-black aspect-[9/16]">
                 <video
                   autoPlay
                   muted
@@ -90,8 +90,8 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Video 3 */}
-              <div className="relative rounded-2xl overflow-hidden bg-black aspect-[9/16]">
+              {/* Video 3 - Hidden on mobile, visible on desktop */}
+              <div className="hidden md:block relative rounded-2xl overflow-hidden bg-black aspect-[9/16]">
                 <video
                   autoPlay
                   muted
