@@ -6,13 +6,39 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Upload, AlertCircle, CheckCircle, X, FileImage } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Upload, AlertCircle, CheckCircle, X, FileImage, DollarSign, Clock, History, Info } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { apiClient } from '@/lib/api-client';
 
+interface WithdrawalRecord {
+  _id: string;
+  customerId: string;
+  amount: number;
+  method: 'bkash' | 'nagad' | 'roket' | 'bank' | 'usdt';
+  accountDetails: {
+    accountNumber?: string;
+    bankName?: string;
+    mobileNumber?: string;
+    provider?: string;
+    accountHolderName?: string;
+    branch?: string;
+    usdtAddress?: string;
+    usdtNetwork?: string;
+  };
+  status: 'pending' | 'processing' | 'completed' | 'rejected';
+  adminNotes?: string;
+  submittedAt: string;
+  processedAt?: string;
+  processedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function WithdrawalInfoPage() {
-  const [user, setUser] = useState<{ name: string; level: string; avatar?: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; level: string; avatar?: string; _id?: string; accountBalance?: number } | null>(null);
   const [formData, setFormData] = useState({
     withdrawalMethod: "bkash",
     accountHolderName: "",
@@ -22,19 +48,38 @@ export default function WithdrawalInfoPage() {
     mobileNumber: "",
     usdtAddress: "",
     usdtNetwork: "TRC20",
-    amount: ""
+    amount: "",
+    withdrawalPassword: ""
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [withdrawals, setWithdrawals] = useState<WithdrawalRecord[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
-      setUser(JSON.parse(userData));
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      fetchWithdrawals(parsedUser._id);
     }
   }, []);
+
+  const fetchWithdrawals = async (customerId: string) => {
+    setHistoryLoading(true);
+    try {
+      const response = await apiClient.getWithdrawals(customerId);
+      if (response.success) {
+        setWithdrawals(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching withdrawals:', error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -85,6 +130,63 @@ export default function WithdrawalInfoPage() {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Clock className="w-4 h-4 text-yellow-500" />;
+      case 'processing':
+        return <AlertCircle className="w-4 h-4 text-blue-500" />;
+      case 'completed':
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'rejected':
+        return <X className="w-4 h-4 text-red-500" />;
+      default:
+        return <Clock className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'processing':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'completed':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'rejected':
+        return 'bg-red-100 text-red-800 border-red-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getMethodDisplayName = (method: string) => {
+    switch (method) {
+      case 'bkash':
+        return 'Bkash';
+      case 'nagad':
+        return 'Nagad';
+      case 'roket':
+        return 'Roket';
+      case 'bank':
+        return 'Bank Transfer';
+      case 'usdt':
+        return 'USDT';
+      default:
+        return method;
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const handleWithdrawal = async () => {
@@ -216,9 +318,12 @@ export default function WithdrawalInfoPage() {
             mobileNumber: "",
             usdtAddress: "",
             usdtNetwork: "TRC20",
-            amount: ""
+            amount: "",
+            withdrawalPassword: ""
           });
           setUploadedFiles([]);
+          // Refresh withdrawal history
+          fetchWithdrawals(user._id);
           setTimeout(() => setSuccess(false), 3000);
         }
       }
@@ -235,304 +340,177 @@ export default function WithdrawalInfoPage() {
       <HomepageHeader user={user || undefined} />
       <div className="max-w-4xl mx-auto px-4 py-6 pb-20">
         <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <Link href="/account">
-            <Button variant="ghost" size="sm" className="p-2">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          </Link>
-          <h1 className="text-xl font-bold text-gray-900">Withdrawal Information</h1>
-        </div>
+          {/* Header */}
+          <div className="flex items-center gap-3">
+            <Link href="/account">
+              <Button variant="ghost" size="sm" className="p-2">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </Link>
+            <h1 className="text-xl font-bold text-gray-900">Withdrawal</h1>
+          </div>
 
-        {/* Form */}
-        <Card className="p-6">
-          <div className="space-y-6">
-            {/* Description */}
-            <p className="text-sm text-gray-600">
-              Set up your withdrawal information to enable withdrawals from your account. This
-              information will be used when you request to withdraw funds.
-            </p>
+          {/* Tabs */}
+          <Tabs defaultValue="withdrawal" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="withdrawal">Withdrawal</TabsTrigger>
+              <TabsTrigger value="history">Withdrawal History</TabsTrigger>
+            </TabsList>
 
-            {/* Withdrawal Method */}
-            <div className="space-y-2">
-              <Label htmlFor="method">Withdrawal Method</Label>
-              <div className="relative">
-                <select
-                  id="method"
-                  value={formData.withdrawalMethod}
-                  onChange={(e) => handleInputChange('withdrawalMethod', e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg bg-white appearance-none pr-10"
-                >
-                  <option value="bkash">Bkash</option>
-                  <option value="nagad">Nagad</option>
-                  <option value="roket">Roket</option>
-                  <option value="bank">Bank</option>
-                  <option value="usdt">USDT</option>
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            {/* Account Holder Name */}
-            <div className="space-y-2">
-              <Label htmlFor="holderName">Account Holder Name</Label>
-              <Input
-                id="holderName"
-                placeholder="Enter account holder name"
-                value={formData.accountHolderName}
-                onChange={(e) => handleInputChange('accountHolderName', e.target.value)}
-                className="h-12"
-              />
-            </div>
-
-            {/* Conditional Fields Based on Withdrawal Method */}
-            {formData.withdrawalMethod === 'bkash' && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="mobileNumber">Bkash Mobile Number</Label>
-                  <Input
-                    id="mobileNumber"
-                    placeholder="Enter Bkash mobile number (e.g., 01712345678)"
-                    value={formData.mobileNumber}
-                    onChange={(e) => handleInputChange('mobileNumber', e.target.value)}
-                    className="h-12"
-                  />
-                </div>
-              </>
-            )}
-
-            {formData.withdrawalMethod === 'nagad' && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="mobileNumber">Nagad Mobile Number</Label>
-                  <Input
-                    id="mobileNumber"
-                    placeholder="Enter Nagad mobile number (e.g., 01712345678)"
-                    value={formData.mobileNumber}
-                    onChange={(e) => handleInputChange('mobileNumber', e.target.value)}
-                    className="h-12"
-                  />
-                </div>
-              </>
-            )}
-
-            {formData.withdrawalMethod === 'roket' && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="mobileNumber">Roket Mobile Number</Label>
-                  <Input
-                    id="mobileNumber"
-                    placeholder="Enter Roket mobile number (e.g., 01712345678)"
-                    value={formData.mobileNumber}
-                    onChange={(e) => handleInputChange('mobileNumber', e.target.value)}
-                    className="h-12"
-                  />
-                </div>
-              </>
-            )}
-
-            {formData.withdrawalMethod === 'bank' && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="bankName">Bank Name</Label>
-                  <Input
-                    id="bankName"
-                    placeholder="Enter bank name"
-                    value={formData.bankName}
-                    onChange={(e) => handleInputChange('bankName', e.target.value)}
-                    className="h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="accountNumber">Account Number</Label>
-                  <Input
-                    id="accountNumber"
-                    placeholder="Enter Account Number"
-                    value={formData.accountNumber}
-                    onChange={(e) => handleInputChange('accountNumber', e.target.value)}
-                    className="h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="branch">Branch</Label>
-                  <Input
-                    id="branch"
-                    placeholder="Enter branch name"
-                    value={formData.branch}
-                    onChange={(e) => handleInputChange('branch', e.target.value)}
-                    className="h-12"
-                  />
-                </div>
-              </>
-            )}
-
-            {formData.withdrawalMethod === 'usdt' && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="usdtAddress">USDT Wallet Address</Label>
-                  <Input
-                    id="usdtAddress"
-                    placeholder="Enter USDT wallet address"
-                    value={formData.usdtAddress}
-                    onChange={(e) => handleInputChange('usdtAddress', e.target.value)}
-                    className="h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="usdtNetwork">USDT Network</Label>
-                  <div className="relative">
-                    <select
-                      id="usdtNetwork"
-                      value={formData.usdtNetwork}
-                      onChange={(e) => handleInputChange('usdtNetwork', e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-lg bg-white appearance-none pr-10"
-                    >
-                      <option value="TRC20">TRC20 (Tron)</option>
-                      <option value="ERC20">ERC20 (Ethereum)</option>
-                      <option value="BEP20">BEP20 (BSC)</option>
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+            {/* Withdrawal Tab */}
+            <TabsContent value="withdrawal" className="space-y-6">
+              {/* Wallet Balance */}
+              <Card className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-teal-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Wallet Balance</p>
+                      <p className="text-lg font-semibold text-gray-900">BDT {user?.accountBalance?.toLocaleString() || '0'}</p>
                     </div>
                   </div>
                 </div>
-              </>
-            )}
+              </Card>
 
-            {/* Withdrawal Amount */}
-            <div className="space-y-2">
-              <Label htmlFor="amount">Withdrawal Amount (BDT)</Label>
-              <Input
-                id="amount"
-                type="number"
-                placeholder="Enter withdrawal amount"
-                value={formData.amount}
-                onChange={(e) => handleInputChange('amount', e.target.value)}
-                className="h-12"
-              />
-            </div>
+              {/* Withdrawal Information */}
+              <Card className="p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <Info className="w-5 h-5 text-blue-600" />
+                  <h3 className="font-semibold text-gray-900">Withdrawal Information</h3>
+                </div>
+                <p className="text-sm text-gray-600 mb-4">No withdrawal information set.</p>
+                <Button className="bg-green-500 hover:bg-green-600 text-white">
+                  Submit Withdrawal Information
+                </Button>
+              </Card>
 
-            {/* Identity Verification Documents */}
-            <div className="space-y-3">
-              <div>
-                <Label>Identity Verification Documents <span className="text-red-500">*</span></Label>
-                <p className="text-sm text-gray-600 mt-1">
-                  Please submit your valid documentation for verification purpose. (National ID / Passport /
-                  Driving License)
-                </p>
-              </div>
-
-              {/* File Upload Area */}
-              <div
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                  dragActive 
-                    ? 'border-teal-400 bg-teal-50' 
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-              >
-                <input
-                  type="file"
-                  multiple
-                  accept="image/png,image/jpeg,image/jpg"
-                  onChange={(e) => handleFileUpload(e.target.files)}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <Upload className="w-6 h-6 text-gray-400" />
+              {/* Withdrawal Amount */}
+              <Card className="p-4">
+                <h3 className="font-semibold text-gray-900 mb-4">Withdrawal Amount:</h3>
+                
+                {/* Amount Input */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Enter amount"
+                        value={formData.amount}
+                        onChange={(e) => handleInputChange('amount', e.target.value)}
+                        className="h-12"
+                      />
+                    </div>
+                    <Button variant="outline" className="h-12 px-4">
+                      All
+                    </Button>
                   </div>
-                  <p className="text-sm text-gray-600 mb-1">Click to upload images</p>
-                  <p className="text-xs text-gray-500">PNG or JPG up to <span className="text-blue-600 font-semibold">10MB</span> each</p>
-                </label>
-              </div>
 
-              {/* Uploaded Files List */}
-              {uploadedFiles.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-700">Uploaded Documents:</p>
-                  <div className="space-y-2">
-                    {uploadedFiles.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-3">
-                          <FileImage className="w-5 h-5 text-gray-500" />
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                            <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFile(index)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
+                  {/* Withdrawal Password */}
+                  <Input
+                    placeholder="Enter your withdrawal password"
+                    type="password"
+                    value={formData.withdrawalPassword}
+                    onChange={(e) => handleInputChange('withdrawalPassword', e.target.value)}
+                    className="h-12"
+                  />
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    <Button 
+                      className="flex-1 h-12 bg-teal-500 hover:bg-teal-600 text-white"
+                      onClick={handleWithdrawal}
+                      disabled={loading}
+                    >
+                      {loading ? 'Processing...' : 'Withdraw'}
+                    </Button>
+                    <Button variant="outline" className="h-12 px-6">
+                      Contact Support
+                    </Button>
                   </div>
                 </div>
+              </Card>
+            </TabsContent>
+
+            {/* Withdrawal History Tab */}
+            <TabsContent value="history" className="space-y-6">
+              {historyLoading ? (
+                <Card className="p-8 text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Loading withdrawal history...</p>
+                </Card>
+              ) : withdrawals.length === 0 ? (
+                <Card className="p-8 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <History className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">No Withdrawals Yet</h3>
+                  <p className="text-gray-600 mb-4">You haven't made any withdrawal requests yet.</p>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {withdrawals.map((withdrawal) => (
+                    <Card key={withdrawal._id} className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
+                            <DollarSign className="w-5 h-5 text-teal-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-gray-900">
+                              {getMethodDisplayName(withdrawal.method)} Withdrawal
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {withdrawal.accountDetails.accountHolderName}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge className={`${getStatusColor(withdrawal.status)} border`}>
+                          <div className="flex items-center gap-1">
+                            {getStatusIcon(withdrawal.status)}
+                            <span className="capitalize">{withdrawal.status}</span>
+                          </div>
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        <div>
+                          <p className="text-sm text-gray-600">Amount</p>
+                          <p className="font-semibold text-gray-900">BDT {withdrawal.amount.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Submitted</p>
+                          <p className="font-semibold text-gray-900">{formatDate(withdrawal.submittedAt)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Method</p>
+                          <p className="font-semibold text-gray-900">{getMethodDisplayName(withdrawal.method)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Status</p>
+                          <p className="font-semibold text-gray-900 capitalize">{withdrawal.status}</p>
+                        </div>
+                      </div>
+
+                      {withdrawal.processedAt && (
+                        <div className="mb-4">
+                          <p className="text-sm text-gray-600">Processed</p>
+                          <p className="font-semibold text-gray-900">{formatDate(withdrawal.processedAt)}</p>
+                        </div>
+                      )}
+
+                      {withdrawal.adminNotes && (
+                        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                          <p className="text-sm text-gray-600 mb-1">Admin Notes:</p>
+                          <p className="text-sm text-gray-800">{withdrawal.adminNotes}</p>
+                        </div>
+                      )}
+                    </Card>
+                  ))}
+                </div>
               )}
-
-              <div className="flex items-center gap-2 text-blue-600 text-sm">
-                <AlertCircle className="w-4 h-4" />
-                <span>Document upload is required for verification</span>
-              </div>
-            </div>
-
-            {success && (
-              <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <p className="text-green-800">Withdrawal request submitted successfully!</p>
-              </div>
-            )}
-
-            {/* Submit Button */}
-            <Button
-              onClick={handleWithdrawal}
-              disabled={loading}
-              className="w-full h-12 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Processing...' : 'Submit Withdrawal Request'}
-            </Button>
-          </div>
-        </Card>
-
-        {/* Important Notice */}
-        <Card className="p-4 bg-green-50 border-green-200">
-          <h4 className="font-semibold text-green-800 mb-3">Important Notice</h4>
-          <div className="space-y-2 text-sm text-green-700">
-            <div className="flex items-start gap-2">
-              <div className="w-1 h-1 rounded-full bg-green-600 mt-2 flex-shrink-0" />
-              <p>Please ensure all the information provided is accurate and belongs to you.</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-1 h-1 rounded-full bg-green-600 mt-2 flex-shrink-0" />
-              <p>For security reasons, withdrawals can only be made to accounts that match your personal details.</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-1 h-1 rounded-full bg-green-600 mt-2 flex-shrink-0" />
-              <p>Changes to your withdrawal information may require verification by our team.</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-1 h-1 rounded-full bg-green-600 mt-2 flex-shrink-0" />
-              <p>Processing time for withdrawals is typically 24-48 hours once requested.</p>
-            </div>
-          </div>
-        </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
       <HomepageFooter activePage="account" />
