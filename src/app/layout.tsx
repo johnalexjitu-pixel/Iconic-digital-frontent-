@@ -11,7 +11,24 @@ const lexend = Lexend({
 
 export const metadata: Metadata = {
   title: "Iconic Digital - Award-winning creative & performance marketing agency",
-  description: "We blend creative and performance to deliver outstanding results for your brand.",
+  description: "Iconic Digital is an award-winning creative and performance marketing agency. We blend creative excellence with performance marketing to deliver outstanding results for your brand.",
+  keywords: "marketing agency, creative agency, performance marketing, digital marketing, brand strategy, advertising, Iconic Digital",
+  authors: [{ name: "Iconic Digital" }],
+  creator: "Iconic Digital",
+  publisher: "Iconic Digital",
+  robots: "index, follow",
+  openGraph: {
+    title: "Iconic Digital - Award-winning creative & performance marketing agency",
+    description: "Iconic Digital is an award-winning creative and performance marketing agency. We blend creative excellence with performance marketing to deliver outstanding results for your brand.",
+    type: "website",
+    locale: "en_US",
+    siteName: "Iconic Digital",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Iconic Digital - Award-winning creative & performance marketing agency",
+    description: "Iconic Digital is an award-winning creative and performance marketing agency. We blend creative excellence with performance marketing to deliver outstanding results for your brand.",
+  },
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',
