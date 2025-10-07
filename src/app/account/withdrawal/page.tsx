@@ -187,6 +187,9 @@ export default function WithdrawalInfoPage() {
         setShowWithdrawalSetup(false);
         setSuccess(true);
         setTimeout(() => setSuccess(false), 3000);
+      } else {
+        // Show API error message as alert
+        alert(withdrawalInfoResponse.message || 'Failed to save withdrawal information');
       }
     } catch (error) {
       console.error('Error setting up withdrawal info:', error);
@@ -344,16 +347,16 @@ export default function WithdrawalInfoPage() {
         amount: parseFloat(formData.amount),
         method: withdrawalInfo.method,
         accountDetails: accountDetails
-      });
+        });
 
-      if (response.success) {
-        setSuccess(true);
-        setFormData({
+        if (response.success) {
+          setSuccess(true);
+          setFormData({
           withdrawalMethod: "bkash",
-          accountHolderName: "",
-          bankName: "",
-          accountNumber: "",
-          branch: "",
+            accountHolderName: "",
+            bankName: "",
+            accountNumber: "",
+            branch: "",
           mobileNumber: "",
           usdtAddress: "",
           usdtNetwork: "TRC20",
@@ -362,7 +365,10 @@ export default function WithdrawalInfoPage() {
         });
         // Refresh withdrawal history
         fetchWithdrawals(user._id);
-        setTimeout(() => setSuccess(false), 3000);
+          setTimeout(() => setSuccess(false), 3000);
+      } else {
+        // Show API error message as alert
+        alert(response.message || 'Withdrawal request failed');
       }
     } catch (error) {
       console.error('Error creating withdrawal:', error);
