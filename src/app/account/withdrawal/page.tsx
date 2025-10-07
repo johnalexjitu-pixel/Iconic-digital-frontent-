@@ -39,17 +39,7 @@ interface WithdrawalRecord {
 }
 
 export default function WithdrawalInfoPage() {
-  const getUserLevel = () => {
-    if (!user) return 'Bronze';
-    const balance = user.accountBalance || 0;
-    if (balance >= 100001) return 'Platinum';
-    if (balance >= 50001) return 'Gold';
-    if (balance >= 10001) return 'Silver';
-    return 'Bronze';
-  };
-
-  const userLevel = getUserLevel();
-  const hasPriorityWithdrawal = userLevel === 'Platinum';
+  const { success: showSuccess, error: showError, info: showInfo } = useToastHelpers();
   const [user, setUser] = useState<{ name: string; level: string; avatar?: string; _id?: string; accountBalance?: number } | null>(null);
   const [formData, setFormData] = useState({
     withdrawalMethod: "bkash",
@@ -508,22 +498,6 @@ export default function WithdrawalInfoPage() {
                 <Card className="p-4">
                   <h3 className="font-semibold text-gray-900 mb-4">Withdrawal Amount:</h3>
                   
-                  {/* Priority Withdrawal Notice for Platinum */}
-                  {hasPriorityWithdrawal && (
-                    <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
-                          <span className="text-xs font-bold text-purple-600">P</span>
-                        </div>
-                        <span className="text-sm font-semibold text-purple-800">Platinum Priority</span>
-                      </div>
-                      <p className="text-sm text-purple-700">
-                        As a Platinum member, your withdrawal requests are processed with priority. 
-                        Estimated processing time: 5-15 minutes.
-                      </p>
-                    </div>
-                  )}
-                  
                     {/* Amount Input */}
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
@@ -543,15 +517,11 @@ export default function WithdrawalInfoPage() {
                       {/* Action Buttons */}
                       <div className="flex gap-3">
                         <Button 
-                          className={`flex-1 h-12 text-white ${
-                            hasPriorityWithdrawal 
-                              ? 'bg-purple-500 hover:bg-purple-600' 
-                              : 'bg-teal-500 hover:bg-teal-600'
-                          }`}
+                          className="flex-1 h-12 bg-teal-500 hover:bg-teal-600 text-white"
                           onClick={handleWithdrawal}
                           disabled={loading}
                         >
-                          {loading ? 'Processing...' : hasPriorityWithdrawal ? 'Priority Withdraw' : 'Withdraw'}
+                          {loading ? 'Processing...' : 'Withdraw'}
                         </Button>
                         <Button variant="outline" className="h-12 px-6">
                           Contact Support

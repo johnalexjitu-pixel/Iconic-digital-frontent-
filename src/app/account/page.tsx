@@ -201,49 +201,6 @@ export default function AccountPage() {
     }
   ];
 
-  const getLevelRewards = () => {
-    const level = realTimeData.level || user.level || 'Bronze';
-    const balance = realTimeData.walletBalance || user.walletBalance || 0;
-    
-    switch (level) {
-      case 'Bronze':
-        return {
-          commissionRate: '5%',
-          benefits: ['Basic campaign access', 'Standard support', '5% commission rate'],
-          nextLevel: 'Silver',
-          nextLevelRequirement: 'BDT 10,001 - BDT 50,000'
-        };
-      case 'Silver':
-        return {
-          commissionRate: '7%',
-          benefits: ['Premium campaign access', 'Priority support', '7% commission rate', 'Daily check-in rewards'],
-          nextLevel: 'Gold',
-          nextLevelRequirement: 'BDT 50,001 - BDT 100,000'
-        };
-      case 'Gold':
-        return {
-          commissionRate: '10%',
-          benefits: ['Exclusive campaign access', 'VIP support', '10% commission rate', 'Weekly bonuses', 'Referral rewards'],
-          nextLevel: 'Platinum',
-          nextLevelRequirement: 'BDT 100,001+'
-        };
-      case 'Platinum':
-        return {
-          commissionRate: '15%',
-          benefits: ['All campaign access', '24/7 dedicated support', '15% commission rate', 'Monthly bonuses', 'Exclusive events', 'Priority withdrawal'],
-          nextLevel: null,
-          nextLevelRequirement: null
-        };
-      default:
-        return {
-          commissionRate: '5%',
-          benefits: ['Basic campaign access', 'Standard support', '5% commission rate'],
-          nextLevel: 'Silver',
-          nextLevelRequirement: 'BDT 10,001 - BDT 50,000'
-        };
-    }
-  };
-
   return (
     <div className="min-h-screen bg-white">
       <HomepageHeader user={user} />
@@ -314,9 +271,9 @@ export default function AccountPage() {
                 </Button>
               </div>
               <div className="flex items-center gap-2">
-                <p> ৳</p>
+                <Wallet className="w-6 h-6 text-green-600" />
                 <p className="text-3xl font-bold text-green-600 animate-pulse">
-                   {(realTimeData.walletBalance || user.walletBalance || 0).toLocaleString()}
+                  BDT {(realTimeData.walletBalance || user.walletBalance || 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -374,54 +331,6 @@ export default function AccountPage() {
                 Check In
               </Button>
             </Link>
-          </div>
-        </Card>
-
-        {/* Level Rewards */}
-        <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Gift className="w-6 h-6 text-blue-600" />
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {realTimeData.level || user.level || 'Bronze'} Level Rewards
-                  </h3>
-                  <p className="text-sm text-gray-600">Your current benefits and privileges</p>
-                </div>
-              </div>
-              <Badge className="bg-blue-100 text-blue-800 border-blue-200">
-                {getLevelRewards().commissionRate} Commission
-              </Badge>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-2">Current Benefits:</h4>
-                <ul className="space-y-1">
-                  {getLevelRewards().benefits.map((benefit, index) => (
-                    <li key={index} className="flex items-center gap-2 text-sm text-gray-700">
-                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                      {benefit}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {getLevelRewards().nextLevel && (
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Next Level: {getLevelRewards().nextLevel}</h4>
-                  <p className="text-sm text-gray-600 mb-2">
-                    Requirement: {getLevelRewards().nextLevelRequirement}
-                  </p>
-                  <Link href="/member-level">
-                    <Button variant="outline" size="sm" className="text-blue-600 border-blue-300 hover:bg-blue-50">
-                      View All Levels
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </div>
           </div>
         </Card>
 
