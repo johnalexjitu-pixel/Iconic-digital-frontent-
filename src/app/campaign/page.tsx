@@ -14,8 +14,10 @@ import {
   ArrowRight,
   CheckCircle,
   Users,
-  RefreshCw
+  RefreshCw,
+  Gift
 } from 'lucide-react';
+import GoldenEggModal from '@/components/GoldenEggModal';
 
 interface CustomerTask {
   _id: string;
@@ -68,6 +70,8 @@ export default function CampaignPage() {
   const [isCompleting, setIsCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [showGoldenEggModal, setShowGoldenEggModal] = useState(false);
+  const [selectedEgg, setSelectedEgg] = useState<number | null>(null);
   
   // Swipe gesture states
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -185,8 +189,15 @@ export default function CampaignPage() {
       console.log(`🎯 Platform selected: ${platformId}, Task: ${currentTask.taskTitle}, Commission: ${currentTask.taskCommission}`);
       console.log(`📝 Task source: ${currentTask.source || 'customerTasks'}`);
       
-      // Directly complete the task (no claiming needed in new workflow)
-      completeTask(currentTask);
+      // Check if this is a golden egg task
+      if (currentTask.hasGoldenEgg) {
+        console.log(`🥚 Golden Egg task detected! Showing egg selection modal`);
+        console.log(`📊 Task status: ${currentTask.status}, Commission: ${currentTask.taskCommission}`);
+        setShowGoldenEggModal(true);
+      } else {
+        // Directly complete the task (no claiming needed in new workflow)
+        completeTask(currentTask);
+      }
     } else {
       console.log('❌ No current task available');
     }
@@ -298,6 +309,8 @@ export default function CampaignPage() {
         console.log(`✅ Next task loaded: ${data.data.task.taskTitle} (Task #${data.data.task.taskNumber})`);
         console.log(`📈 Progress: ${data.data.completedCount} completed tasks`);
         console.log(`💰 Commission: ${data.data.task.taskCommission} (from ${data.data.source})`);
+        console.log(`🥚 Has Golden Egg: ${data.data.task.hasGoldenEgg}`);
+        console.log(`📝 Task Status: ${data.data.task.status}`);
         console.log(`🧮 Calculation:`, data.data.calculation);
         
         setCurrentTask(data.data.task);
@@ -348,8 +361,30 @@ export default function CampaignPage() {
     }
   };
 
+  // Handle golden egg selection
+  const handleEggSelect = (eggNumber: number) => {
+    console.log(`🥚 Egg ${eggNumber} selected for golden egg task`);
+    console.log(`📊 Task status: ${currentTask?.status}, Commission: ${currentTask?.taskCommission}`);
+    setSelectedEgg(eggNumber);
+    
+    // Complete the task with the same commission (just for show)
+    if (currentTask) {
+      // For completed tasks, we don't need to call completeTask again
+      if (currentTask.status === 'completed') {
+        console.log(`✅ Golden egg task already completed, just showing result`);
+        // Close modal after showing result
+        setTimeout(() => {
+          setShowGoldenEggModal(false);
+        }, 2000);
+      } else {
+        // Pass the selected egg to completeTask
+        completeTask(currentTask, eggNumber);
+      }
+    }
+  };
+
   // Complete task
-  const completeTask = async (task: CustomerTask) => {
+  const completeTask = async (task: CustomerTask, selectedEgg?: number) => {
     if (!user?.membershipId) return;
 
     setIsCompleting(true);
@@ -357,6 +392,7 @@ export default function CampaignPage() {
     
     try {
       console.log('🎯 Completing task:', task.taskTitle, 'Commission:', task.taskCommission);
+      console.log('🥚 Selected egg:', selectedEgg || 'N/A');
       
       // Save task completion using new workflow
       const completionResponse = await fetch('/api/task-workflow', {
@@ -371,7 +407,8 @@ export default function CampaignPage() {
           platform: task.platform,
           commission: task.taskCommission || 0,
           taskNumber: task.taskNumber,
-          source: task.source || 'customerTasks'
+          source: task.source || 'customerTasks',
+          selectedEgg: selectedEgg // Pass the selected egg
         }),
       });
 
@@ -601,6 +638,22 @@ export default function CampaignPage() {
                   </p>
                 </div>
               )}
+              {currentTask.hasGoldenEgg && (
+                <div className="mt-3 p-3 bg-gradient-to-r from-yellow-100 to-orange-100 border border-yellow-300 rounded-lg">
+                  <div className="flex items-center justify-center gap-2">
+                    <Gift className="w-5 h-5 text-yellow-600" />
+                    <span className="text-yellow-800 text-sm font-semibold">🥚 Golden Egg Task!</span>
+                  </div>
+                  <p className="text-yellow-700 text-xs mt-1 text-center">
+                    Choose an egg to reveal your reward!
+                  </p>
+                  {currentTask.taskCommission < 0 && (
+                    <p className="text-red-600 text-xs mt-1 text-center font-semibold">
+                      ⚠️ This task has loss conditions
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </Card>
         )}
@@ -783,6 +836,15 @@ export default function CampaignPage() {
         )}
 
       </div>
+      
+      {/* Golden Egg Modal */}
+      <GoldenEggModal
+        isOpen={showGoldenEggModal}
+        onClose={() => setShowGoldenEggModal(false)}
+        onEggSelect={handleEggSelect}
+        taskTitle={currentTask?.taskTitle || ''}
+        commission={currentTask?.taskCommission || 0}
+      />
       
       <HomepageFooter />
     </div>

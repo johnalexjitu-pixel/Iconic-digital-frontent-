@@ -14,6 +14,7 @@ export interface IUserTaskHistory {
   source: 'customerTasks' | 'campaigns'; // Source of the task
   campaignId?: string; // Reference to campaign if from campaigns
   hasGoldenEgg?: boolean; // Whether task had golden egg
+  selectedEgg?: number; // Which egg was selected (1, 2, or 3) for golden egg tasks
   completedAt: Date; // When the task was completed
   createdAt: Date;
   updatedAt: Date;

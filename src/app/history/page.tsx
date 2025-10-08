@@ -24,6 +24,7 @@ interface TaskHistory {
   source: 'customerTasks' | 'campaigns';
   campaignId?: string;
   hasGoldenEgg?: boolean;
+  selectedEgg?: number;
   completedAt: string;
   createdAt: string;
   updatedAt: string;
@@ -280,7 +281,14 @@ export default function HistoryPage() {
                       <h3 className="font-semibold text-gray-800 text-lg">{task.taskTitle}</h3>
                       <span className="text-sm text-gray-500 font-medium">{task.platform}</span>
                       {task.hasGoldenEgg && (
-                        <span className="text-xs text-yellow-600 font-medium">🥚 Golden Egg Task</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-yellow-600 font-medium">🥚 Golden Egg Task</span>
+                          {task.selectedEgg && (
+                            <span className="text-xs text-yellow-700 font-semibold">
+                              (Egg {task.selectedEgg})
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
                     <div className="text-right">
@@ -309,6 +317,15 @@ export default function HistoryPage() {
                     </div>
                     <p className="text-green-600">BDT {task.commissionEarned.toLocaleString()}</p>
                   </div>
+                  {task.hasGoldenEgg && task.selectedEgg && (
+                    <div className="flex flex-col gap-1 text-sm text-gray-600 col-span-2">
+                      <div className="flex items-center">
+                        <span className="text-yellow-600 mr-2">🥚</span>
+                        <p className="font-medium">Golden Egg Selection</p>
+                      </div>
+                      <p className="text-yellow-700 font-semibold">Selected Egg #{task.selectedEgg}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </Card>

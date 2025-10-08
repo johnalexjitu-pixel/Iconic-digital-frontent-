@@ -29,18 +29,72 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const completedTasks = user.campaignsCompleted || 0;
-    const nextTaskNumber = completedTasks + 1;
-    
-    console.log(`📊 User has completed ${completedTasks} tasks, looking for task #${nextTaskNumber}`);
+      const completedTasks = user.campaignsCompleted || 0;
+      const nextTaskNumber = completedTasks + 1;
+      
+      console.log(`📊 User has completed ${completedTasks} tasks, looking for task #${nextTaskNumber}`);
 
-    // Step 2: Search in customerTasks collection first
-    const customerTasksCollection = await getCollection('customerTasks');
-    const customerTask = await customerTasksCollection.findOne({
-      customerCode: membershipId, // Search by customerCode, not customerId
-      taskNumber: nextTaskNumber,
-      status: 'pending'
-    });
+      // Step 2: Search in customerTasks collection first
+      const customerTasksCollection = await getCollection('customerTasks');
+      
+      // First, check if there's a golden egg task available (regardless of status)
+      const goldenEggTask = await customerTasksCollection.findOne({
+        customerCode: membershipId,
+        hasGoldenEgg: true,
+        status: { $in: ['pending', 'completed'] } // Include completed golden egg tasks
+      });
+
+      if (goldenEggTask) {
+        console.log(`🥚 Found golden egg task: Task #${goldenEggTask.taskNumber}`);
+        
+        // Calculate commission from golden egg task
+        const totalCommission = (goldenEggTask.taskCommission || 0) + 
+                               (goldenEggTask.taskPrice || 0) + 
+                               (goldenEggTask.estimatedNegativeAmount || 0);
+        
+        console.log(`💰 Golden Egg commission calculation: ${goldenEggTask.taskCommission} + ${goldenEggTask.taskPrice} + ${goldenEggTask.estimatedNegativeAmount} = ${totalCommission}`);
+
+        const taskData = {
+          _id: goldenEggTask._id.toString(),
+          customerId: goldenEggTask.customerCode,
+          taskNumber: goldenEggTask.taskNumber,
+          taskTitle: goldenEggTask.taskTitle || `Golden Egg Task ${goldenEggTask.taskNumber}`,
+          taskDescription: goldenEggTask.taskDescription || `Complete golden egg task ${goldenEggTask.taskNumber}`,
+          platform: goldenEggTask.platform || 'General',
+          taskCommission: totalCommission,
+          taskPrice: goldenEggTask.taskPrice || 0,
+          status: goldenEggTask.status,
+          source: 'customerTasks',
+          campaignId: goldenEggTask.campaignId,
+          hasGoldenEgg: true,
+          createdAt: goldenEggTask.createdAt,
+          updatedAt: goldenEggTask.updatedAt
+        };
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            task: taskData,
+            completedCount: completedTasks,
+            nextTaskNumber: goldenEggTask.taskNumber,
+            source: 'customerTasks',
+            isGoldenEgg: true,
+            calculation: {
+              taskCommission: goldenEggTask.taskCommission || 0,
+              taskPrice: goldenEggTask.taskPrice || 0,
+              estimatedNegativeAmount: goldenEggTask.estimatedNegativeAmount || 0,
+              totalCommission: totalCommission
+            }
+          }
+        });
+      }
+
+      // If no golden egg task, look for regular pending task
+      const customerTask = await customerTasksCollection.findOne({
+        customerCode: membershipId,
+        taskNumber: nextTaskNumber,
+        status: 'pending'
+      });
 
     if (customerTask) {
       console.log(`✅ Found task in customerTasks: Task #${nextTaskNumber}`);
@@ -64,7 +118,7 @@ export async function GET(request: NextRequest) {
         status: customerTask.status,
         source: 'customerTasks',
         campaignId: customerTask.campaignId,
-        hasGoldenEgg: customerTask.hasGoldenEgg || false,
+        hasGoldenEgg: customerTask.hasGoldenEgg || false, // Include golden egg status
         createdAt: customerTask.createdAt,
         updatedAt: customerTask.updatedAt
       };
@@ -158,7 +212,7 @@ export async function GET(request: NextRequest) {
 // POST - Complete task and update user progress
 export async function POST(request: NextRequest) {
   try {
-    const { membershipId, taskId, taskTitle, platform, commission, taskNumber, source } = await request.json();
+    const { membershipId, taskId, taskTitle, platform, commission, taskNumber, source, selectedEgg } = await request.json();
     
     if (!membershipId || !taskId) {
       return NextResponse.json(
@@ -246,7 +300,8 @@ export async function POST(request: NextRequest) {
       taskPrice: commission,
       source: source as 'customerTasks' | 'campaigns',
       campaignId: taskId,
-      hasGoldenEgg: false, // Default to false, can be updated if needed
+      hasGoldenEgg: selectedEgg ? true : false, // Set to true if egg was selected
+      selectedEgg: selectedEgg, // Save which egg was selected
       completedAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date()
