@@ -20,11 +20,26 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get user's tasks
-    const tasks = await tasksCollection.find({ customerId }).sort({ taskNumber: 1 }).toArray();
+    // Get user's tasks - handle both string and ObjectId formats
+    let tasks = [];
+    try {
+      // Try as ObjectId first (convert to string for query)
+      const customerIdString = new ObjectId(customerId).toString();
+      tasks = await tasksCollection.find({ customerId: customerIdString }).sort({ taskNumber: 1 }).toArray();
+    } catch (e) {
+      // If ObjectId fails, try as string
+      tasks = await tasksCollection.find({ customerId }).sort({ taskNumber: 1 }).toArray();
+    }
     
-    // Get claimed tasks
-    const claimedTasks = await claimsCollection.find({ customerId }).toArray();
+    // Get claimed tasks - handle both string and ObjectId formats
+    let claimedTasks = [];
+    try {
+      // Try as ObjectId first (convert to string for query)
+      claimedTasks = await claimsCollection.find({ customerId: new ObjectId(customerId).toString() }).toArray();
+    } catch (e) {
+      // If ObjectId fails, try as string
+      claimedTasks = await claimsCollection.find({ customerId }).toArray();
+    }
     const claimedTaskIds = new Set(claimedTasks.map(ct => ct.taskId));
     
     // Mark tasks as claimed
@@ -61,8 +76,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if tasks already exist for this customer
-    const existingTasks = await tasksCollection.find({ customerId }).toArray();
+    // Check if tasks already exist for this customer - handle both string and ObjectId formats
+    let existingTasks = [];
+    try {
+      // Try as ObjectId first (convert to string for query)
+      existingTasks = await tasksCollection.find({ customerId: new ObjectId(customerId).toString() }).toArray();
+    } catch (e) {
+      // If ObjectId fails, try as string
+      existingTasks = await tasksCollection.find({ customerId }).toArray();
+    }
+    
     if (existingTasks.length > 0) {
       return NextResponse.json(
         { success: false, message: 'Tasks already exist for this customer' },
