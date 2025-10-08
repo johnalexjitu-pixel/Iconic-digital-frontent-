@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { HomepageFooter } from '@/components/HomepageFooter';
+import { Header } from '@/components/Header';
 import { 
   DollarSign, 
   Calendar, 
@@ -71,40 +72,49 @@ export default function CampaignPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragProgress, setDragProgress] = useState(0);
 
-  // Handle swipe gestures
+  // Handle swipe gestures - improved version
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
+    e.preventDefault();
+    const touch = e.touches[0];
+    setTouchStart(touch.clientX);
+    setTouchEnd(touch.clientX);
     setIsDragging(true);
     setDragProgress(0);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
     if (!touchStart) return;
     
-    const currentTouch = e.targetTouches[0].clientX;
-    const distance = currentTouch - touchStart;
+    const touch = e.touches[0];
+    const distance = touch.clientX - touchStart;
+    
+    // Only allow right swipe (positive distance)
+    if (distance < 0) return;
     
     // Calculate progress (0 to 1)
-    const maxDistance = 200; // Maximum swipe distance
-    const progress = Math.min(Math.max(distance / maxDistance, 0), 1);
+    const maxDistance = 200;
+    const progress = Math.min(distance / maxDistance, 1);
     setDragProgress(progress);
-    
-    setTouchEnd(currentTouch);
+    setTouchEnd(touch.clientX);
   };
 
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) {
-      setIsDragging(false);
-      setDragProgress(0);
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
+    
+    if (!touchStart || touchEnd === null) {
+      resetSwipe();
       return;
     }
     
     const distance = touchEnd - touchStart;
-    const minSwipeDistance = 150; // Minimum distance to trigger action
+    const minSwipeDistance = 120; // Reduced minimum distance
+    
+    console.log('Swipe distance:', distance, 'Min required:', minSwipeDistance);
     
     if (distance >= minSwipeDistance) {
       // Swipe successful - trigger campaign action
+      console.log('Swipe successful! Triggering action...');
       if (currentTask && !currentTask.isClaimed) {
         claimTask(currentTask);
       } else if (currentTask && currentTask.isClaimed) {
@@ -112,11 +122,58 @@ export default function CampaignPage() {
       }
     }
     
-    // Reset states
+    resetSwipe();
+  };
+
+  const resetSwipe = () => {
     setIsDragging(false);
     setDragProgress(0);
     setTouchStart(null);
     setTouchEnd(null);
+  };
+
+  // Mouse events for desktop testing
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setTouchStart(e.clientX);
+    setTouchEnd(e.clientX);
+    setIsDragging(true);
+    setDragProgress(0);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!touchStart || !isDragging) return;
+    
+    const distance = e.clientX - touchStart;
+    if (distance < 0) return;
+    
+    const maxDistance = 200;
+    const progress = Math.min(distance / maxDistance, 1);
+    setDragProgress(progress);
+    setTouchEnd(e.clientX);
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    if (!touchStart || touchEnd === null) {
+      resetSwipe();
+      return;
+    }
+    
+    const distance = touchEnd - touchStart;
+    const minSwipeDistance = 120;
+    
+    if (distance >= minSwipeDistance) {
+      if (currentTask && !currentTask.isClaimed) {
+        claimTask(currentTask);
+      } else if (currentTask && currentTask.isClaimed) {
+        completeTask(currentTask);
+      }
+    }
+    
+    resetSwipe();
   };
 
   // Fetch user stats from database
@@ -350,6 +407,7 @@ export default function CampaignPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Header />
       <div className="max-w-2xl mx-auto p-4 space-y-6 pt-10">
         
         {/* Hero Video Section */}
@@ -420,7 +478,11 @@ export default function CampaignPage() {
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            style={{ userSelect: 'none' }}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={resetSwipe}
+            style={{ userSelect: 'none', touchAction: 'none' }}
           >
             {/* Background with swipe progress */}
             <div 
@@ -444,6 +506,14 @@ export default function CampaignPage() {
               style={{ 
                 transform: `translateX(${dragProgress * 200}px)`,
                 transition: isDragging ? 'none' : 'transform 0.3s ease-out'
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (currentTask && !currentTask.isClaimed) {
+                  claimTask(currentTask);
+                } else if (currentTask && currentTask.isClaimed) {
+                  completeTask(currentTask);
+                }
               }}
             >
               <ArrowRight className="w-8 h-8 transition-transform duration-300 text-red-500" />
