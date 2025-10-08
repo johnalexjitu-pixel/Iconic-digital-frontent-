@@ -92,35 +92,31 @@ export async function POST(request: NextRequest) {
     const claimResult = await claimsCollection.insertOne(claim);
     console.log(`✅ Task completion saved to database with ID: ${claimResult.insertedId}`);
 
-    // Update user balance and campaign count
-    if (commission > 0) {
-      const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
-      if (user) {
-        const newBalance = (user.accountBalance || 0) + commission;
-        const newTotalEarnings = (user.totalEarnings || 0) + commission;
-        const newCampaignsCompleted = (user.campaignsCompleted || 0) + 1;
+    // Update user balance and campaign count (always update campaign count, even if no commission)
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+    if (user) {
+      const newBalance = (user.accountBalance || 0) + commission;
+      const newTotalEarnings = (user.totalEarnings || 0) + commission;
+      const newCampaignsCompleted = (user.campaignsCompleted || 0) + 1;
 
-        console.log(`💰 Updating user balance: ${user.accountBalance} → ${newBalance} (+${commission})`);
-        console.log(`📊 Updating campaigns completed: ${user.campaignsCompleted} → ${newCampaignsCompleted}`);
+      console.log(`💰 Updating user balance: ${user.accountBalance} → ${newBalance} (+${commission})`);
+      console.log(`📊 Updating campaigns completed: ${user.campaignsCompleted} → ${newCampaignsCompleted}`);
 
-        await usersCollection.updateOne(
-          { _id: new ObjectId(userId) },
-          {
-            $set: {
-              accountBalance: newBalance,
-              totalEarnings: newTotalEarnings,
-              campaignsCompleted: newCampaignsCompleted,
-              updatedAt: new Date()
-            }
+      await usersCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        {
+          $set: {
+            accountBalance: newBalance,
+            totalEarnings: newTotalEarnings,
+            campaignsCompleted: newCampaignsCompleted,
+            updatedAt: new Date()
           }
-        );
-        
-        console.log(`✅ User stats updated successfully`);
-      } else {
-        console.log(`❌ User not found: ${userId}`);
-      }
+        }
+      );
+      
+      console.log(`✅ User stats updated successfully`);
     } else {
-      console.log(`ℹ️ No commission to add (commission: ${commission})`);
+      console.log(`❌ User not found: ${userId}`);
     }
 
     return NextResponse.json({

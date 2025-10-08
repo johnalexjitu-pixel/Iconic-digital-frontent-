@@ -59,16 +59,23 @@ export default function HistoryPage() {
         setRefreshing(true);
       }
       
+      console.log('🔄 Fetching completed tasks from database...');
+      
       // Fetch completed campaign claims (this shows all completed tasks)
       const claimsResponse = await fetch(`/api/campaigns/complete?customerId=${user._id}`);
       const claimsData = await claimsResponse.json();
       
+      console.log('📊 Claims response:', claimsData);
+      
       if (claimsData.success && claimsData.data) {
         const claims = claimsData.data;
+        console.log(`📋 Found ${claims.length} completed tasks`);
         
         // Convert completed claims to campaign format for history
         const campaignData: Campaign[] = claims.map((claim: any, index: number) => {
           const commissionPercentage = claim.commissionEarned > 0 && claim.taskPrice > 0 ? Math.round((claim.commissionEarned / claim.taskPrice) * 100) : 0;
+          
+          console.log(`📝 Processing claim: ${claim.taskTitle} - Commission: ${claim.commissionEarned}`);
           
           return {
             _id: claim._id.toString(),
@@ -86,6 +93,7 @@ export default function HistoryPage() {
           };
         });
         
+        console.log(`✅ Processed ${campaignData.length} campaigns for history`);
         setCampaigns(campaignData);
       } else {
         setCampaigns([]);
@@ -100,6 +108,7 @@ export default function HistoryPage() {
   };
 
   const handleRefresh = () => {
+    console.log('🔄 Manual refresh triggered');
     fetchCampaigns(true);
   };
 

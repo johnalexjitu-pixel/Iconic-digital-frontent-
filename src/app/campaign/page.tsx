@@ -368,21 +368,15 @@ export default function CampaignPage() {
         const completionData = await completionResponse.json();
         
         if (completionData.success) {
-          // Update local state
-          const commissionToAdd = task.taskCommission > 0 ? task.taskCommission : 0;
-          setUserStats(prev => ({
-            ...prev,
-            accountBalance: prev.accountBalance + commissionToAdd,
-            totalEarnings: prev.totalEarnings + commissionToAdd,
-            campaignsCompleted: prev.campaignsCompleted + 1,
-            todayCommission: prev.todayCommission + commissionToAdd,
-            dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
-          }));
-
-          // Get next task from database
-          await getNextTask();
+          console.log(`✅ Task completed successfully: ${completionData.message}`);
           
-          console.log(`✅ Task completed and saved to database. Commission added: BDT ${commissionToAdd}`);
+          // Refresh user stats from database
+          await fetchUserStats();
+          
+          // Get next task from database
+          await fetchTasks();
+          
+          console.log(`✅ Task completed and next task loaded`);
         } else {
           setError(completionData.message || 'Failed to save task completion');
         }
@@ -398,24 +392,6 @@ export default function CampaignPage() {
     }
   };
 
-  // Get next task from database
-  const getNextTask = async () => {
-    try {
-      const response = await fetch(`/api/next-task?userId=${user?._id}`);
-      const data = await response.json();
-      
-      if (data.success && data.data && data.data.task) {
-        setCurrentTask(data.data.task);
-        console.log(`📋 Next task loaded: ${data.data.task.taskTitle}`);
-      } else {
-        setCurrentTask(null);
-        console.log('📋 No more tasks available');
-      }
-    } catch (error) {
-      console.error('Error getting next task:', error);
-      setCurrentTask(null);
-    }
-  };
 
   useEffect(() => {
     if (!loading && !user) {
