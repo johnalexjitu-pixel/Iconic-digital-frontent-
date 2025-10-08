@@ -37,15 +37,17 @@ export async function GET(request: NextRequest) {
       // Step 2: Search in customerTasks collection first
       const customerTasksCollection = await getCollection('customerTasks');
       
-      // First, check if there's a golden egg task available (regardless of status)
+      // First, check if there's a golden egg task available (only pending ones)
       const goldenEggTask = await customerTasksCollection.findOne({
         customerCode: membershipId,
         hasGoldenEgg: true,
-        status: { $in: ['pending', 'completed'] } // Include completed golden egg tasks
+        status: 'pending' // Only show pending golden egg tasks
       });
 
+      console.log(`🔍 Golden egg search for user ${membershipId}:`, goldenEggTask ? `Found pending task #${goldenEggTask.taskNumber}` : 'No pending golden egg task found');
+
       if (goldenEggTask) {
-        console.log(`🥚 Found golden egg task: Task #${goldenEggTask.taskNumber}`);
+        console.log(`🥚 Found pending golden egg task: Task #${goldenEggTask.taskNumber}`);
         
         // Calculate commission from golden egg task
         const totalCommission = (goldenEggTask.taskCommission || 0) + 
@@ -241,6 +243,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`📊 Updating user progress: ${currentCompleted} → ${newCompleted} tasks completed`);
     console.log(`💰 Updating balance: ${user.accountBalance} → ${newBalance} (+${commission})`);
+    console.log(`🥚 Golden egg task completion: selectedEgg=${selectedEgg}`);
 
     // Update user in database
     await usersCollection.updateOne(

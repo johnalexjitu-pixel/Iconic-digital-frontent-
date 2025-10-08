@@ -50,8 +50,10 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error fetching user task history:', error);
+    console.error('Error details:', error.message);
+    console.error('Error stack:', error.stack);
     return NextResponse.json(
-      { success: false, message: 'Internal server error' },
+      { success: false, message: `Internal server error: ${error.message}` },
       { status: 500 }
     );
   }
