@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCollection } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
+import { IUserTaskHistory, UserTaskHistoryCollection } from '@/models/UserTaskHistory';
 
 // GET - Fetch next task using new workflow system
 export async function GET(request: NextRequest) {
@@ -231,6 +232,29 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date()
     });
 
+    // Save to user task history for history page
+    const historyCollection = await getCollection(UserTaskHistoryCollection);
+    const historyRecord: IUserTaskHistory = {
+      membershipId: membershipId,
+      customerCode: membershipId, // Use membershipId as customerCode for consistency
+      taskId: taskId,
+      taskNumber: taskNumber,
+      taskTitle: taskTitle,
+      taskDescription: `Completed task ${taskNumber}`,
+      platform: platform,
+      commissionEarned: commission,
+      taskPrice: commission,
+      source: source as 'customerTasks' | 'campaigns',
+      campaignId: taskId,
+      hasGoldenEgg: false, // Default to false, can be updated if needed
+      completedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    await historyCollection.insertOne(historyRecord);
+    console.log(`📝 Task completion saved to user history: Task #${taskNumber}`);
+
     console.log(`✅ Task completion saved successfully`);
 
     return NextResponse.json({
@@ -251,3 +275,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

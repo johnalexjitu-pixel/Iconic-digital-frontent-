@@ -10,108 +10,103 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, CheckCircle, Calendar, DollarSign, RefreshCw } from "lucide-react";
 import { apiClient } from '@/lib/api-client';
 
-interface Campaign {
+interface TaskHistory {
   _id: string;
-  campaignId: string;
-  taskCode: string;
-  brand: string;
-  brandLogo: string;
-  amount: number;
-  commission: number;
-  commissionPercentage: number;
-  profit: number;
-  status: 'pending' | 'completed';
+  membershipId: string;
+  customerCode?: string;
+  taskId: string;
+  taskNumber: number;
+  taskTitle: string;
+  taskDescription?: string;
   platform: string;
+  commissionEarned: number;
+  taskPrice: number;
+  source: 'customerTasks' | 'campaigns';
+  campaignId?: string;
+  hasGoldenEgg?: boolean;
+  completedAt: string;
   createdAt: string;
+  updatedAt: string;
+}
+
+interface HistorySummary {
+  totalTasks: number;
+  totalCommission: number;
+  tasksBySource: {
+    customerTasks: number;
+    campaigns: number;
+  };
+  membershipId: string;
 }
 
 export default function HistoryPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ _id: string } | null>(null);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [user, setUser] = useState<{ _id: string; membershipId?: string } | null>(null);
+  const [taskHistory, setTaskHistory] = useState<TaskHistory[]>([]);
+  const [summary, setSummary] = useState<HistorySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
 
-  const fetchCampaigns = useCallback(async (isRefresh = false) => {
+  const fetchTaskHistory = useCallback(async (isRefresh = false) => {
     try {
-      if (!user?._id) return;
+      if (!user?.membershipId) return;
       
       if (isRefresh) {
         setRefreshing(true);
       }
       
-      console.log('🔄 Fetching completed tasks from database...');
+      console.log('📚 Fetching task history for membershipId:', user.membershipId);
       
-      // Fetch completed campaign claims (this shows all completed tasks)
-      const claimsResponse = await fetch(`/api/campaigns/complete?customerId=${user._id}`);
-      const claimsData = await claimsResponse.json();
+      // Fetch user's completed task history
+      const historyResponse = await fetch(`/api/user-task-history?membershipId=${user.membershipId}`);
+      const historyData = await historyResponse.json();
       
-      console.log('📊 Claims response:', claimsData);
+      console.log('📊 History response:', historyData);
       
-      if (claimsData.success && claimsData.data) {
-        const claims = claimsData.data;
-        console.log(`📋 Found ${claims.length} completed tasks`);
+      if (historyData.success && historyData.data) {
+        const { tasks, summary } = historyData.data;
+        console.log(`📋 Found ${tasks.length} completed tasks`);
+        console.log(`💰 Total commission earned: ${summary.totalCommission}`);
+        console.log(`📈 Tasks by source: CustomerTasks: ${summary.tasksBySource.customerTasks}, Campaigns: ${summary.tasksBySource.campaigns}`);
         
-        // Convert completed claims to campaign format for history
-        const campaignData: Campaign[] = claims.map((claim: Record<string, unknown>, index: number) => {
-          const commissionEarned = typeof claim.commissionEarned === 'number' ? claim.commissionEarned : 0;
-          const taskPrice = typeof claim.taskPrice === 'number' ? claim.taskPrice : 0;
-          const commissionPercentage = commissionEarned > 0 && taskPrice > 0 ? Math.round((commissionEarned / taskPrice) * 100) : 0;
-          
-          console.log(`📝 Processing claim: ${claim.taskTitle} - Commission: ${commissionEarned}`);
-          
-          return {
-            _id: typeof claim._id === 'object' && claim._id !== null ? claim._id.toString() : String(index),
-            campaignId: typeof claim.campaignId === 'string' ? claim.campaignId : `CAMP-${index + 1}`,
-            taskCode: generateTaskCode(),
-            brand: typeof claim.taskTitle === 'string' ? claim.taskTitle : 'Completed Task',
-            brandLogo: getBrandLogo(typeof claim.taskTitle === 'string' ? claim.taskTitle : ''),
-            amount: taskPrice,
-            commission: commissionEarned,
-            commissionPercentage: commissionPercentage,
-            profit: commissionEarned,
-            status: 'completed',
-            platform: typeof claim.platform === 'string' ? claim.platform : 'General',
-            createdAt: typeof claim.claimedAt === 'string' ? claim.claimedAt : new Date().toISOString()
-          };
-        });
-        
-        console.log(`✅ Processed ${campaignData.length} campaigns for history`);
-        setCampaigns(campaignData);
+        setTaskHistory(tasks);
+        setSummary(summary);
       } else {
-        setCampaigns([]);
+        setTaskHistory([]);
+        setSummary(null);
       }
     } catch (error) {
-      console.error('Error fetching campaigns:', error);
-      setCampaigns([]);
+      console.error('Error fetching task history:', error);
+      setTaskHistory([]);
+      setSummary(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?._id]);
+  }, [user?.membershipId]);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
-      fetchCampaigns();
+      fetchTaskHistory();
       
-      // Auto-refresh campaigns every 30 seconds
+      // Auto-refresh task history every 30 seconds
       const interval = setInterval(() => {
-        fetchCampaigns();
+        fetchTaskHistory();
       }, 30000);
       
       return () => clearInterval(interval);
     } else {
       router.push('/auth/login');
     }
-  }, [router, fetchCampaigns]);
+  }, [router, fetchTaskHistory]);
 
   const handleRefresh = () => {
     console.log('🔄 Manual refresh triggered');
-    fetchCampaigns(true);
+    fetchTaskHistory(true);
   };
 
   // Helper function to generate task codes
@@ -145,14 +140,14 @@ export default function HistoryPage() {
     return brandLogos[taskTitle] || '/logo/logo.png';
   };
 
-  const getFilteredCampaigns = () => {
+  const getFilteredTasks = () => {
     switch (activeTab) {
-      case 'pending':
-        return campaigns.filter(c => c.status === 'pending');
-      case 'completed':
-        return campaigns.filter(c => c.status === 'completed');
+      case 'customerTasks':
+        return taskHistory.filter(task => task.source === 'customerTasks');
+      case 'campaigns':
+        return taskHistory.filter(task => task.source === 'campaigns');
       default:
-        return campaigns;
+        return taskHistory;
     }
   };
 
@@ -161,7 +156,7 @@ export default function HistoryPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading campaigns...</p>
+          <p className="text-gray-600">Loading task history...</p>
         </div>
       </div>
     );
@@ -171,7 +166,7 @@ export default function HistoryPage() {
     return null;
   }
 
-  const filteredCampaigns = getFilteredCampaigns();
+  const filteredTasks = getFilteredTasks();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -181,7 +176,7 @@ export default function HistoryPage() {
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-2xl mx-auto px-4">
           <div className="h-16 flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-gray-800">Product Campaigns</h1>
+            <h1 className="text-xl font-semibold text-gray-800">Task History</h1>
             <Button
               onClick={handleRefresh}
               disabled={refreshing}
@@ -194,7 +189,27 @@ export default function HistoryPage() {
             </Button>
           </div>
 
-        {/* Tabs */}
+          {/* Summary Stats */}
+          {summary && (
+            <div className="py-4 border-b border-gray-200">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-2xl font-bold text-teal-600">{summary.totalTasks}</p>
+                  <p className="text-sm text-gray-600">Total Tasks</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-green-600">BDT {summary.totalCommission.toLocaleString()}</p>
+                  <p className="text-sm text-gray-600">Total Earned</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-blue-600">{summary.membershipId}</p>
+                  <p className="text-sm text-gray-600">Member ID</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tabs */}
           <div className="flex border-b border-gray-200">
             <button 
               onClick={() => setActiveTab('all')}
@@ -204,81 +219,76 @@ export default function HistoryPage() {
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              All
+              All ({taskHistory.length})
             </button>
             <button 
-              onClick={() => setActiveTab('pending')}
+              onClick={() => setActiveTab('customerTasks')}
               className={`flex-1 cursor-pointer py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'pending' 
+                activeTab === 'customerTasks' 
                   ? 'border-primary text-primary' 
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              Pending
+              Customer Tasks ({summary?.tasksBySource.customerTasks || 0})
             </button>
             <button 
-              onClick={() => setActiveTab('completed')}
+              onClick={() => setActiveTab('campaigns')}
               className={`flex-1 cursor-pointer py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'completed' 
+                activeTab === 'campaigns' 
                   ? 'border-primary text-primary' 
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              Completed
+              Campaigns ({summary?.tasksBySource.campaigns || 0})
             </button>
-                      </div>
-                      </div>
-                    </div>
+          </div>
+        </div>
+      </div>
 
-      {/* Campaigns List */}
+      {/* Task History List */}
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        {filteredCampaigns.length > 0 ? (
-          filteredCampaigns.map((campaign) => (
-            <Card key={campaign._id} className="bg-white rounded-lg overflow-hidden shadow-sm ring-1 ring-black ring-opacity-5">
-              {/* Campaign Header */}
+        {filteredTasks.length > 0 ? (
+          filteredTasks.map((task) => (
+            <Card key={task._id} className="bg-white rounded-lg overflow-hidden shadow-sm ring-1 ring-black ring-opacity-5">
+              {/* Task Header */}
               <div className="p-4 border-b border-gray-100 flex justify-between items-center">
                 <div className="flex items-center">
-                  <span className="text-sm font-medium text-gray-700">Campaign #{campaign.campaignId}</span>
+                  <span className="text-sm font-medium text-gray-700">Task #{task.taskNumber}</span>
                   <span className="mx-2 text-gray-300">|</span>
-                  <span className="text-xs text-gray-500">Code: {campaign.taskCode}</span>
+                  <span className="text-xs text-gray-500">Source: {task.source}</span>
                 </div>
                 <div className="flex flex-col items-end">
-                  <Badge className={`justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 flex items-center gap-1 ${
-                    campaign.status === 'pending' 
-                      ? 'text-amber-600 bg-amber-50' 
-                      : 'text-green-600 bg-green-50'
-                  }`}>
-                    {campaign.status === 'pending' ? (
-                      <Clock className="w-4 h-4 text-amber-600" />
-                    ) : (
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                    )}
-                    {campaign.status === 'pending' ? 'Pending' : 'Completed'}
-                      </Badge>
-                    </div>
+                  <Badge className="justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 flex items-center gap-1 text-green-600 bg-green-50">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    Completed
+                  </Badge>
+                </div>
               </div>
 
-              {/* Campaign Content */}
+              {/* Task Content */}
               <div className="p-4">
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="w-full sm:w-24 h-40 sm:h-24 rounded-md overflow-hidden">
+                  <div className="w-full sm:w-24 h-40 sm:h-24 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
                     <img 
-                      alt={campaign.brand} 
+                      alt={task.taskTitle} 
                       className="w-full h-full object-cover" 
-                      src={campaign.brandLogo}
+                      src={getBrandLogo(task.taskTitle)}
                     />
                   </div>
                   <div className="flex flex-1 justify-between mt-2 sm:mt-0">
                     <div className="flex flex-col">
-                      <h3 className="font-semibold text-gray-800 text-lg">{campaign.brand}</h3>
-                      <span className="text-sm text-gray-500 font-medium">gokazi</span>
+                      <h3 className="font-semibold text-gray-800 text-lg">{task.taskTitle}</h3>
+                      <span className="text-sm text-gray-500 font-medium">{task.platform}</span>
+                      {task.hasGoldenEgg && (
+                        <span className="text-xs text-yellow-600 font-medium">🥚 Golden Egg Task</span>
+                      )}
                     </div>
                     <div className="text-right">
-                      <p className="text-primary font-semibold">BDT {campaign.amount.toLocaleString()}</p>
-                      <p className="text-xs text-gray-500">Commission: {campaign.commissionPercentage}%</p>
+                      <p className="text-primary font-semibold">BDT {task.taskPrice.toLocaleString()}</p>
+                      <p className="text-xs text-gray-500">Commission: BDT {task.commissionEarned.toLocaleString()}</p>
                     </div>
                   </div>
-                      </div>
+                </div>
 
                 {/* Divider */}
                 <div className="my-3 border-t border-gray-100"></div>
@@ -288,35 +298,26 @@ export default function HistoryPage() {
                   <div className="flex flex-col gap-1 text-sm text-gray-600">
                     <div className="flex items-center">
                       <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                      <p className="font-medium">Task Code</p>
+                      <p className="font-medium">Completed</p>
                     </div>
-                    <p>{campaign.taskCode}</p>
+                    <p>{new Date(task.completedAt).toLocaleDateString()}</p>
                   </div>
                   <div className="flex flex-col gap-1 text-sm text-gray-600">
                     <div className="flex items-center">
                       <DollarSign className="w-4 h-4 mr-2 text-gray-400" />
-                      <p className="font-medium">Profit</p>
+                      <p className="font-medium">Commission</p>
                     </div>
-                    <p className="text-green-600">BDT {campaign.profit.toLocaleString()}</p>
+                    <p className="text-green-600">BDT {task.commissionEarned.toLocaleString()}</p>
                   </div>
-                      </div>
-
-                {/* Action Button - Only for pending campaigns */}
-                {campaign.status === 'pending' && (
-                  <div className="mt-4 flex justify-end">
-                    <Button className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white">
-                      Continue Campaign
-                    </Button>
-                  </div>
-                )}
-                  </div>
-                </Card>
-              ))
+                </div>
+              </div>
+            </Card>
+          ))
         ) : (
           <Card className="p-8 text-center">
             <Clock className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Campaigns Found</h3>
-            <p className="text-gray-600 mb-4">Your campaign history will appear here</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Tasks Found</h3>
+            <p className="text-gray-600 mb-4">Your completed task history will appear here</p>
             <Button onClick={handleRefresh} variant="outline" size="sm">
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh Data

@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
 
     // Use real campaigns from database - no mockup data
 
-    // Fetch campaigns from database (use real data, no mockup)
+    // Fetch campaigns from database (use real data, no mockup) 
     const campaigns = await campaignsCollection.find({}).toArray();
     
     // If no campaigns exist, return empty array
