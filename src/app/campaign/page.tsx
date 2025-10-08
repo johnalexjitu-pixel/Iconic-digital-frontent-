@@ -94,6 +94,8 @@ export default function CampaignPage() {
     try {
       if (!user?._id) return;
       
+      console.log('🔍 Checking customer tasks for user:', user._id);
+      
       // Step 1: Check customer tasks first (admin assigned)
       const customerTasksResponse = await fetch(`/api/customer-tasks?customerId=${user._id}`);
       let customerTasks = [];
@@ -102,6 +104,7 @@ export default function CampaignPage() {
         const customerData = await customerTasksResponse.json();
         if (customerData.success && Array.isArray(customerData.data)) {
           customerTasks = customerData.data;
+          console.log(`📋 Found ${customerTasks.length} customer tasks`);
         }
       }
       
@@ -109,11 +112,14 @@ export default function CampaignPage() {
       const tasksWithConditions = customerTasks.filter((task: CustomerTask) => task.hasConditions);
       const tasksWithoutConditions = customerTasks.filter((task: CustomerTask) => !task.hasConditions);
       
+      console.log(`⚡ Tasks with conditions: ${tasksWithConditions.length}`);
+      console.log(`✅ Tasks without conditions: ${tasksWithoutConditions.length}`);
+      
       let finalTasks = [];
       
       if (tasksWithConditions.length > 0) {
         // Admin has set conditions - use customer tasks with conditions
-        console.log('Using customer tasks with admin conditions');
+        console.log('🚨 Using customer tasks with admin conditions');
         finalTasks = tasksWithConditions;
         
         // Check each task's conditions
@@ -130,49 +136,73 @@ export default function CampaignPage() {
         });
         
       } else if (tasksWithoutConditions.length > 0) {
-        // Customer tasks exist but no conditions - use them normally
-        console.log('Using customer tasks without conditions');
-        finalTasks = tasksWithoutConditions;
+        // Customer tasks exist but no conditions - use campaigns from DB
+        console.log('🎯 Customer tasks exist but no conditions - fetching campaigns from DB');
         
-      } else {
-        // No customer tasks - fallback to normal campaigns
-        console.log('No customer tasks found, using normal campaigns');
         try {
           const campaignsResponse = await fetch('/api/campaigns');
           if (campaignsResponse.ok) {
             const campaignsData = await campaignsResponse.json();
-            console.log('Campaigns API response:', campaignsData);
+            console.log(`📊 Found ${campaignsData.data.length} campaigns in database`);
+            
             if (campaignsData.success && Array.isArray(campaignsData.data)) {
-              console.log(`Found ${campaignsData.data.length} campaigns`);
+              // Convert campaigns to task format - one by one
+              finalTasks = campaignsData.data.map((campaign: any, index: number) => ({
+                _id: `campaign-${campaign._id}`,
+                customerId: user._id,
+                taskNumber: index + 1,
+                taskPrice: campaign.baseAmount || campaign.taskPrice || 0,
+                taskCommission: campaign.commissionAmount || campaign.taskCommission || campaign.commission || 0,
+                taskTitle: campaign.brand || campaign.title || campaign.taskTitle || `Campaign Task ${index + 1}`,
+                taskDescription: campaign.description || campaign.taskDescription || 'Complete this campaign task',
+                platform: campaign.type || campaign.platform || 'General',
+                status: 'pending',
+                isClaimed: false,
+                hasGoldenEgg: campaign.hasGoldenEgg || false,
+                hasConditions: false,
+                lossCondition: false,
+                isFromCampaign: true,
+                campaignId: campaign._id
+              }));
+              
+              console.log(`✅ Converted ${finalTasks.length} campaigns to tasks`);
+              console.log('First few tasks:', finalTasks.slice(0, 3).map(t => ({
+                title: t.taskTitle,
+                commission: t.taskCommission,
+                platform: t.platform
+              })));
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error fetching campaigns:', error);
+        }
+        
+      } else {
+        // No customer tasks - fallback to normal campaigns
+        console.log('📝 No customer tasks found, using normal campaigns');
+        try {
+          const campaignsResponse = await fetch('/api/campaigns');
+          if (campaignsResponse.ok) {
+            const campaignsData = await campaignsResponse.json();
+            if (campaignsData.success && Array.isArray(campaignsData.data)) {
               // Convert campaigns to task format
-              finalTasks = campaignsData.data.map((campaign: any, index: number) => {
-                console.log(`Converting campaign ${index + 1}:`, {
-                  brand: campaign.brand,
-                  title: campaign.title,
-                  baseAmount: campaign.baseAmount,
-                  commissionAmount: campaign.commissionAmount,
-                  type: campaign.type,
-                  platform: campaign.platform
-                });
-                return {
-                  _id: `campaign-${campaign._id}`,
-                  customerId: user._id,
-                  taskNumber: index + 1,
-                  taskPrice: campaign.baseAmount || campaign.taskPrice || 0,
-                  taskCommission: campaign.commissionAmount || campaign.taskCommission || campaign.commission || 0,
-                  taskTitle: campaign.brand || campaign.title || campaign.taskTitle || `Campaign Task ${index + 1}`,
-                  taskDescription: campaign.description || campaign.taskDescription || 'Complete this campaign task',
-                  platform: campaign.type || campaign.platform || 'General',
-                  status: 'pending',
-                  isClaimed: false,
-                  hasGoldenEgg: campaign.hasGoldenEgg || false,
-                  hasConditions: false,
-                  lossCondition: false,
-                  isFromCampaign: true,
-                  campaignId: campaign._id
-                };
-              });
-              console.log('Converted tasks:', finalTasks.slice(0, 2));
+              finalTasks = campaignsData.data.map((campaign: any, index: number) => ({
+                _id: `campaign-${campaign._id}`,
+                customerId: user._id,
+                taskNumber: index + 1,
+                taskPrice: campaign.baseAmount || campaign.taskPrice || 0,
+                taskCommission: campaign.commissionAmount || campaign.taskCommission || campaign.commission || 0,
+                taskTitle: campaign.brand || campaign.title || campaign.taskTitle || `Campaign Task ${index + 1}`,
+                taskDescription: campaign.description || campaign.taskDescription || 'Complete this campaign task',
+                platform: campaign.type || campaign.platform || 'General',
+                status: 'pending',
+                isClaimed: false,
+                hasGoldenEgg: campaign.hasGoldenEgg || false,
+                hasConditions: false,
+                lossCondition: false,
+                isFromCampaign: true,
+                campaignId: campaign._id
+              }));
             }
           }
         } catch (error) {
@@ -188,6 +218,7 @@ export default function CampaignPage() {
       );
       if (availableTask) {
         setCurrentTask(availableTask);
+        console.log('🎯 Current task set:', availableTask.taskTitle);
       }
       
     } catch (error) {
@@ -206,14 +237,15 @@ export default function CampaignPage() {
       // Check if task is from campaign or customer task
       if (task.isFromCampaign) {
         // Handle campaign task claiming
-        console.log('Claiming campaign task:', task.campaignId);
-        // For now, just mark as claimed locally
+        console.log('🎯 Claiming campaign task:', task.campaignId);
+        // Mark as claimed locally and ready for completion
         setTasks(prevTasks => 
           prevTasks.map(t => 
             t._id === task._id ? { ...t, isClaimed: true, status: 'active' } : t
           )
         );
         setCurrentTask({ ...task, isClaimed: true, status: 'active' });
+        console.log('✅ Campaign task claimed and ready for completion');
       } else {
         // Handle customer task claiming
         const response = await fetch('/api/customer-tasks/claim', {
@@ -266,26 +298,63 @@ export default function CampaignPage() {
       // Check if task is from campaign or customer task
       if (task.isFromCampaign) {
         // Handle campaign task completion
-        console.log('Completing campaign task:', task.campaignId);
+        console.log('🎯 Completing campaign task:', task.campaignId);
         
-        // Simulate campaign task completion
-        setUserStats(prev => ({
-          ...prev,
-          accountBalance: prev.accountBalance + task.taskCommission,
-          campaignsCompleted: prev.campaignsCompleted + 1,
-          todayCommission: prev.todayCommission + task.taskCommission,
-          dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
-        }));
+        // Update user balance in database
+        try {
+          const updateResponse = await fetch('/api/user', {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId: user._id,
+              accountBalance: userStats.accountBalance + task.taskCommission,
+              totalEarnings: userStats.totalEarnings + task.taskCommission,
+              campaignsCompleted: userStats.campaignsCompleted + 1
+            }),
+          });
 
-        // Update task status
-        setTasks(prevTasks => 
-          prevTasks.map(t => 
-            t._id === task._id 
-              ? { ...t, status: 'completed', completedAt: new Date().toISOString() }
-              : t
-          )
-        );
-        setCurrentTask(null);
+          if (updateResponse.ok) {
+            const updateData = await updateResponse.json();
+            console.log('✅ User balance updated:', updateData);
+            
+            // Update local state
+            setUserStats(prev => ({
+              ...prev,
+              accountBalance: prev.accountBalance + task.taskCommission,
+              campaignsCompleted: prev.campaignsCompleted + 1,
+              todayCommission: prev.todayCommission + task.taskCommission,
+              dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
+            }));
+
+            // Update task status locally
+            setTasks(prevTasks => 
+              prevTasks.map(t => 
+                t._id === task._id 
+                  ? { ...t, status: 'completed', completedAt: new Date().toISOString() }
+                  : t
+              )
+            );
+            
+            // Move to next task
+            const nextTask = tasks.find(t => t._id !== task._id && t.status === 'pending' && !t.isClaimed);
+            if (nextTask) {
+              setCurrentTask(nextTask);
+              console.log('➡️ Next task:', nextTask.taskTitle);
+            } else {
+              setCurrentTask(null);
+              console.log('🏁 All tasks completed!');
+            }
+            
+          } else {
+            console.error('❌ Failed to update user balance');
+            setError('Failed to update account balance');
+          }
+        } catch (error) {
+          console.error('❌ Error updating user balance:', error);
+          setError('Failed to update account balance');
+        }
         
       } else {
         // Handle customer task completion
