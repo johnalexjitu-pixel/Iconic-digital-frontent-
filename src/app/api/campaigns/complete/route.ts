@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
       taskId: taskId,
       claimedAt: new Date(),
       status: 'completed',
+      campaignId: campaignId, // Store the original campaign ID
       createdAt: new Date(),
       updatedAt: new Date()
     };

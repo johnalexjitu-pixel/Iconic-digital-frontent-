@@ -6,78 +6,9 @@ export async function GET(request: NextRequest) {
   try {
     const campaignsCollection = await getCollection('campaigns');
 
-    // Check if campaigns exist, if not create sample campaigns
-    const existingCampaigns = await campaignsCollection.find({}).toArray();
-    
-    if (existingCampaigns.length === 0) {
-      // Create sample campaigns
-      const sampleCampaigns = [
-        {
-          _id: new ObjectId(),
-          title: "Instagram Story Promotion",
-          description: "Share our brand story on Instagram with hashtags",
-          platform: "Instagram",
-          commission: 500,
-          requirements: ["Post story", "Use hashtags", "Tag brand"],
-          duration: 1,
-          status: "active",
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          _id: new ObjectId(),
-          title: "Facebook Post Campaign",
-          description: "Create engaging Facebook post about our product",
-          platform: "Facebook",
-          commission: 750,
-          requirements: ["Create post", "Include images", "Engage audience"],
-          duration: 2,
-          status: "active",
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          _id: new ObjectId(),
-          title: "YouTube Video Review",
-          description: "Create video review of our product on YouTube",
-          platform: "YouTube",
-          commission: 1200,
-          requirements: ["Minimum 3 minutes", "Honest review", "Include link"],
-          duration: 7,
-          status: "active",
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          _id: new ObjectId(),
-          title: "TikTok Dance Challenge",
-          description: "Participate in our brand dance challenge",
-          platform: "TikTok",
-          commission: 300,
-          requirements: ["Use our music", "Follow choreography", "Use hashtag"],
-          duration: 1,
-          status: "active",
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          _id: new ObjectId(),
-          title: "Twitter Thread Campaign",
-          description: "Create informative thread about our service",
-          platform: "Twitter",
-          commission: 400,
-          requirements: ["5+ tweets", "Include facts", "Engage replies"],
-          duration: 1,
-          status: "active",
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ];
+    // Use real campaigns from database - no mockup data
 
-      await campaignsCollection.insertMany(sampleCampaigns);
-    }
-
-    // Fetch campaigns from database
+    // Fetch campaigns from database (use real data, no mockup)
     const campaigns = await campaignsCollection.find({}).toArray();
     
     // If no campaigns exist, return empty array

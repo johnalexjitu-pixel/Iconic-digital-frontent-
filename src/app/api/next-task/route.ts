@@ -75,33 +75,44 @@ export async function GET(request: NextRequest) {
       
       if (campaigns.length > 0) {
         console.log('📋 Sample campaign from DB:', {
-          title: campaigns[0].title,
-          platform: campaigns[0].platform,
-          commission: campaigns[0].commission,
+          brand: campaigns[0].brand,
+          type: campaigns[0].type,
+          commissionAmount: campaigns[0].commissionAmount,
+          baseAmount: campaigns[0].baseAmount,
           status: campaigns[0].status
         });
       }
       if (campaigns.length > 0) {
-        const campaign = campaigns[0];
-        console.log(`📊 Using campaign: ${campaign.title} (${campaign.platform})`);
+        // Get campaigns that haven't been completed by this user
+        const claimsCollection = await getCollection(CampaignClaimCollection);
+        const userClaims = await claimsCollection.find({ customerId: userId }).toArray();
+        const completedCampaignIds = userClaims.map(claim => claim.campaignId).filter(Boolean);
+        const availableCampaigns = campaigns.filter(campaign => 
+          !completedCampaignIds.includes(campaign._id.toString())
+        );
+        
+        // If all campaigns completed, start over with first campaign
+        const campaignToUse = availableCampaigns.length > 0 ? availableCampaigns[0] : campaigns[0];
+        
+        console.log(`📊 Using campaign: ${campaignToUse.brand} (${campaignToUse.type}) - Commission: ${campaignToUse.commissionAmount}`);
         
         const campaignTask = {
           _id: new ObjectId().toString(),
           customerId: userId,
           taskNumber: completedTaskIds.length + 1, // Next task number based on completed count
-          taskPrice: campaign.commission || 0, // Use commission as base amount
-          taskCommission: campaign.commission || 0, // Use commission field
-          taskTitle: campaign.title || campaign.brand || 'Campaign Task',
-          taskDescription: campaign.description || 'Complete this campaign task',
-          platform: campaign.platform || campaign.type || 'General',
+          taskPrice: campaignToUse.baseAmount || 0, // Use baseAmount from real campaigns
+          taskCommission: campaignToUse.commissionAmount || 0, // Use commissionAmount from real campaigns
+          taskTitle: campaignToUse.brand || campaignToUse.title || 'Campaign Task', // Use brand from real campaigns
+          taskDescription: campaignToUse.description || 'Complete this campaign task',
+          platform: campaignToUse.type || campaignToUse.platform || 'General', // Use type from real campaigns
           status: 'pending',
           isFromCampaign: true,
-          campaignId: campaign._id,
+          campaignId: campaignToUse._id,
           createdAt: new Date(),
           updatedAt: new Date()
         };
 
-        console.log(`✅ Campaign task loaded: ${campaignTask.taskTitle} (Task #${campaignTask.taskNumber})`);
+        console.log(`✅ Campaign task loaded: ${campaignTask.taskTitle} (Task #${campaignTask.taskNumber}) - Commission: BDT ${campaignTask.taskCommission}`);
 
         return NextResponse.json({
           success: true,

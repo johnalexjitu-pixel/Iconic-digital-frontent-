@@ -3,12 +3,12 @@ import { ObjectId } from 'mongodb';
 export interface ICampaignClaim {
   _id?: ObjectId;
   customerId: string;
-  taskId: string; // Reference to CustomerTask
-  taskNumber: number;
+  taskId: string; // Reference to CustomerTask or generated task ID
   claimedAt: Date;
   completedAt?: Date;
   status: 'claimed' | 'completed';
-  commissionEarned: number;
+  campaignId?: string; // Reference to original campaign if from campaigns
+  commissionEarned?: number;
   createdAt: Date;
   updatedAt: Date;
 }
