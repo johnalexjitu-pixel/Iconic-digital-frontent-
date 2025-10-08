@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { HomepageFooter } from '@/components/HomepageFooter';
-import { Header } from '@/components/Header';
+import { HomepageHeader } from '@/components/HomepageHeader';
 import { 
   DollarSign, 
   Calendar, 
@@ -73,6 +73,9 @@ export default function CampaignPage() {
   const [dragProgress, setDragProgress] = useState(0);
   const [showPlatformSelection, setShowPlatformSelection] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [showLoading, setShowLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [campaignDetails, setCampaignDetails] = useState<any>(null);
 
   // Handle swipe gestures - improved version
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -110,13 +113,13 @@ export default function CampaignPage() {
     }
     
     const distance = touchEnd - touchStart;
-    const minSwipeDistance = 200; // Full swipe required
+    const minSwipeDistance = 150; // Reduced for easier swipe
     
     console.log('Swipe distance:', distance, 'Min required:', minSwipeDistance);
     
     if (distance >= minSwipeDistance) {
-      // Full swipe successful - show platform selection
-      console.log('Full swipe successful! Showing platform selection...');
+      // Swipe successful - show platform selection
+      console.log('Swipe successful! Showing platform selection...');
       setShowPlatformSelection(true);
     }
     
@@ -139,15 +142,42 @@ export default function CampaignPage() {
     { id: 'twitter', name: 'Twitter', image: '/campaign/twitter.png' }
   ];
 
-  const handlePlatformSelect = (platformId: string) => {
+  const handlePlatformSelect = async (platformId: string) => {
     setSelectedPlatform(platformId);
-    // Complete task with selected platform
-    if (currentTask && !currentTask.isClaimed) {
-      claimTask(currentTask);
-    } else if (currentTask && currentTask.isClaimed) {
-      completeTask(currentTask);
-    }
     setShowPlatformSelection(false);
+    setShowLoading(true);
+    
+    // Simulate loading/connecting to server
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    // Use real campaign data from currentTask
+    const campaignDetails = {
+      campaignId: currentTask?.campaignId ? `#${currentTask.campaignId.slice(-6)}` : `#${Math.floor(Math.random() * 900000) + 100000}`,
+      brand: currentTask?.taskTitle || 'Unknown Brand',
+      brandLogo: '/logo/logo.png',
+      amount: currentTask?.taskCommission || 0,
+      commission: currentTask?.taskCommission || 0, // Real commission from database
+      platform: platforms.find(p => p.id === platformId)?.name || 'Instagram',
+      platformIcon: platforms.find(p => p.id === platformId)?.image || '/campaign/instagram.png',
+      type: 'Social Campaign',
+      status: 'Pending'
+    };
+    
+    setCampaignDetails(campaignDetails);
+    setShowLoading(false);
+    setShowSuccess(true);
+    
+    // Only complete task if commission > 0
+    if (currentTask && currentTask.taskCommission > 0) {
+      if (!currentTask.isClaimed) {
+        claimTask(currentTask);
+      } else if (currentTask.isClaimed) {
+        completeTask(currentTask);
+      }
+    } else {
+      // Task completed but no commission earned
+      console.log('Task completed but no commission earned (commission = 0)');
+    }
   };
 
   // Mouse events for desktop testing
@@ -181,10 +211,10 @@ export default function CampaignPage() {
     }
     
     const distance = touchEnd - touchStart;
-    const minSwipeDistance = 200; // Full swipe required
+    const minSwipeDistance = 150; // Reduced for easier swipe
     
     if (distance >= minSwipeDistance) {
-      // Full swipe successful - show platform selection
+      // Swipe successful - show platform selection
       setShowPlatformSelection(true);
     }
     
@@ -347,9 +377,14 @@ export default function CampaignPage() {
     setError(null);
     
     try {
+      console.log('🎯 Completing task:', task.taskTitle, 'Commission:', task.taskCommission);
+      
+      // Only add commission if it's greater than 0
+      const commissionToAdd = task.taskCommission > 0 ? task.taskCommission : 0;
+      
       // Update user balance in database
-      const newBalance = userStats.accountBalance + task.taskCommission;
-      const newTotalEarnings = userStats.totalEarnings + task.taskCommission;
+      const newBalance = userStats.accountBalance + commissionToAdd;
+      const newTotalEarnings = userStats.totalEarnings + commissionToAdd;
       const newCampaignsCompleted = userStats.campaignsCompleted + 1;
       
       const updateResponse = await fetch('/api/user', {
@@ -372,7 +407,7 @@ export default function CampaignPage() {
           accountBalance: newBalance,
           totalEarnings: newTotalEarnings,
           campaignsCompleted: newCampaignsCompleted,
-          todayCommission: prev.todayCommission + task.taskCommission,
+          todayCommission: prev.todayCommission + commissionToAdd,
           dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
         }));
 
@@ -383,6 +418,8 @@ export default function CampaignPage() {
         } else {
           setCurrentTask(null);
         }
+        
+        console.log(`✅ Task completed. Commission added: BDT ${commissionToAdd}`);
         
       } else {
         setError('Failed to update account balance');
@@ -409,7 +446,7 @@ export default function CampaignPage() {
   }, [user, loading, router, fetchUserStats, fetchTasks]);
 
   if (loading) {
-    return (
+  return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-500"></div>
       </div>
@@ -422,17 +459,17 @@ export default function CampaignPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <HomepageHeader />
       <div className="max-w-2xl mx-auto p-4 space-y-6 pt-10">
-        
+      
         {/* Hero Video Section */}
         <div className="w-full flex justify-center mb-4 relative min-h-[8rem] sm:min-h-[20rem] md:min-h-[24rem]">
-          <video 
+            <video 
             src="/homepage/herovideo.mp4" 
             className="rounded-xl shadow-lg w-full max-w-2xl h-64 sm:h-80 md:h-96 object-cover" 
-            autoPlay 
-            loop 
-            playsInline
+              autoPlay 
+              loop
+              playsInline
             style={{ objectFit: 'cover' }}
           />
         </div>
@@ -447,13 +484,13 @@ export default function CampaignPage() {
                     <div className="text-gray-500 text-sm mb-1">Account Balance</div>
                     <div className="flex items-center gap-1">
                       <span className="text-xl font-semibold">BDT {userStats.accountBalance.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
+                    </div>
+                  </div>
+            </div>
           </Card>
-
+          
           <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm">
             <div className="flex items-start justify-between">
               <div>
@@ -462,7 +499,7 @@ export default function CampaignPage() {
               </div>
             </div>
           </Card>
-
+          
           <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm">
             <div className="flex items-start justify-between">
               <div>
@@ -471,9 +508,9 @@ export default function CampaignPage() {
                   <span className="text-xl font-semibold">BDT {userStats.todayCommission.toLocaleString()}</span>
                 </div>
               </div>
-            </div>
+                    </div>
           </Card>
-
+          
           <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm">
             <div className="flex items-start justify-between">
               <div>
@@ -482,9 +519,9 @@ export default function CampaignPage() {
                   <span className="text-xl font-semibold">BDT {userStats.withdrawalAmount.toLocaleString()}</span>
                 </div>
               </div>
-            </div>
+                    </div>
           </Card>
-        </div>
+                  </div>
 
         {/* Launch Campaign Button with Swipe Gesture */}
         <div className="pt-4 relative">
@@ -520,8 +557,7 @@ export default function CampaignPage() {
               className="absolute left-0 top-0 h-full w-16 bg-white rounded-full shadow-md flex items-center justify-center cursor-grab active:cursor-grabbing transition-transform duration-200 z-20"
               style={{ 
                 transform: `translateX(${dragProgress * 200}px)`,
-                transition: isDragging ? 'none' : 'transform 0.3s ease-out',
-                maxWidth: 'calc(100% - 64px)' // Allow full movement
+                transition: isDragging ? 'none' : 'transform 0.3s ease-out'
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -533,8 +569,8 @@ export default function CampaignPage() {
               }}
             >
               <ArrowRight className="w-8 h-8 transition-transform duration-300 text-red-500" />
-            </div>
-          </div>
+                </div>
+              </div>
           
           {/* Swipe indicator arrows */}
           <div className="flex justify-center mt-2 space-x-1">
@@ -546,20 +582,9 @@ export default function CampaignPage() {
                 }`}
               />
             ))}
-          </div>
+                </div>
           
-          {/* Swipe instruction */}
-          <div className="text-center mt-2">
-            <p className="text-xs text-gray-500">
-              {currentTask && !currentTask.isClaimed 
-                ? 'Swipe right to claim task' 
-                : currentTask && currentTask.isClaimed 
-                ? 'Swipe right to complete task'
-                : 'Swipe right to launch campaign'
-              }
-            </p>
-          </div>
-        </div>
+            </div>
 
         {/* Current Task Info */}
         {currentTask && (
@@ -568,9 +593,18 @@ export default function CampaignPage() {
               <h3 className="text-lg font-bold text-gray-800 mb-2">Current Task</h3>
               <p className="text-gray-600 mb-4">{currentTask.taskTitle}</p>
               <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
-                <span>Commission: BDT {currentTask.taskCommission.toLocaleString()}</span>
+                <span>
+                  Commission: {currentTask.taskCommission > 0 ? `BDT ${currentTask.taskCommission.toLocaleString()}` : 'No Commission'}
+                </span>
                 <span>Platform: {currentTask.platform}</span>
               </div>
+              {currentTask.taskCommission === 0 && (
+                <div className="mt-3 p-2 bg-yellow-100 border border-yellow-300 rounded-lg">
+                  <p className="text-yellow-800 text-sm">
+                    ⚠️ This task has no commission reward
+                  </p>
+                </div>
+              )}
             </div>
           </Card>
         )}
@@ -596,54 +630,24 @@ export default function CampaignPage() {
         {/* Platform Selection Modal */}
         {showPlatformSelection && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-md bg-white rounded-2xl shadow-2xl">
+            <Card className="w-full max-w-sm bg-white rounded-2xl shadow-2xl">
               <div className="p-6 text-center">
-                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-8 h-8 text-white" />
-                </div>
+                <h3 className="text-xl font-bold text-gray-800 mb-4">Choose Platform</h3>
                 
-                <h3 className="text-2xl font-bold text-gray-800 mb-2">Choose Platform</h3>
-                <p className="text-gray-600 mb-6">
-                  Select a social media platform to complete this campaign task
-                </p>
-
-                {/* Platform Icons in Arc Layout */}
-                <div className="flex justify-center items-center mb-8">
-                  <div className="relative w-80 h-40">
-                    {platforms.map((platform, index) => {
-                      const angle = (index * 60) - 120; // Spread from -120 to 120 degrees
-                      const radius = 120;
-                      const x = Math.cos(angle * Math.PI / 180) * radius;
-                      const y = Math.sin(angle * Math.PI / 180) * radius;
-                      
-                      return (
-                        <button
-                          key={platform.id}
-                          onClick={() => handlePlatformSelect(platform.id)}
-                          className="absolute w-16 h-16 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform duration-200 border-2 border-gray-200 hover:border-blue-500"
-                          style={{
-                            left: `calc(50% + ${x}px - 32px)`,
-                            top: `calc(50% + ${y}px - 32px)`,
-                            transform: 'translate(-50%, -50%)'
-                          }}
-                        >
-                          <img 
-                            src={platform.image} 
-                            alt={platform.name}
-                            className="w-8 h-8 object-contain"
-                          />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Platform Names */}
-                <div className="grid grid-cols-3 gap-2 mb-6">
+                {/* Simple Rounded Logo Grid */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
                   {platforms.map((platform) => (
-                    <div key={platform.id} className="text-center">
-                      <div className="text-xs text-gray-500">{platform.name}</div>
-                    </div>
+                    <button
+                      key={platform.id}
+                      onClick={() => handlePlatformSelect(platform.id)}
+                      className="w-16 h-16 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform duration-200 border-2 border-gray-200 hover:border-blue-500 mx-auto"
+                    >
+                      <img 
+                        src={platform.image} 
+                        alt={platform.name}
+                        className="w-8 h-8 object-contain rounded-full"
+                      />
+                    </button>
                   ))}
                 </div>
 
@@ -668,6 +672,113 @@ export default function CampaignPage() {
                     className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white"
                   >
                     Complete Any Platform
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Loading Screen */}
+        {showLoading && (
+          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
+            <div className="text-center">
+              {/* Loading Bar */}
+              <div className="w-80 h-4 bg-white rounded-full mx-auto mb-4 overflow-hidden">
+                <div 
+                  className="h-full bg-red-500 rounded-full transition-all duration-3000 ease-out"
+                  style={{ width: '45%' }}
+                />
+              </div>
+
+              {/* Loading Text */}
+              <p className="text-white text-lg">Connecting to server...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Success Modal */}
+        {showSuccess && campaignDetails && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-md bg-white rounded-2xl shadow-2xl">
+              <div className="p-6">
+                {/* Header */}
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg font-bold text-gray-800">{campaignDetails.campaignId}</h3>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-orange-400 rounded-full"></div>
+                    <span className="text-orange-500 font-medium">{campaignDetails.status}</span>
+                  </div>
+                </div>
+
+                {/* Brand Section */}
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <img 
+                        src={campaignDetails.brandLogo} 
+                        alt={campaignDetails.brand}
+                        className="w-8 h-8 object-contain"
+                      />
+                      <div>
+                        <h4 className="font-bold text-gray-800">{campaignDetails.brand}</h4>
+                        <p className="text-sm text-gray-600">
+                          Commission: {campaignDetails.commission > 0 ? `BDT ${campaignDetails.commission}` : 'No Commission'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-2xl font-bold ${campaignDetails.amount > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                        {campaignDetails.amount > 0 ? `BDT ${campaignDetails.amount.toLocaleString()}` : 'No Reward'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Platform Section */}
+                <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <img 
+                      src={campaignDetails.platformIcon} 
+                      alt={campaignDetails.platform}
+                      className="w-8 h-8 object-contain"
+                    />
+                    <div>
+                      <h4 className="font-bold text-gray-800">{campaignDetails.platform}</h4>
+                      <p className="text-sm text-gray-600">{campaignDetails.type}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Commission Status Message */}
+                {campaignDetails.commission === 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                    <p className="text-yellow-800 text-sm text-center">
+                      ⚠️ This task has no commission. You completed it but earned no reward.
+                    </p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => {
+                      setShowSuccess(false);
+                      setCampaignDetails(null);
+                    }}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setShowSuccess(false);
+                      setCampaignDetails(null);
+                    }}
+                    className="flex-1 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white"
+                  >
+                    {campaignDetails.commission > 0 ? 'Launch Campaign' : 'Continue'}
                   </Button>
                 </div>
               </div>
