@@ -64,8 +64,13 @@ export async function GET(request: NextRequest) {
     console.log('📋 No customer tasks found, checking campaigns...');
     try {
       const campaignsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/campaigns`);
-      const campaignsData = await campaignsResponse.json();
       
+      if (!campaignsResponse.ok) {
+        console.error('❌ Campaigns API failed:', campaignsResponse.status, campaignsResponse.statusText);
+        throw new Error(`Campaigns API failed: ${campaignsResponse.status}`);
+      }
+      
+      const campaignsData = await campaignsResponse.json();
       console.log('📊 Campaigns API response:', campaignsData);
       
       if (campaignsData.success && campaignsData.data && campaignsData.data.length > 0) {
@@ -74,11 +79,11 @@ export async function GET(request: NextRequest) {
           _id: new ObjectId().toString(),
           customerId: userId,
           taskNumber: completedTaskIds.length + 1, // Next task number based on completed count
-          taskPrice: campaign.baseAmount || 0,
-          taskCommission: campaign.commissionAmount || 0,
-          taskTitle: campaign.brand || 'Campaign Task',
+          taskPrice: campaign.commission || 0, // Use commission as base amount
+          taskCommission: campaign.commission || 0, // Use commission field
+          taskTitle: campaign.title || campaign.brand || 'Campaign Task',
           taskDescription: campaign.description || 'Complete this campaign task',
-          platform: campaign.type || 'General',
+          platform: campaign.platform || campaign.type || 'General',
           status: 'pending',
           isFromCampaign: true,
           campaignId: campaign._id,
@@ -102,12 +107,18 @@ export async function GET(request: NextRequest) {
       console.error('Error fetching campaigns:', error);
     }
 
-    // No tasks available
+    // No tasks available - return helpful message
+    console.log('❌ No tasks available for user:', userId);
     return NextResponse.json({
       success: true,
       data: null,
-      message: 'No tasks available',
-      completedCount: completedTaskIds.length
+      message: 'No tasks available. Please contact admin to create tasks.',
+      completedCount: completedTaskIds.length,
+      debug: {
+        customerTasksFound: availableTasks.length,
+        campaignsChecked: true,
+        userId: userId
+      }
     });
 
   } catch (error) {

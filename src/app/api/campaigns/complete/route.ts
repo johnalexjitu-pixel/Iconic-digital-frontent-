@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     const claimsCollection = await getCollection(CampaignClaimCollection);
     const usersCollection = await getCollection('users');
     
-    const { userId, taskId, taskTitle, platform, commission, amount } = await request.json();
+    const { userId, taskId, taskTitle, platform, commission, amount, taskType, campaignId } = await request.json();
     
     if (!userId || !taskId) {
       return NextResponse.json(

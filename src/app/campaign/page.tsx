@@ -357,7 +357,9 @@ export default function CampaignPage() {
           taskTitle: task.taskTitle,
           platform: task.platform,
           commission: task.taskCommission || 0,
-          amount: task.taskPrice || 0
+          amount: task.taskPrice || 0,
+          taskType: task.isFromCampaign ? 'campaign' : 'customer_task',
+          campaignId: task.campaignId
         }),
       });
 
