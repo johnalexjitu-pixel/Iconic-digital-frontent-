@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,84 +8,171 @@ import { ArrowLeft, HelpCircle, Award, Star, Crown, Shield, Zap } from "lucide-r
 import { HomepageHeader } from "@/components/HomepageHeader";
 import { HomepageFooter } from "@/components/HomepageFooter";
 
+interface VipLevel {
+  _id: string;
+  name: string;
+  minAmount: number;
+  taskCount: number;
+  threeTask: string;
+  commissionPercentage: number;
+  comboCommissionPercentage: number;
+  productRangeMin: number;
+  productRangeMax: number;
+  minwithdrawal: number;
+  maxWithdrawal: number;
+  completedTasksToWithdraw: number;
+  withdrawalFees: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function MemberLevelPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ name: string; level: string; avatar?: string; accountBalance?: number } | null>(null);
+  const [vipLevels, setVipLevels] = useState<VipLevel[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchVipLevels = useCallback(async () => {
+    try {
+      const response = await fetch('/api/vip-levels');
+      const data = await response.json();
+      
+      if (data.success) {
+        setVipLevels(data.data);
+      } else {
+        console.error('Failed to fetch VIP levels:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching VIP levels:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
       setUser(JSON.parse(userData));
     }
-  }, []);
+    fetchVipLevels();
+  }, [fetchVipLevels]);
 
-  const memberLevels = [
-    {
-      name: "Bronze",
-      icon: <Shield className="w-8 h-8 text-amber-600" />,
-      color: "bg-amber-50 border-amber-200",
-      textColor: "text-amber-700",
-      requirements: "Account Balance: BDT 0 - BDT 10,000",
-      benefits: [
-        "Basic campaign access",
-        "Standard support",
-        "5% commission rate"
-      ]
-    },
-    {
-      name: "Silver",
-      icon: <Star className="w-8 h-8 text-gray-600" />,
-      color: "bg-gray-50 border-gray-200",
-      textColor: "text-gray-700",
-      requirements: "Account Balance: BDT 10,001 - BDT 50,000",
-      benefits: [
-        "Premium campaign access",
-        "Priority support",
-        "7% commission rate",
-        "Daily check-in rewards"
-      ]
-    },
-    {
-      name: "Gold",
-      icon: <Crown className="w-8 h-8 text-yellow-600" />,
-      color: "bg-yellow-50 border-yellow-200",
-      textColor: "text-yellow-700",
-      requirements: "Account Balance: BDT 50,001 - BDT 100,000",
-      benefits: [
-        "Exclusive campaign access",
-        "VIP support",
-        "10% commission rate",
-        "Weekly bonuses",
-        "Referral rewards"
-      ]
-    },
-    {
-      name: "Platinum",
-      icon: <Zap className="w-8 h-8 text-purple-600" />,
-      color: "bg-purple-50 border-purple-200",
-      textColor: "text-purple-700",
-      requirements: "Account Balance: BDT 100,001+",
-      benefits: [
-        "All campaign access",
-        "24/7 dedicated support",
-        "15% commission rate",
-        "Monthly bonuses",
-        "Exclusive events",
-        "Priority withdrawal"
-      ]
+  // Helper function to get icon for level
+  const getLevelIcon = (levelName: string) => {
+    switch (levelName.toLowerCase()) {
+      case 'bronze':
+        return <Shield className="w-8 h-8 text-amber-600" />;
+      case 'silver':
+        return <Star className="w-8 h-8 text-gray-600" />;
+      case 'gold':
+        return <Crown className="w-8 h-8 text-yellow-600" />;
+      case 'platinum':
+        return <Zap className="w-8 h-8 text-purple-600" />;
+      default:
+        return <Award className="w-8 h-8 text-blue-600" />;
     }
-  ];
+  };
+
+  // Helper function to get colors for level
+  const getLevelColors = (levelName: string) => {
+    switch (levelName.toLowerCase()) {
+      case 'bronze':
+        return {
+          color: "bg-amber-50 border-amber-200",
+          textColor: "text-amber-700"
+        };
+      case 'silver':
+        return {
+          color: "bg-gray-50 border-gray-200",
+          textColor: "text-gray-700"
+        };
+      case 'gold':
+        return {
+          color: "bg-yellow-50 border-yellow-200",
+          textColor: "text-yellow-700"
+        };
+      case 'platinum':
+        return {
+          color: "bg-purple-50 border-purple-200",
+          textColor: "text-purple-700"
+        };
+      default:
+        return {
+          color: "bg-blue-50 border-blue-200",
+          textColor: "text-blue-700"
+        };
+    }
+  };
+
+  // Convert VIP levels to display format
+  const memberLevels = vipLevels.map((level, index) => {
+    const nextLevel = vipLevels[index + 1];
+    const maxAmount = nextLevel ? nextLevel.minAmount - 1 : Infinity;
+    
+    return {
+      ...level,
+      icon: getLevelIcon(level.name),
+      ...getLevelColors(level.name),
+      requirements: `Account Balance: BDT ${level.minAmount.toLocaleString()}${maxAmount !== Infinity ? ` - BDT ${maxAmount.toLocaleString()}` : '+'}`,
+      benefits: [
+        `${level.commissionPercentage}% commission rate`,
+        `${level.comboCommissionPercentage}% combo commission`,
+        `${level.taskCount} tasks available`,
+        `Min withdrawal: BDT ${level.minwithdrawal.toLocaleString()}`,
+        `Max withdrawal: BDT ${level.maxWithdrawal.toLocaleString()}`,
+        `${level.completedTasksToWithdraw} tasks to withdraw`,
+        level.withdrawalFees === 0 ? "No withdrawal fees" : `Withdrawal fees: ${level.withdrawalFees}%`
+      ]
+    };
+  });
 
   const getCurrentLevel = () => {
-    if (!user) return memberLevels[0];
+    if (!user || memberLevels.length === 0) return null;
     const balance = user.accountBalance || 0;
-    if (balance >= 100001) return memberLevels[3];
-    if (balance >= 50001) return memberLevels[2];
-    if (balance >= 10001) return memberLevels[1];
+    
+    // Find the appropriate level based on balance
+    for (let i = memberLevels.length - 1; i >= 0; i--) {
+      if (balance >= memberLevels[i].minAmount) {
+        return memberLevels[i];
+      }
+    }
+    
+    // If balance is below the minimum level, return the first level
     return memberLevels[0];
   };
 
   const currentLevel = getCurrentLevel();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <HomepageHeader user={user || undefined} />
+        <div className="max-w-4xl mx-auto px-4 py-6 pb-20">
+          <div className="flex justify-center items-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading member levels...</p>
+            </div>
+          </div>
+        </div>
+        <HomepageFooter activePage="account" />
+      </div>
+    );
+  }
+
+  if (!currentLevel) {
+    return (
+      <div className="min-h-screen bg-white">
+        <HomepageHeader user={user || undefined} />
+        <div className="max-w-4xl mx-auto px-4 py-6 pb-20">
+          <div className="text-center py-12">
+            <p className="text-gray-600">No member levels available.</p>
+          </div>
+        </div>
+        <HomepageFooter activePage="account" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
