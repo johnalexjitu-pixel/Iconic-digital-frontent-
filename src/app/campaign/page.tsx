@@ -358,6 +358,7 @@ export default function CampaignPage() {
           platform: task.platform,
           commission: task.taskCommission || 0,
           amount: task.taskPrice || 0,
+          taskPrice: task.taskPrice || 0,
           taskType: task.isFromCampaign ? 'campaign' : 'customer_task',
           campaignId: task.campaignId
         }),

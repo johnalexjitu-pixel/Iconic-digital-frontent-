@@ -9,6 +9,9 @@ export interface ICampaignClaim {
   status: 'claimed' | 'completed';
   campaignId?: string; // Reference to original campaign if from campaigns
   commissionEarned?: number;
+  taskTitle?: string; // Store task title for history
+  platform?: string; // Store platform for history
+  taskPrice?: number; // Store task price for history
   createdAt: Date;
   updatedAt: Date;
 }

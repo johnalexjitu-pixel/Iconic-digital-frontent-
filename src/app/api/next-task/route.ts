@@ -87,12 +87,19 @@ export async function GET(request: NextRequest) {
         const claimsCollection = await getCollection(CampaignClaimCollection);
         const userClaims = await claimsCollection.find({ customerId: userId }).toArray();
         const completedCampaignIds = userClaims.map(claim => claim.campaignId).filter(Boolean);
+        
+        console.log(`📝 Completed campaign IDs for user: [${completedCampaignIds.join(', ')}]`);
+        
         const availableCampaigns = campaigns.filter(campaign => 
           !completedCampaignIds.includes(campaign._id.toString())
         );
         
+        console.log(`📋 Available campaigns: ${availableCampaigns.length} out of ${campaigns.length}`);
+        
         // If all campaigns completed, start over with first campaign
         const campaignToUse = availableCampaigns.length > 0 ? availableCampaigns[0] : campaigns[0];
+        
+        console.log(`🎯 Selected campaign: ${campaignToUse.brand} (ID: ${campaignToUse._id})`);
         
         console.log(`📊 Using campaign: ${campaignToUse.brand} (${campaignToUse.type}) - Commission: ${campaignToUse.commissionAmount}`);
         

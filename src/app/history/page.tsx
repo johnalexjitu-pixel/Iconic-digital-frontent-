@@ -59,39 +59,30 @@ export default function HistoryPage() {
         setRefreshing(true);
       }
       
-      // Fetch customer tasks from database
-      const tasksResponse = await fetch(`/api/customer-tasks?customerId=${user._id}`);
-      const tasksData = await tasksResponse.json();
-      
-      // Fetch campaign claims to check completion status
+      // Fetch completed campaign claims (this shows all completed tasks)
       const claimsResponse = await fetch(`/api/campaigns/complete?customerId=${user._id}`);
       const claimsData = await claimsResponse.json();
       
-      if (tasksData.success && tasksData.data) {
-        const tasks = tasksData.data;
-        const claims = claimsData.success ? claimsData.data : [];
+      if (claimsData.success && claimsData.data) {
+        const claims = claimsData.data;
         
-        // Create a map of claimed tasks
-        const claimedTaskIds = new Set(claims.map((claim: any) => claim.taskId));
-        
-        // Convert tasks to campaign format
-        const campaignData: Campaign[] = tasks.map((task: any, index: number) => {
-          const isClaimed = claimedTaskIds.has(task._id.toString());
-          const commissionPercentage = task.taskCommission > 0 && task.taskPrice > 0 ? Math.round((task.taskCommission / task.taskPrice) * 100) : 0;
+        // Convert completed claims to campaign format for history
+        const campaignData: Campaign[] = claims.map((claim: any, index: number) => {
+          const commissionPercentage = claim.commissionEarned > 0 && claim.taskPrice > 0 ? Math.round((claim.commissionEarned / claim.taskPrice) * 100) : 0;
           
           return {
-            _id: task._id.toString(),
-            campaignId: `1117${String(index + 1).padStart(3, '0')}`,
+            _id: claim._id.toString(),
+            campaignId: claim.campaignId || `CAMP-${index + 1}`,
             taskCode: generateTaskCode(),
-            brand: task.taskTitle || 'Unknown Brand',
-            brandLogo: getBrandLogo(task.taskTitle),
-            amount: task.taskPrice || 0,
-            commission: task.taskCommission || 0,
+            brand: claim.taskTitle || 'Completed Task',
+            brandLogo: getBrandLogo(claim.taskTitle),
+            amount: claim.taskPrice || 0,
+            commission: claim.commissionEarned || 0,
             commissionPercentage: commissionPercentage,
-            profit: task.taskCommission || 0,
-            status: isClaimed ? 'completed' : 'pending',
-            platform: task.platform || 'General',
-            createdAt: task.createdAt || new Date().toISOString()
+            profit: claim.commissionEarned || 0,
+            status: 'completed',
+            platform: claim.platform || 'General',
+            createdAt: claim.claimedAt || new Date().toISOString()
           };
         });
         

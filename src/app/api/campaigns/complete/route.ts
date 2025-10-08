@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     const claimsCollection = await getCollection(CampaignClaimCollection);
     const usersCollection = await getCollection('users');
     
-    const { userId, taskId, taskTitle, platform, commission, amount, taskType, campaignId } = await request.json();
+    const { userId, taskId, taskTitle, platform, commission, amount, taskType, campaignId, taskPrice } = await request.json();
     
     if (!userId || !taskId) {
       return NextResponse.json(
@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`🎯 Completing task: ${taskTitle} (ID: ${taskId}) for user: ${userId}`);
+    console.log(`📋 Campaign ID being saved: ${campaignId}`);
 
     // Create campaign claim
     const claim: ICampaignClaim = {
@@ -80,6 +81,10 @@ export async function POST(request: NextRequest) {
       claimedAt: new Date(),
       status: 'completed',
       campaignId: campaignId, // Store the original campaign ID
+      commissionEarned: commission, // Store commission earned
+      taskTitle: taskTitle, // Store task title for history
+      platform: platform, // Store platform for history
+      taskPrice: taskPrice || amount, // Store task price for history
       createdAt: new Date(),
       updatedAt: new Date()
     };
