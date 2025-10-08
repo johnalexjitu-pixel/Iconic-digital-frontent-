@@ -40,6 +40,7 @@ interface CustomerTask {
   };
   campaignId?: string;
   isFromCampaign?: boolean;
+  source?: string; // Added source field for new workflow
 }
 
 interface UserStats {
@@ -179,16 +180,15 @@ export default function CampaignPage() {
     setShowLoading(false);
     setShowSuccess(true);
     
-    // Only complete task if commission > 0
-    if (currentTask && currentTask.taskCommission > 0) {
-      if (!currentTask.isClaimed) {
-        claimTask(currentTask);
-      } else if (currentTask.isClaimed) {
-        completeTask(currentTask);
-      }
+    // Complete task regardless of commission (new workflow handles all tasks)
+    if (currentTask) {
+      console.log(`🎯 Platform selected: ${platformId}, Task: ${currentTask.taskTitle}, Commission: ${currentTask.taskCommission}`);
+      console.log(`📝 Task source: ${currentTask.source || 'customerTasks'}`);
+      
+      // Directly complete the task (no claiming needed in new workflow)
+      completeTask(currentTask);
     } else {
-      // Task completed but no commission earned
-      console.log('Task completed but no commission earned (commission = 0)');
+      console.log('❌ No current task available');
     }
   };
 
@@ -277,30 +277,33 @@ export default function CampaignPage() {
     }
   }, [user?._id]);
 
-  // Fetch tasks using database
+  // Fetch tasks using new workflow system
   const fetchTasks = useCallback(async (isRefresh = false) => {
-      if (!user?._id) return;
-      
+    if (!user?.membershipId) return;
+    
     try {
       if (isRefresh) {
         setRefreshing(true);
       }
       
-      console.log('🔍 Fetching next task for user:', user._id);
+      console.log('🔍 Fetching next task for membershipId:', user.membershipId);
       
-      // Get next available task from database
-      const response = await fetch(`/api/next-task?userId=${user._id}`);
-        const data = await response.json();
+      // Get next available task using new workflow
+      const response = await fetch(`/api/task-workflow?membershipId=${user.membershipId}`);
+      const data = await response.json();
       
-      console.log('📊 Next task API response:', data);
+      console.log('📊 Task workflow API response:', data);
       
       if (data.success && data.data && data.data.task) {
         console.log(`✅ Next task loaded: ${data.data.task.taskTitle} (Task #${data.data.task.taskNumber})`);
-        console.log(`📈 Progress: ${data.data.completedCount} completed, ${data.data.totalAvailable} available`);
+        console.log(`📈 Progress: ${data.data.completedCount} completed tasks`);
+        console.log(`💰 Commission: ${data.data.task.taskCommission} (from ${data.data.source})`);
+        console.log(`🧮 Calculation:`, data.data.calculation);
+        
         setCurrentTask(data.data.task);
         
-        // Also fetch all tasks for display purposes
-        await fetchAllTasks();
+        // Update user stats with latest data
+        await fetchUserStats();
       } else {
         console.log('📋 No tasks available - API response:', data);
         setCurrentTask(null);
@@ -315,7 +318,7 @@ export default function CampaignPage() {
         setRefreshing(false);
       }
     }
-  }, [user?._id, fetchAllTasks]);
+  }, [user?.membershipId, fetchUserStats]);
 
   // Manual refresh function
   const handleRefresh = () => {
@@ -347,7 +350,7 @@ export default function CampaignPage() {
 
   // Complete task
   const completeTask = async (task: CustomerTask) => {
-    if (!user?._id) return;
+    if (!user?.membershipId) return;
 
     setIsCompleting(true);
     setError(null);
@@ -355,22 +358,20 @@ export default function CampaignPage() {
     try {
       console.log('🎯 Completing task:', task.taskTitle, 'Commission:', task.taskCommission);
       
-      // Save task completion to database
-      const completionResponse = await fetch('/api/campaigns/complete', {
+      // Save task completion using new workflow
+      const completionResponse = await fetch('/api/task-workflow', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: user._id,
+          membershipId: user.membershipId,
           taskId: task._id.toString(),
           taskTitle: task.taskTitle,
           platform: task.platform,
           commission: task.taskCommission || 0,
-          amount: task.taskPrice || 0,
-          taskPrice: task.taskPrice || 0,
-          taskType: task.isFromCampaign ? 'campaign' : 'customer_task',
-          campaignId: task.campaignId
+          taskNumber: task.taskNumber,
+          source: task.source || 'customerTasks'
         }),
       });
 
@@ -379,12 +380,15 @@ export default function CampaignPage() {
         
         if (completionData.success) {
           console.log(`✅ Task completed successfully: ${completionData.message}`);
+          console.log(`📊 Updated progress: ${completionData.data.completedCount} tasks completed`);
+          console.log(`💰 Commission added: ${completionData.data.commissionAdded}`);
+          console.log(`💳 New balance: ${completionData.data.newBalance}`);
           
           // Refresh user stats from database
           await fetchUserStats();
           
           // Get next task from database
-        await fetchTasks();
+          await fetchTasks();
           
           console.log(`✅ Task completed and next task loaded`);
         } else {
@@ -409,7 +413,7 @@ export default function CampaignPage() {
       return;
     }
     
-    if (user) {
+    if (user?.membershipId) {
       fetchUserStats();
       fetchTasks();
     }
