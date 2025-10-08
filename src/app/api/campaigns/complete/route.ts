@@ -42,3 +42,83 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+// POST - Complete a task and save progress
+export async function POST(request: NextRequest) {
+  try {
+    const claimsCollection = await getCollection(CampaignClaimCollection);
+    const usersCollection = await getCollection('users');
+    
+    const { userId, taskId, taskTitle, platform, commission, amount } = await request.json();
+    
+    if (!userId || !taskId) {
+      return NextResponse.json(
+        { success: false, message: 'User ID and Task ID are required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if task is already completed
+    const existingClaim = await claimsCollection.findOne({
+      customerId: userId,
+      taskId: taskId
+    });
+
+    if (existingClaim) {
+      return NextResponse.json(
+        { success: false, message: 'Task already completed' },
+        { status: 400 }
+      );
+    }
+
+    // Create campaign claim
+    const claim: ICampaignClaim = {
+      customerId: userId,
+      taskId: taskId,
+      claimedAt: new Date(),
+      status: 'completed',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    const claimResult = await claimsCollection.insertOne(claim);
+
+    // Update user balance and campaign count
+    if (commission > 0) {
+      const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+      if (user) {
+        const newBalance = (user.accountBalance || 0) + commission;
+        const newTotalEarnings = (user.totalEarnings || 0) + commission;
+        const newCampaignsCompleted = (user.campaignsCompleted || 0) + 1;
+
+        await usersCollection.updateOne(
+          { _id: new ObjectId(userId) },
+          {
+            $set: {
+              accountBalance: newBalance,
+              totalEarnings: newTotalEarnings,
+              campaignsCompleted: newCampaignsCompleted,
+              updatedAt: new Date()
+            }
+          }
+        );
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Task completed successfully',
+      data: {
+        claimId: claimResult.insertedId,
+        commissionAdded: commission || 0
+      }
+    });
+
+  } catch (error) {
+    console.error('Error completing task:', error);
+    return NextResponse.json(
+      { success: false, message: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

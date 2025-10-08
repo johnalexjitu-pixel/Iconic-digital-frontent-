@@ -246,103 +246,51 @@ export default function CampaignPage() {
     }
   }, [user?.email]);
 
-  // Fetch user's tasks
+  // Fetch tasks using database
   const fetchTasks = useCallback(async () => {
+    if (!user?._id) return;
+
     try {
-      if (!user?._id) return;
+      console.log('🔍 Fetching next task for user:', user._id);
       
-      // Check customer tasks first
-      const customerTasksResponse = await fetch(`/api/customer-tasks?customerId=${user._id}`);
-      let customerTasks = [];
+      // Get next available task from database
+      const response = await fetch(`/api/next-task?userId=${user._id}`);
+      const data = await response.json();
       
-      if (customerTasksResponse.ok) {
-        const customerData = await customerTasksResponse.json();
-        if (customerData.success && Array.isArray(customerData.data)) {
-          customerTasks = customerData.data;
-        }
-      }
-      
-      // Check if customer tasks have conditions
-      const tasksWithConditions = customerTasks.filter((task: CustomerTask) => task.hasConditions);
-      const tasksWithoutConditions = customerTasks.filter((task: CustomerTask) => !task.hasConditions);
-      
-      let finalTasks = [];
-      
-      if (tasksWithConditions.length > 0) {
-        // Use customer tasks with conditions
-        finalTasks = tasksWithConditions;
-      } else if (tasksWithoutConditions.length > 0) {
-        // Use campaigns from DB
-        try {
-          const campaignsResponse = await fetch('/api/campaigns');
-          if (campaignsResponse.ok) {
-            const campaignsData = await campaignsResponse.json();
-            if (campaignsData.success && Array.isArray(campaignsData.data)) {
-              finalTasks = campaignsData.data.map((campaign: any, index: number) => ({
-                _id: `campaign-${campaign._id}`,
-                customerId: user._id,
-                taskNumber: index + 1,
-                taskPrice: campaign.baseAmount || campaign.taskPrice || 0,
-                taskCommission: campaign.commissionAmount || campaign.taskCommission || campaign.commission || 0,
-                taskTitle: campaign.brand || campaign.title || campaign.taskTitle || `Campaign Task ${index + 1}`,
-                taskDescription: campaign.description || campaign.taskDescription || 'Complete this campaign task',
-                platform: campaign.type || campaign.platform || 'General',
-                status: 'pending',
-                isClaimed: false,
-                hasGoldenEgg: campaign.hasGoldenEgg || false,
-                hasConditions: false,
-                lossCondition: false,
-                isFromCampaign: true,
-                campaignId: campaign._id
-              }));
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching campaigns:', error);
-        }
+      if (data.success && data.data && data.data.task) {
+        console.log(`✅ Next task loaded: ${data.data.task.taskTitle}`);
+        setCurrentTask(data.data.task);
+        
+        // Also fetch all tasks for display purposes
+        await fetchAllTasks();
       } else {
-        // No customer tasks - use normal campaigns
-        try {
-          const campaignsResponse = await fetch('/api/campaigns');
-          if (campaignsResponse.ok) {
-            const campaignsData = await campaignsResponse.json();
-            if (campaignsData.success && Array.isArray(campaignsData.data)) {
-              finalTasks = campaignsData.data.map((campaign: any, index: number) => ({
-                _id: `campaign-${campaign._id}`,
-                customerId: user._id,
-                taskNumber: index + 1,
-                taskPrice: campaign.baseAmount || campaign.taskPrice || 0,
-                taskCommission: campaign.commissionAmount || campaign.taskCommission || campaign.commission || 0,
-                taskTitle: campaign.brand || campaign.title || campaign.taskTitle || `Campaign Task ${index + 1}`,
-                taskDescription: campaign.description || campaign.taskDescription || 'Complete this campaign task',
-                platform: campaign.type || campaign.platform || 'General',
-                status: 'pending',
-                isClaimed: false,
-                hasGoldenEgg: campaign.hasGoldenEgg || false,
-                hasConditions: false,
-                lossCondition: false,
-                isFromCampaign: true,
-                campaignId: campaign._id
-              }));
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching campaigns:', error);
-        }
-      }
-      
-      setTasks(finalTasks);
-      
-      // Set first available task as current
-      const availableTask = finalTasks.find((t: CustomerTask) => 
-        t.status === 'pending' && !t.isClaimed
-      );
-      if (availableTask) {
-        setCurrentTask(availableTask);
+        console.log('📋 No tasks available');
+        setCurrentTask(null);
+        setTasks([]);
       }
       
     } catch (error) {
-      console.error('Error fetching tasks:', error);
+      console.error('Error fetching next task:', error);
+      setError('Failed to fetch tasks');
+    }
+  }, [user?._id]);
+
+  // Fetch all tasks for display purposes
+  const fetchAllTasks = useCallback(async () => {
+    if (!user?._id) return;
+
+    try {
+      // Fetch customer tasks
+      const tasksResponse = await fetch(`/api/customer-tasks?customerId=${user._id}`);
+      const tasksData = await tasksResponse.json();
+      
+      if (tasksData.success && tasksData.data) {
+        setTasks(tasksData.data);
+      } else {
+        setTasks([]);
+      }
+    } catch (error) {
+      console.error('Error fetching all tasks:', error);
     }
   }, [user?._id]);
 
@@ -379,50 +327,46 @@ export default function CampaignPage() {
     try {
       console.log('🎯 Completing task:', task.taskTitle, 'Commission:', task.taskCommission);
       
-      // Only add commission if it's greater than 0
-      const commissionToAdd = task.taskCommission > 0 ? task.taskCommission : 0;
-      
-      // Update user balance in database
-      const newBalance = userStats.accountBalance + commissionToAdd;
-      const newTotalEarnings = userStats.totalEarnings + commissionToAdd;
-      const newCampaignsCompleted = userStats.campaignsCompleted + 1;
-      
-      const updateResponse = await fetch('/api/user', {
-        method: 'PATCH',
+      // Save task completion to database
+      const completionResponse = await fetch('/api/campaigns/complete', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           userId: user._id,
-          accountBalance: newBalance,
-          totalEarnings: newTotalEarnings,
-          campaignsCompleted: newCampaignsCompleted
+          taskId: task._id.toString(),
+          taskTitle: task.taskTitle,
+          platform: task.platform,
+          commission: task.taskCommission || 0,
+          amount: task.taskPrice || 0
         }),
       });
 
-      if (updateResponse.ok) {
-        // Update local state
-        setUserStats(prev => ({
-          ...prev,
-          accountBalance: newBalance,
-          totalEarnings: newTotalEarnings,
-          campaignsCompleted: newCampaignsCompleted,
-          todayCommission: prev.todayCommission + commissionToAdd,
-          dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
-        }));
+      if (completionResponse.ok) {
+        const completionData = await completionResponse.json();
+        
+        if (completionData.success) {
+          // Update local state
+          const commissionToAdd = task.taskCommission > 0 ? task.taskCommission : 0;
+          setUserStats(prev => ({
+            ...prev,
+            accountBalance: prev.accountBalance + commissionToAdd,
+            totalEarnings: prev.totalEarnings + commissionToAdd,
+            campaignsCompleted: prev.campaignsCompleted + 1,
+            todayCommission: prev.todayCommission + commissionToAdd,
+            dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
+          }));
 
-        // Move to next task
-        const nextTask = tasks.find(t => t._id !== task._id && t.status === 'pending' && !t.isClaimed);
-        if (nextTask) {
-          setCurrentTask(nextTask);
+          // Get next task from database
+          await getNextTask();
+          
+          console.log(`✅ Task completed and saved to database. Commission added: BDT ${commissionToAdd}`);
         } else {
-          setCurrentTask(null);
+          setError(completionData.message || 'Failed to save task completion');
         }
-        
-        console.log(`✅ Task completed. Commission added: BDT ${commissionToAdd}`);
-        
       } else {
-        setError('Failed to update account balance');
+        setError('Failed to save task completion to database');
       }
       
     } catch (error) {
@@ -430,6 +374,25 @@ export default function CampaignPage() {
       setError('Failed to complete task');
     } finally {
       setIsCompleting(false);
+    }
+  };
+
+  // Get next task from database
+  const getNextTask = async () => {
+    try {
+      const response = await fetch(`/api/next-task?userId=${user?._id}`);
+      const data = await response.json();
+      
+      if (data.success && data.data && data.data.task) {
+        setCurrentTask(data.data.task);
+        console.log(`📋 Next task loaded: ${data.data.task.taskTitle}`);
+      } else {
+        setCurrentTask(null);
+        console.log('📋 No more tasks available');
+      }
+    } catch (error) {
+      console.error('Error getting next task:', error);
+      setCurrentTask(null);
     }
   };
 
