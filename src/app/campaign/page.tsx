@@ -7,7 +7,7 @@ import { HomepageFooter } from "@/components/HomepageFooter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, DollarSign, Users, Calendar, Play, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { ArrowRight, DollarSign, Users, Calendar, Play, CheckCircle, Clock, AlertCircle, Gift, Star } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
 
 interface CustomerTask {
@@ -23,6 +23,7 @@ interface CustomerTask {
   claimedAt?: string;
   completedAt?: string;
   isClaimed: boolean;
+  hasGoldenEgg?: boolean;
 }
 
 interface UserStats {
@@ -48,6 +49,10 @@ export default function CampaignPage() {
   const [isCompleting, setIsCompleting] = useState(false);
   const [showPlatform, setShowPlatform] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showGoldenEggModal, setShowGoldenEggModal] = useState(false);
+  const [selectedEgg, setSelectedEgg] = useState<number | null>(null);
+  const [goldenEggReward, setGoldenEggReward] = useState<number | null>(null);
+  const [isSelectingEgg, setIsSelectingEgg] = useState(false);
 
   // Fetch user stats from database
   const fetchUserStats = useCallback(async () => {
@@ -163,17 +168,22 @@ export default function CampaignPage() {
       const data = await response.json();
       
       if (data.success) {
-        // Update local state
-        setUserStats(prev => ({
-          ...prev,
-          accountBalance: data.data.newBalance,
-          campaignsCompleted: prev.campaignsCompleted + 1,
-          todayCommission: prev.todayCommission + task.taskCommission,
-          dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
-        }));
+        // Check if task has golden egg
+        if (task.hasGoldenEgg) {
+          setShowGoldenEggModal(true);
+        } else {
+          // Regular task completion
+          setUserStats(prev => ({
+            ...prev,
+            accountBalance: data.data.newBalance,
+            campaignsCompleted: prev.campaignsCompleted + 1,
+            todayCommission: prev.todayCommission + task.taskCommission,
+            dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
+          }));
 
-        // Refresh tasks
-        await fetchTasks();
+          // Refresh tasks
+          await fetchTasks();
+        }
       } else {
         setError(data.message || 'Failed to complete task');
       }
@@ -183,6 +193,69 @@ export default function CampaignPage() {
     } finally {
       setIsCompleting(false);
       setShowPlatform(false);
+    }
+  };
+
+  // Select golden egg
+  const selectGoldenEgg = async (eggNumber: number) => {
+    setIsSelectingEgg(true);
+    setSelectedEgg(eggNumber);
+    
+    try {
+      // Simulate egg selection delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Generate random bonus (you can customize this range)
+      const bonuses = [500, 1000, 1500, 2000, 2500, 3000, 5000, 10000];
+      const randomBonus = bonuses[Math.floor(Math.random() * bonuses.length)];
+      
+      setGoldenEggReward(randomBonus);
+      
+      // Complete the task after golden egg selection
+      setTimeout(async () => {
+        try {
+          const response = await fetch('/api/customer-tasks/complete', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              customerId: user?._id,
+              taskId: currentTask?._id,
+              goldenEggReward: randomBonus
+            }),
+          });
+
+          const data = await response.json();
+          
+          if (data.success) {
+            setUserStats(prev => ({
+              ...prev,
+              accountBalance: data.data.newBalance,
+              campaignsCompleted: prev.campaignsCompleted + 1,
+              todayCommission: prev.todayCommission + (currentTask?.taskCommission || 0) + randomBonus,
+              dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
+            }));
+
+            // Refresh tasks
+            await fetchTasks();
+          }
+        } catch (error) {
+          console.error('Error completing golden egg task:', error);
+        }
+        
+        // Close modal after 3 seconds
+        setTimeout(() => {
+          setShowGoldenEggModal(false);
+          setSelectedEgg(null);
+          setGoldenEggReward(null);
+          setIsSelectingEgg(false);
+        }, 3000);
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error selecting golden egg:', error);
+      setIsSelectingEgg(false);
     }
   };
 
@@ -290,10 +363,27 @@ export default function CampaignPage() {
 
         {/* Current Task Section */}
         {currentTask && (
-          <Card className="p-6 mb-8 bg-gradient-to-r from-red-50 to-pink-50 border-red-200">
+          <Card className={`p-6 mb-8 bg-gradient-to-r ${
+            currentTask.hasGoldenEgg 
+              ? 'from-yellow-50 to-orange-50 border-yellow-200' 
+              : 'from-red-50 to-pink-50 border-red-200'
+          }`}>
             <div className="text-center mb-6">
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">Current Task</h3>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <h3 className="text-2xl font-bold text-gray-800">Current Task</h3>
+                {currentTask.hasGoldenEgg && (
+                  <div className="flex items-center gap-1 bg-yellow-100 px-2 py-1 rounded-full">
+                    <Star className="w-4 h-4 text-yellow-600" />
+                    <span className="text-xs font-bold text-yellow-700">Golden Egg</span>
+                  </div>
+                )}
+              </div>
               <p className="text-gray-600">{currentTask.taskTitle}</p>
+              {currentTask.hasGoldenEgg && (
+                <p className="text-sm text-yellow-700 mt-2 font-medium">
+                  🎉 This task contains a golden egg bonus reward!
+                </p>
+              )}
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -372,6 +462,80 @@ export default function CampaignPage() {
             <h3 className="text-xl font-bold text-gray-800 mb-2">No Tasks Available</h3>
             <p className="text-gray-600">Contact admin to get your tasks assigned.</p>
           </Card>
+        )}
+
+        {/* Golden Egg Modal */}
+        {showGoldenEggModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-md bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200">
+              <div className="p-6 text-center">
+                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Gift className="w-8 h-8 text-yellow-600" />
+                </div>
+                
+                <h3 className="text-xl font-bold text-gray-800 mb-2">🎉 Golden Egg Reward! 🎉</h3>
+                <p className="text-gray-600 mb-6">
+                  Congratulations! You found a golden egg! Choose one of the three eggs below to reveal your bonus reward.
+                </p>
+
+                {!goldenEggReward ? (
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    {[1, 2, 3].map((eggNumber) => (
+                      <button
+                        key={eggNumber}
+                        onClick={() => selectGoldenEgg(eggNumber)}
+                        disabled={isSelectingEgg}
+                        className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-all duration-300 ${
+                          selectedEgg === eggNumber
+                            ? 'bg-yellow-400 text-white scale-110'
+                            : isSelectingEgg
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-yellow-200 text-yellow-800 hover:bg-yellow-300 hover:scale-105'
+                        }`}
+                      >
+                        🥚
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mb-6">
+                    <div className="w-20 h-20 bg-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                      <span className="text-3xl">🎁</span>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 border border-yellow-200">
+                      <p className="text-lg font-bold text-green-600 mb-1">
+                        Bonus Reward: BDT {goldenEggReward.toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Added to your account balance!
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {isSelectingEgg && !goldenEggReward && (
+                  <div className="mb-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
+                    <p className="text-sm text-gray-600 mt-2">Revealing your reward...</p>
+                  </div>
+                )}
+
+                {goldenEggReward && (
+                  <Button
+                    onClick={() => {
+                      setShowGoldenEggModal(false);
+                      setSelectedEgg(null);
+                      setGoldenEggReward(null);
+                      setIsSelectingEgg(false);
+                    }}
+                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
+                  >
+                    Continue
+                  </Button>
+                )}
+              </div>
+            </Card>
+          </div>
         )}
 
       </div>
