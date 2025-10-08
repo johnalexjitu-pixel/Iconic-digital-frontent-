@@ -59,7 +59,20 @@ export default function WithdrawalInfoPage() {
   const [withdrawals, setWithdrawals] = useState<WithdrawalRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showWithdrawalSetup, setShowWithdrawalSetup] = useState(false);
-  const [withdrawalInfo, setWithdrawalInfo] = useState<any>(null);
+  const [withdrawalInfo, setWithdrawalInfo] = useState<{
+    method: string;
+    accountHolderName?: string;
+    bankName?: string;
+    accountNumber?: string;
+    branch?: string;
+    mobileNumber?: string;
+    usdtAddress?: string;
+    usdtNetwork?: string;
+    documentsUploaded?: boolean;
+    uploadedDocuments?: unknown[];
+    setupCompleted?: boolean;
+    setupDate?: Date;
+  } | null>(null);
   const [setupLoading, setSetupLoading] = useState(false);
 
   useEffect(() => {
@@ -77,7 +90,7 @@ export default function WithdrawalInfoPage() {
     try {
       const response = await apiClient.getWithdrawals(customerId);
       if (response.success) {
-        setWithdrawals(response.data);
+        setWithdrawals(response.data as WithdrawalRecord[]);
       }
     } catch (error) {
       console.error('Error fetching withdrawals:', error);
@@ -136,7 +149,7 @@ export default function WithdrawalInfoPage() {
       }
 
       // Prepare account details based on method
-      let accountDetails: any = {
+      const accountDetails: Record<string, unknown> = {
         accountHolderName: formData.accountHolderName,
         uploadedDocuments: uploadResult.data.uploadedDocuments
       };
@@ -512,7 +525,7 @@ export default function WithdrawalInfoPage() {
                         <Button variant="outline" className="h-12 px-4">
                           All
                         </Button>
-                      </div>
+        </div>
 
                       {/* Action Buttons */}
                       <div className="flex gap-3">

@@ -27,15 +27,19 @@ export async function GET(request: NextRequest) {
     let filteredCampaigns = campaigns;
 
     if (status) {
-      filteredCampaigns = filteredCampaigns.filter(c => c.status && c.status.toLowerCase() === status.toLowerCase());
+      filteredCampaigns = filteredCampaigns.filter((c: Record<string, unknown>) => 
+        c.status && typeof c.status === 'string' && c.status.toLowerCase() === status.toLowerCase()
+      );
     }
 
     if (type) {
-      filteredCampaigns = filteredCampaigns.filter(c => c.platform && c.platform.toLowerCase() === type.toLowerCase());
+      filteredCampaigns = filteredCampaigns.filter((c: Record<string, unknown>) => 
+        c.type && typeof c.type === 'string' && c.type.toLowerCase() === type.toLowerCase()
+      );
     }
 
-    // Only return active campaigns by default
-    filteredCampaigns = filteredCampaigns.filter(c => c.status === 'active' || c.status === 'Active' || !c.status);
+    // Return all campaigns (don't filter by status unless specifically requested)
+    // filteredCampaigns = filteredCampaigns.filter(c => c.status === 'active' || c.status === 'Active' || !c.status);
 
     return NextResponse.json({
       success: true,

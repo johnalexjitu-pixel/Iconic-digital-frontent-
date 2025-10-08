@@ -51,7 +51,7 @@ export default function WithdrawalHistoryPage() {
     try {
       const response = await apiClient.getWithdrawals(customerId);
       if (response.success) {
-        setWithdrawals(response.data);
+        setWithdrawals(response.data as WithdrawalRecord[]);
       }
     } catch (error) {
       console.error('Error fetching withdrawals:', error);

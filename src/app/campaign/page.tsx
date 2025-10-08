@@ -77,7 +77,17 @@ export default function CampaignPage() {
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [showLoading, setShowLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [campaignDetails, setCampaignDetails] = useState<any>(null);
+  const [campaignDetails, setCampaignDetails] = useState<{
+    campaignId: string;
+    brand: string;
+    brandLogo: string;
+    amount: number;
+    commission: number;
+    platform: string;
+    platformIcon: string;
+    type: string;
+    status: string;
+  } | null>(null);
 
   // Handle swipe gestures - improved version
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -248,10 +258,29 @@ export default function CampaignPage() {
     }
   }, [user?.email]);
 
-  // Fetch tasks using database
-  const fetchTasks = useCallback(async (isRefresh = false) => {
+  // Fetch all tasks for display purposes
+  const fetchAllTasks = useCallback(async () => {
     if (!user?._id) return;
 
+    try {
+      // Fetch customer tasks
+      const tasksResponse = await fetch(`/api/customer-tasks?customerId=${user._id}`);
+      const tasksData = await tasksResponse.json();
+      
+      if (tasksData.success && tasksData.data) {
+        setTasks(tasksData.data);
+      } else {
+        setTasks([]);
+      }
+    } catch (error) {
+      console.error('Error fetching all tasks:', error);
+    }
+  }, [user?._id]);
+
+  // Fetch tasks using database
+  const fetchTasks = useCallback(async (isRefresh = false) => {
+      if (!user?._id) return;
+      
     try {
       if (isRefresh) {
         setRefreshing(true);
@@ -261,7 +290,7 @@ export default function CampaignPage() {
       
       // Get next available task from database
       const response = await fetch(`/api/next-task?userId=${user._id}`);
-      const data = await response.json();
+        const data = await response.json();
       
       console.log('📊 Next task API response:', data);
       
@@ -286,31 +315,12 @@ export default function CampaignPage() {
         setRefreshing(false);
       }
     }
-  }, [user?._id]);
+  }, [user?._id, fetchAllTasks]);
 
   // Manual refresh function
   const handleRefresh = () => {
     fetchTasks(true);
   };
-
-  // Fetch all tasks for display purposes
-  const fetchAllTasks = useCallback(async () => {
-    if (!user?._id) return;
-
-    try {
-      // Fetch customer tasks
-      const tasksResponse = await fetch(`/api/customer-tasks?customerId=${user._id}`);
-      const tasksData = await tasksResponse.json();
-      
-      if (tasksData.success && tasksData.data) {
-        setTasks(tasksData.data);
-      } else {
-        setTasks([]);
-      }
-    } catch (error) {
-      console.error('Error fetching all tasks:', error);
-    }
-  }, [user?._id]);
 
   // Claim task
   const claimTask = async (task: CustomerTask) => {
@@ -374,7 +384,7 @@ export default function CampaignPage() {
           await fetchUserStats();
           
           // Get next task from database
-          await fetchTasks();
+        await fetchTasks();
           
           console.log(`✅ Task completed and next task loaded`);
         } else {
@@ -631,8 +641,8 @@ export default function CampaignPage() {
                       />
                     </button>
                   ))}
-                </div>
-
+            </div>
+            
                 {/* Action Buttons */}
                 <div className="flex gap-3">
                   <Button
@@ -656,27 +666,27 @@ export default function CampaignPage() {
                     Complete Any Platform
                   </Button>
                 </div>
-              </div>
+                </div>
             </Card>
-          </div>
+              </div>
         )}
 
         {/* Loading Screen */}
         {showLoading && (
           <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
-            <div className="text-center">
+              <div className="text-center">
               {/* Loading Bar */}
               <div className="w-80 h-4 bg-white rounded-full mx-auto mb-4 overflow-hidden">
                 <div 
                   className="h-full bg-red-500 rounded-full transition-all duration-3000 ease-out"
                   style={{ width: '45%' }}
                 />
-              </div>
+                </div>
 
               {/* Loading Text */}
               <p className="text-white text-lg">Connecting to server...</p>
-            </div>
-          </div>
+              </div>
+                </div>
         )}
 
         {/* Success Modal */}
@@ -690,8 +700,8 @@ export default function CampaignPage() {
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-orange-400 rounded-full"></div>
                     <span className="text-orange-500 font-medium">{campaignDetails.status}</span>
-                  </div>
-                </div>
+              </div>
+            </div>
 
                 {/* Brand Section */}
                 <div className="bg-gray-50 rounded-lg p-4 mb-4">
@@ -715,7 +725,7 @@ export default function CampaignPage() {
                       </p>
                     </div>
                   </div>
-                </div>
+            </div>
 
                 {/* Platform Section */}
                 <div className="bg-gray-50 rounded-lg p-4 mb-6">
@@ -764,7 +774,7 @@ export default function CampaignPage() {
                   </Button>
                 </div>
               </div>
-            </Card>
+          </Card>
           </div>
         )}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { HomepageHeader } from "@/components/HomepageHeader";
 import { HomepageFooter } from "@/components/HomepageFooter";
@@ -27,31 +27,13 @@ interface Campaign {
 
 export default function HistoryPage() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<{ _id: string } | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
 
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      fetchCampaigns();
-      
-      // Auto-refresh campaigns every 30 seconds
-      const interval = setInterval(() => {
-        fetchCampaigns();
-      }, 30000);
-      
-      return () => clearInterval(interval);
-    } else {
-      router.push('/auth/login');
-    }
-  }, [router]);
-
-  const fetchCampaigns = async (isRefresh = false) => {
+  const fetchCampaigns = useCallback(async (isRefresh = false) => {
     try {
       if (!user?._id) return;
       
@@ -72,24 +54,26 @@ export default function HistoryPage() {
         console.log(`📋 Found ${claims.length} completed tasks`);
         
         // Convert completed claims to campaign format for history
-        const campaignData: Campaign[] = claims.map((claim: any, index: number) => {
-          const commissionPercentage = claim.commissionEarned > 0 && claim.taskPrice > 0 ? Math.round((claim.commissionEarned / claim.taskPrice) * 100) : 0;
+        const campaignData: Campaign[] = claims.map((claim: Record<string, unknown>, index: number) => {
+          const commissionEarned = typeof claim.commissionEarned === 'number' ? claim.commissionEarned : 0;
+          const taskPrice = typeof claim.taskPrice === 'number' ? claim.taskPrice : 0;
+          const commissionPercentage = commissionEarned > 0 && taskPrice > 0 ? Math.round((commissionEarned / taskPrice) * 100) : 0;
           
-          console.log(`📝 Processing claim: ${claim.taskTitle} - Commission: ${claim.commissionEarned}`);
+          console.log(`📝 Processing claim: ${claim.taskTitle} - Commission: ${commissionEarned}`);
           
           return {
-            _id: claim._id.toString(),
-            campaignId: claim.campaignId || `CAMP-${index + 1}`,
+            _id: typeof claim._id === 'object' && claim._id !== null ? claim._id.toString() : String(index),
+            campaignId: typeof claim.campaignId === 'string' ? claim.campaignId : `CAMP-${index + 1}`,
             taskCode: generateTaskCode(),
-            brand: claim.taskTitle || 'Completed Task',
-            brandLogo: getBrandLogo(claim.taskTitle),
-            amount: claim.taskPrice || 0,
-            commission: claim.commissionEarned || 0,
+            brand: typeof claim.taskTitle === 'string' ? claim.taskTitle : 'Completed Task',
+            brandLogo: getBrandLogo(typeof claim.taskTitle === 'string' ? claim.taskTitle : ''),
+            amount: taskPrice,
+            commission: commissionEarned,
             commissionPercentage: commissionPercentage,
-            profit: claim.commissionEarned || 0,
+            profit: commissionEarned,
             status: 'completed',
-            platform: claim.platform || 'General',
-            createdAt: claim.claimedAt || new Date().toISOString()
+            platform: typeof claim.platform === 'string' ? claim.platform : 'General',
+            createdAt: typeof claim.claimedAt === 'string' ? claim.claimedAt : new Date().toISOString()
           };
         });
         
@@ -105,7 +89,25 @@ export default function HistoryPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [user?._id]);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      fetchCampaigns();
+      
+      // Auto-refresh campaigns every 30 seconds
+      const interval = setInterval(() => {
+        fetchCampaigns();
+      }, 30000);
+      
+      return () => clearInterval(interval);
+    } else {
+      router.push('/auth/login');
+    }
+  }, [router, fetchCampaigns]);
 
   const handleRefresh = () => {
     console.log('🔄 Manual refresh triggered');
