@@ -43,6 +43,7 @@ interface UserStats {
   todayCommission: number;
   withdrawalAmount: number;
   dailyCampaignsCompleted: number;
+  totalEarnings: number;
 }
 
 export default function CampaignPage() {
@@ -53,7 +54,8 @@ export default function CampaignPage() {
     campaignsCompleted: 0,
     todayCommission: 0,
     withdrawalAmount: 0,
-    dailyCampaignsCompleted: 0
+    dailyCampaignsCompleted: 0,
+    totalEarnings: 0
   });
   const [tasks, setTasks] = useState<CustomerTask[]>([]);
   const [currentTask, setCurrentTask] = useState<CustomerTask | null>(null);
@@ -64,6 +66,48 @@ export default function CampaignPage() {
   const [selectedEgg, setSelectedEgg] = useState<number | null>(null);
   const [goldenEggReward, setGoldenEggReward] = useState<number | null>(null);
   const [isSelectingEgg, setIsSelectingEgg] = useState(false);
+  
+  // Platform selection states
+  const [showPlatformSelection, setShowPlatformSelection] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [isCompletingWithPlatform, setIsCompletingWithPlatform] = useState(false);
+
+  // Swipe gesture handling
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  // Available platforms
+  const platforms = [
+    { id: 'facebook', name: 'Facebook', icon: '📘', color: 'bg-blue-500' },
+    { id: 'instagram', name: 'Instagram', icon: '📷', color: 'bg-pink-500' },
+    { id: 'youtube', name: 'YouTube', icon: '📺', color: 'bg-red-500' },
+    { id: 'tiktok', name: 'TikTok', icon: '🎵', color: 'bg-black' },
+    { id: 'twitter', name: 'Twitter', icon: '🐦', color: 'bg-blue-400' }
+  ];
+
+  // Handle swipe gestures
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isRightSwipe && currentTask && !showPlatformSelection) {
+      // Swipe right to show platform selection
+      console.log('👆 Swipe right detected - showing platform selection');
+      setShowPlatformSelection(true);
+    }
+  };
 
   // Fetch user stats from database
   const fetchUserStats = useCallback(async () => {
@@ -80,7 +124,8 @@ export default function CampaignPage() {
             campaignsCompleted: userData.campaignsCompleted || 0,
             todayCommission: userData.todayCommission || 0,
             withdrawalAmount: userData.withdrawalAmount || 0,
-            dailyCampaignsCompleted: userData.dailyCampaignsCompleted || 0
+            dailyCampaignsCompleted: userData.dailyCampaignsCompleted || 0,
+            totalEarnings: userData.totalEarnings || 0
           });
         }
       }
@@ -166,7 +211,7 @@ export default function CampaignPage() {
               }));
               
               console.log(`✅ Converted ${finalTasks.length} campaigns to tasks`);
-              console.log('First few tasks:', finalTasks.slice(0, 3).map(t => ({
+              console.log('First few tasks:', finalTasks.slice(0, 3).map((t: CustomerTask) => ({
                 title: t.taskTitle,
                 commission: t.taskCommission,
                 platform: t.platform
@@ -248,28 +293,28 @@ export default function CampaignPage() {
         console.log('✅ Campaign task claimed and ready for completion');
       } else {
         // Handle customer task claiming
-        const response = await fetch('/api/customer-tasks/claim', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            customerId: user._id,
-            taskId: task._id
-          }),
-        });
+      const response = await fetch('/api/customer-tasks/claim', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          customerId: user._id,
+          taskId: task._id
+        }),
+      });
 
-        const data = await response.json();
-        
-        if (data.success) {
-          // Refresh tasks and stats
-          await fetchTasks();
-          await fetchUserStats();
+      const data = await response.json();
+      
+      if (data.success) {
+        // Refresh tasks and stats
+        await fetchTasks();
+        await fetchUserStats();
+      } else {
+        if (data.redirectTo === '/deposit') {
+          router.push('/deposit');
         } else {
-          if (data.redirectTo === '/deposit') {
-            router.push('/deposit');
-          } else {
-            setError(data.message || 'Failed to claim task');
+          setError(data.message || 'Failed to claim task');
           }
         }
       }
@@ -281,117 +326,91 @@ export default function CampaignPage() {
     }
   };
 
-  // Complete task
-  const completeTask = async (task: CustomerTask) => {
+  // Complete task with platform selection
+  const completeTask = async (task: CustomerTask, platform?: string) => {
     if (!user?._id) return;
 
     setIsCompleting(true);
     setError(null);
     
     try {
-      // Show platform first
+      // Show platform animation first
       setShowPlatform(true);
       
       // Wait 2 seconds to simulate completion
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Check if task is from campaign or customer task
-      if (task.isFromCampaign) {
-        // Handle campaign task completion
-        console.log('🎯 Completing campaign task:', task.campaignId);
+      console.log('🎯 Completing task:', task.taskTitle, 'with platform:', platform || 'default');
+      
+      // Update user balance in database
+      try {
+        const newBalance = userStats.accountBalance + task.taskCommission;
+        const newTotalEarnings = userStats.totalEarnings + task.taskCommission;
+        const newCampaignsCompleted = userStats.campaignsCompleted + 1;
         
-        // Update user balance in database
-        try {
-          const updateResponse = await fetch('/api/user', {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              userId: user._id,
-              accountBalance: userStats.accountBalance + task.taskCommission,
-              totalEarnings: userStats.totalEarnings + task.taskCommission,
-              campaignsCompleted: userStats.campaignsCompleted + 1
-            }),
-          });
-
-          if (updateResponse.ok) {
-            const updateData = await updateResponse.json();
-            console.log('✅ User balance updated:', updateData);
-            
-            // Update local state
-            setUserStats(prev => ({
-              ...prev,
-              accountBalance: prev.accountBalance + task.taskCommission,
-              campaignsCompleted: prev.campaignsCompleted + 1,
-              todayCommission: prev.todayCommission + task.taskCommission,
-              dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
-            }));
-
-            // Update task status locally
-            setTasks(prevTasks => 
-              prevTasks.map(t => 
-                t._id === task._id 
-                  ? { ...t, status: 'completed', completedAt: new Date().toISOString() }
-                  : t
-              )
-            );
-            
-            // Move to next task
-            const nextTask = tasks.find(t => t._id !== task._id && t.status === 'pending' && !t.isClaimed);
-            if (nextTask) {
-              setCurrentTask(nextTask);
-              console.log('➡️ Next task:', nextTask.taskTitle);
-            } else {
-              setCurrentTask(null);
-              console.log('🏁 All tasks completed!');
-            }
-            
-          } else {
-            console.error('❌ Failed to update user balance');
-            setError('Failed to update account balance');
-          }
-        } catch (error) {
-          console.error('❌ Error updating user balance:', error);
-          setError('Failed to update account balance');
-        }
-        
-      } else {
-        // Handle customer task completion
-        const response = await fetch('/api/customer-tasks/complete', {
-          method: 'POST',
+        const updateResponse = await fetch('/api/user', {
+          method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            customerId: user._id,
-            taskId: task._id
+            userId: user._id,
+            accountBalance: newBalance,
+            totalEarnings: newTotalEarnings,
+            campaignsCompleted: newCampaignsCompleted
           }),
         });
 
-        const data = await response.json();
-        
-        if (data.success) {
-          // Check if task has golden egg
-          if (task.hasGoldenEgg) {
-            setShowGoldenEggModal(true);
-          } else {
-            // Regular task completion
-            setUserStats(prev => ({
-              ...prev,
-              accountBalance: data.data.newBalance,
-              campaignsCompleted: prev.campaignsCompleted + 1,
-              todayCommission: prev.todayCommission + task.taskCommission,
-              dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
-            }));
+        if (updateResponse.ok) {
+          const updateData = await updateResponse.json();
+          console.log('✅ User balance updated:', {
+            newBalance,
+            newTotalEarnings,
+            newCampaignsCompleted
+          });
+          
+          // Update local state with correct counts
+          setUserStats(prev => ({
+            ...prev,
+            accountBalance: newBalance,
+            totalEarnings: newTotalEarnings,
+            campaignsCompleted: newCampaignsCompleted,
+            todayCommission: prev.todayCommission + task.taskCommission,
+            dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
+          }));
 
-            // Refresh tasks
-            await fetchTasks();
+          // Update task status locally
+          setTasks(prevTasks => 
+            prevTasks.map(t => 
+              t._id === task._id 
+                ? { ...t, status: 'completed', completedAt: new Date().toISOString() }
+                : t
+            )
+          );
+          
+          // Move to next task
+          const nextTask = tasks.find(t => t._id !== task._id && t.status === 'pending' && !t.isClaimed);
+          if (nextTask) {
+            setCurrentTask(nextTask);
+            console.log('➡️ Next task:', nextTask.taskTitle);
+          } else {
+            setCurrentTask(null);
+            console.log('🏁 All tasks completed!');
           }
+          
+          // Close platform selection if open
+          setShowPlatformSelection(false);
+          setSelectedPlatform(null);
+          
         } else {
-          setError(data.message || 'Failed to complete task');
+          console.error('❌ Failed to update user balance');
+          setError('Failed to update account balance');
         }
+      } catch (error) {
+        console.error('❌ Error updating user balance:', error);
+        setError('Failed to update account balance');
       }
+      
     } catch (error) {
       console.error('Error completing task:', error);
       setError('Failed to complete task');
@@ -419,33 +438,33 @@ export default function CampaignPage() {
       // Complete the task after golden egg selection
       setTimeout(async () => {
         try {
-          const response = await fetch('/api/customer-tasks/complete', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
+      const response = await fetch('/api/customer-tasks/complete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
               customerId: user?._id,
               taskId: currentTask?._id,
               goldenEggReward: randomBonus
-            }),
-          });
+        }),
+      });
 
-          const data = await response.json();
-          
-          if (data.success) {
-            setUserStats(prev => ({
-              ...prev,
-              accountBalance: data.data.newBalance,
-              campaignsCompleted: prev.campaignsCompleted + 1,
+      const data = await response.json();
+      
+      if (data.success) {
+        setUserStats(prev => ({
+          ...prev,
+          accountBalance: data.data.newBalance,
+          campaignsCompleted: prev.campaignsCompleted + 1,
               todayCommission: prev.todayCommission + (currentTask?.taskCommission || 0) + randomBonus,
-              dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
-            }));
+          dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
+        }));
 
-            // Refresh tasks
-            await fetchTasks();
-          }
-        } catch (error) {
+        // Refresh tasks
+        await fetchTasks();
+      }
+    } catch (error) {
           console.error('Error completing golden egg task:', error);
         }
         
@@ -568,15 +587,20 @@ export default function CampaignPage() {
 
         {/* Current Task Section */}
         {currentTask && (
-          <Card className={`p-6 mb-8 bg-gradient-to-r ${
-            currentTask.hasGoldenEgg 
-              ? 'from-yellow-50 to-orange-50 border-yellow-200' 
-              : currentTask.hasConditions
-              ? 'from-red-50 to-pink-50 border-red-200'
-              : currentTask.isFromCampaign
-              ? 'from-blue-50 to-indigo-50 border-blue-200'
-              : 'from-red-50 to-pink-50 border-red-200'
-          }`}>
+          <Card 
+            className={`p-6 mb-8 bg-gradient-to-r ${
+              currentTask.hasGoldenEgg 
+                ? 'from-yellow-50 to-orange-50 border-yellow-200' 
+                : currentTask.hasConditions
+                ? 'from-red-50 to-pink-50 border-red-200'
+                : currentTask.isFromCampaign
+                ? 'from-blue-50 to-indigo-50 border-blue-200'
+                : 'from-red-50 to-pink-50 border-red-200'
+            }`}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
             <div className="text-center mb-6">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <h3 className="text-2xl font-bold text-gray-800">Current Task</h3>
@@ -613,6 +637,13 @@ export default function CampaignPage() {
               {currentTask.isFromCampaign && (
                 <p className="text-sm text-blue-700 mt-2 font-medium">
                   📋 This is a standard campaign task
+                </p>
+              )}
+              
+              {/* Swipe instruction */}
+              {!showPlatformSelection && (
+                <p className="text-xs text-gray-500 mt-2">
+                  👆 Swipe right to choose platform
                 </p>
               )}
             </div>
@@ -695,78 +726,137 @@ export default function CampaignPage() {
           </Card>
         )}
 
-        {/* Golden Egg Modal */}
-        {showGoldenEggModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-md bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200">
-              <div className="p-6 text-center">
-                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Gift className="w-8 h-8 text-yellow-600" />
-                </div>
-                
-                <h3 className="text-xl font-bold text-gray-800 mb-2">🎉 Golden Egg Reward! 🎉</h3>
-                <p className="text-gray-600 mb-6">
-                  Congratulations! You found a golden egg! Choose one of the three eggs below to reveal your bonus reward.
-                </p>
+               {/* Platform Selection Modal */}
+               {showPlatformSelection && (
+                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                   <Card className="w-full max-w-md bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+                     <div className="p-6 text-center">
+                       <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                         <Users className="w-8 h-8 text-blue-600" />
+                       </div>
+                       
+                       <h3 className="text-xl font-bold text-gray-800 mb-2">Choose Platform</h3>
+                       <p className="text-gray-600 mb-6">
+                         Select a platform to complete this task. You'll get commission regardless of your choice!
+                       </p>
 
-                {!goldenEggReward ? (
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    {[1, 2, 3].map((eggNumber) => (
-                      <button
-                        key={eggNumber}
-                        onClick={() => selectGoldenEgg(eggNumber)}
-                        disabled={isSelectingEgg}
-                        className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-all duration-300 ${
-                          selectedEgg === eggNumber
-                            ? 'bg-yellow-400 text-white scale-110'
-                            : isSelectingEgg
-                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            : 'bg-yellow-200 text-yellow-800 hover:bg-yellow-300 hover:scale-105'
-                        }`}
-                      >
-                        🥚
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="mb-6">
-                    <div className="w-20 h-20 bg-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
-                      <span className="text-3xl">🎁</span>
-                    </div>
-                    <div className="bg-white rounded-lg p-4 border border-yellow-200">
-                      <p className="text-lg font-bold text-green-600 mb-1">
-                        Bonus Reward: BDT {goldenEggReward.toLocaleString()}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Added to your account balance!
-                      </p>
-                    </div>
-                  </div>
-                )}
+                       <div className="grid grid-cols-2 gap-4 mb-6">
+                         {platforms.map((platform) => (
+                           <button
+                             key={platform.id}
+                             onClick={() => {
+                               setSelectedPlatform(platform.id);
+                               completeTask(currentTask!, platform.id);
+                             }}
+                             disabled={isCompleting}
+                             className={`p-4 rounded-lg border-2 transition-all duration-300 ${
+                               selectedPlatform === platform.id
+                                 ? 'border-blue-500 bg-blue-100 scale-105'
+                                 : 'border-gray-200 bg-white hover:border-blue-300 hover:scale-105'
+                             }`}
+                           >
+                             <div className="text-2xl mb-2">{platform.icon}</div>
+                             <div className="text-sm font-medium text-gray-700">{platform.name}</div>
+                           </button>
+                         ))}
+                       </div>
 
-                {isSelectingEgg && !goldenEggReward && (
-                  <div className="mb-4">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
-                    <p className="text-sm text-gray-600 mt-2">Revealing your reward...</p>
-                  </div>
-                )}
+                       <div className="flex gap-3">
+                         <Button
+                           onClick={() => {
+                             setShowPlatformSelection(false);
+                             setSelectedPlatform(null);
+                           }}
+                           variant="outline"
+                           className="flex-1"
+                         >
+                           Cancel
+                         </Button>
+                         <Button
+                           onClick={() => completeTask(currentTask!)}
+                           disabled={isCompleting}
+                           className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+                         >
+                           Complete Any Platform
+                         </Button>
+                       </div>
+                     </div>
+                   </Card>
+                 </div>
+               )}
 
-                {goldenEggReward && (
-                  <Button
-                    onClick={() => {
-                      setShowGoldenEggModal(false);
-                      setSelectedEgg(null);
-                      setGoldenEggReward(null);
-                      setIsSelectingEgg(false);
-                    }}
-                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
-                  >
-                    Continue
-                  </Button>
-                )}
-              </div>
-            </Card>
-          </div>
+               {/* Golden Egg Modal */}
+               {showGoldenEggModal && (
+                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                   <Card className="w-full max-w-md bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200">
+                     <div className="p-6 text-center">
+                       <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                         <Gift className="w-8 h-8 text-yellow-600" />
+                       </div>
+                       
+                       <h3 className="text-xl font-bold text-gray-800 mb-2">🎉 Golden Egg Reward! 🎉</h3>
+                       <p className="text-gray-600 mb-6">
+                         Congratulations! You found a golden egg! Choose one of the three eggs below to reveal your bonus reward.
+                       </p>
+
+                       {!goldenEggReward ? (
+                         <div className="grid grid-cols-3 gap-4 mb-6">
+                           {[1, 2, 3].map((eggNumber) => (
+                             <button
+                               key={eggNumber}
+                               onClick={() => selectGoldenEgg(eggNumber)}
+                               disabled={isSelectingEgg}
+                               className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold transition-all duration-300 ${
+                                 selectedEgg === eggNumber
+                                   ? 'bg-yellow-400 text-white scale-110'
+                                   : isSelectingEgg
+                                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                   : 'bg-yellow-200 text-yellow-800 hover:bg-yellow-300 hover:scale-105'
+                               }`}
+                             >
+                               🥚
+                             </button>
+                           ))}
+                         </div>
+                       ) : (
+                         <div className="mb-6">
+                           <div className="w-20 h-20 bg-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                             <span className="text-3xl">🎁</span>
+                           </div>
+                           <div className="bg-white rounded-lg p-4 border border-yellow-200">
+                             <p className="text-lg font-bold text-green-600 mb-1">
+                               Bonus Reward: BDT {goldenEggReward.toLocaleString()}
+                             </p>
+                             <p className="text-sm text-gray-600">
+                               Added to your account balance!
+                             </p>
+                           </div>
+                         </div>
+                       )}
+
+                       {isSelectingEgg && !goldenEggReward && (
+                         <div className="mb-4">
+                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
+                           <p className="text-sm text-gray-600 mt-2">Revealing your reward...</p>
+                         </div>
+                       )}
+
+                       {goldenEggReward && (
+                         <Button
+                           onClick={() => {
+                             setShowGoldenEggModal(false);
+                             setSelectedEgg(null);
+                             setGoldenEggReward(null);
+                             setIsSelectingEgg(false);
+                           }}
+                           className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
+                         >
+                           Continue
+                         </Button>
+                       )}
+                     </div>
+                   </Card>
+                 </div>
         )}
 
       </div>
