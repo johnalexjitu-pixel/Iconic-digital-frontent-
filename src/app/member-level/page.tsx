@@ -141,8 +141,6 @@ export default function MemberLevelPage() {
     return memberLevels[0];
   };
 
-  const currentLevel = getCurrentLevel();
-
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
@@ -159,6 +157,8 @@ export default function MemberLevelPage() {
       </div>
     );
   }
+
+  const currentLevel = getCurrentLevel();
 
   if (!currentLevel) {
     return (
@@ -194,12 +194,12 @@ export default function MemberLevelPage() {
         </div>
 
         {/* Current Level Card */}
-        <Card className={`p-6 mb-6 ${currentLevel.color} border-2`}>
+        <Card className={`p-6 mb-6 ${currentLevel?.color || 'bg-gray-50 border-gray-200'} border-2`}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className={`px-3 py-1 rounded-full ${currentLevel.color} border`}>
-                <span className={`text-sm font-semibold ${currentLevel.textColor}`}>
-                  {currentLevel.name}
+              <div className={`px-3 py-1 rounded-full ${currentLevel?.color || 'bg-gray-50'} border`}>
+                <span className={`text-sm font-semibold ${currentLevel?.textColor || 'text-gray-700'}`}>
+                  {currentLevel?.name || 'Loading...'}
                 </span>
               </div>
               <span className="text-sm text-gray-600">Member Introduction</span>
@@ -212,11 +212,11 @@ export default function MemberLevelPage() {
           <div className="text-center">
             <div className="flex justify-center mb-4">
               <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-lg">
-                {currentLevel.icon}
+                {currentLevel?.icon || <Award className="w-8 h-8 text-blue-600" />}
               </div>
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Current: {currentLevel.name}</h2>
-            <p className="text-sm text-gray-600">{currentLevel.requirements}</p>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Current: {currentLevel?.name || 'Loading...'}</h2>
+            <p className="text-sm text-gray-600">{currentLevel?.requirements || 'Loading requirements...'}</p>
           </div>
         </Card>
 
