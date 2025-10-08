@@ -24,6 +24,17 @@ interface CustomerTask {
   completedAt?: string;
   isClaimed: boolean;
   hasGoldenEgg?: boolean;
+  // Admin conditions
+  hasConditions?: boolean;
+  lossCondition?: boolean;
+  customRules?: {
+    minBalance?: number;
+    maxLoss?: number;
+    specialRequirements?: string[];
+  };
+  // Campaign fallback
+  campaignId?: string;
+  isFromCampaign?: boolean;
 }
 
 interface UserStats {
@@ -78,23 +89,94 @@ export default function CampaignPage() {
     }
   }, [user?.email]);
 
-  // Fetch user's tasks from database
+  // Fetch user's tasks with priority logic
   const fetchTasks = useCallback(async () => {
     try {
       if (!user?._id) return;
       
-      const response = await fetch(`/api/customer-tasks?customerId=${user._id}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && Array.isArray(data.data)) {
-          setTasks(data.data);
-          // Set first active task as current
-          const activeTask = data.data.find((t: CustomerTask) => t.status === 'active' && !t.isClaimed);
-          if (activeTask) {
-            setCurrentTask(activeTask);
-          }
+      // Step 1: Check customer tasks first (admin assigned)
+      const customerTasksResponse = await fetch(`/api/customer-tasks?customerId=${user._id}`);
+      let customerTasks = [];
+      
+      if (customerTasksResponse.ok) {
+        const customerData = await customerTasksResponse.json();
+        if (customerData.success && Array.isArray(customerData.data)) {
+          customerTasks = customerData.data;
         }
       }
+      
+      // Step 2: Check if customer tasks have conditions
+      const tasksWithConditions = customerTasks.filter((task: CustomerTask) => task.hasConditions);
+      const tasksWithoutConditions = customerTasks.filter((task: CustomerTask) => !task.hasConditions);
+      
+      let finalTasks = [];
+      
+      if (tasksWithConditions.length > 0) {
+        // Admin has set conditions - use customer tasks with conditions
+        console.log('Using customer tasks with admin conditions');
+        finalTasks = tasksWithConditions;
+        
+        // Check each task's conditions
+        finalTasks = finalTasks.map((task: CustomerTask) => {
+          if (task.lossCondition) {
+            // Apply loss condition logic
+            return {
+              ...task,
+              taskDescription: `${task.taskDescription} (Loss Condition Applied)`,
+              customRules: task.customRules
+            };
+          }
+          return task;
+        });
+        
+      } else if (tasksWithoutConditions.length > 0) {
+        // Customer tasks exist but no conditions - use them normally
+        console.log('Using customer tasks without conditions');
+        finalTasks = tasksWithoutConditions;
+        
+      } else {
+        // No customer tasks - fallback to normal campaigns
+        console.log('No customer tasks found, using normal campaigns');
+        try {
+          const campaignsResponse = await fetch('/api/campaigns');
+          if (campaignsResponse.ok) {
+            const campaignsData = await campaignsResponse.json();
+            if (campaignsData.success && Array.isArray(campaignsData.data)) {
+              // Convert campaigns to task format
+              finalTasks = campaignsData.data.map((campaign: any, index: number) => ({
+                _id: `campaign-${campaign._id}`,
+                customerId: user._id,
+                taskNumber: index + 1,
+                taskPrice: campaign.taskPrice || 0,
+                taskCommission: campaign.taskCommission || 0,
+                taskTitle: campaign.taskTitle || `Campaign Task ${index + 1}`,
+                taskDescription: campaign.taskDescription || 'Complete this campaign task',
+                platform: campaign.platform || 'General',
+                status: 'pending',
+                isClaimed: false,
+                hasGoldenEgg: campaign.hasGoldenEgg || false,
+                hasConditions: false,
+                lossCondition: false,
+                isFromCampaign: true,
+                campaignId: campaign._id
+              }));
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching campaigns:', error);
+        }
+      }
+      
+      setTasks(finalTasks);
+      
+      // Set first available task as current
+      const availableTask = finalTasks.find((t: CustomerTask) => 
+        t.status === 'pending' && !t.isClaimed
+      );
+      if (availableTask) {
+        setCurrentTask(availableTask);
+      }
+      
     } catch (error) {
       console.error('Error fetching tasks:', error);
     }
@@ -108,28 +190,42 @@ export default function CampaignPage() {
     setError(null);
     
     try {
-      const response = await fetch('/api/customer-tasks/claim', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          customerId: user._id,
-          taskId: task._id
-        }),
-      });
-
-      const data = await response.json();
-      
-      if (data.success) {
-        // Refresh tasks and stats
-        await fetchTasks();
-        await fetchUserStats();
+      // Check if task is from campaign or customer task
+      if (task.isFromCampaign) {
+        // Handle campaign task claiming
+        console.log('Claiming campaign task:', task.campaignId);
+        // For now, just mark as claimed locally
+        setTasks(prevTasks => 
+          prevTasks.map(t => 
+            t._id === task._id ? { ...t, isClaimed: true, status: 'active' } : t
+          )
+        );
+        setCurrentTask({ ...task, isClaimed: true, status: 'active' });
       } else {
-        if (data.redirectTo === '/deposit') {
-          router.push('/deposit');
+        // Handle customer task claiming
+        const response = await fetch('/api/customer-tasks/claim', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            customerId: user._id,
+            taskId: task._id
+          }),
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          // Refresh tasks and stats
+          await fetchTasks();
+          await fetchUserStats();
         } else {
-          setError(data.message || 'Failed to claim task');
+          if (data.redirectTo === '/deposit') {
+            router.push('/deposit');
+          } else {
+            setError(data.message || 'Failed to claim task');
+          }
         }
       }
     } catch (error) {
@@ -154,38 +250,65 @@ export default function CampaignPage() {
       // Wait 2 seconds to simulate completion
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const response = await fetch('/api/customer-tasks/complete', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          customerId: user._id,
-          taskId: task._id
-        }),
-      });
+      // Check if task is from campaign or customer task
+      if (task.isFromCampaign) {
+        // Handle campaign task completion
+        console.log('Completing campaign task:', task.campaignId);
+        
+        // Simulate campaign task completion
+        setUserStats(prev => ({
+          ...prev,
+          accountBalance: prev.accountBalance + task.taskCommission,
+          campaignsCompleted: prev.campaignsCompleted + 1,
+          todayCommission: prev.todayCommission + task.taskCommission,
+          dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
+        }));
 
-      const data = await response.json();
-      
-      if (data.success) {
-        // Check if task has golden egg
-        if (task.hasGoldenEgg) {
-          setShowGoldenEggModal(true);
-        } else {
-          // Regular task completion
-          setUserStats(prev => ({
-            ...prev,
-            accountBalance: data.data.newBalance,
-            campaignsCompleted: prev.campaignsCompleted + 1,
-            todayCommission: prev.todayCommission + task.taskCommission,
-            dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
-          }));
-
-          // Refresh tasks
-          await fetchTasks();
-        }
+        // Update task status
+        setTasks(prevTasks => 
+          prevTasks.map(t => 
+            t._id === task._id 
+              ? { ...t, status: 'completed', completedAt: new Date().toISOString() }
+              : t
+          )
+        );
+        setCurrentTask(null);
+        
       } else {
-        setError(data.message || 'Failed to complete task');
+        // Handle customer task completion
+        const response = await fetch('/api/customer-tasks/complete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            customerId: user._id,
+            taskId: task._id
+          }),
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          // Check if task has golden egg
+          if (task.hasGoldenEgg) {
+            setShowGoldenEggModal(true);
+          } else {
+            // Regular task completion
+            setUserStats(prev => ({
+              ...prev,
+              accountBalance: data.data.newBalance,
+              campaignsCompleted: prev.campaignsCompleted + 1,
+              todayCommission: prev.todayCommission + task.taskCommission,
+              dailyCampaignsCompleted: prev.dailyCampaignsCompleted + 1
+            }));
+
+            // Refresh tasks
+            await fetchTasks();
+          }
+        } else {
+          setError(data.message || 'Failed to complete task');
+        }
       }
     } catch (error) {
       console.error('Error completing task:', error);
@@ -366,6 +489,10 @@ export default function CampaignPage() {
           <Card className={`p-6 mb-8 bg-gradient-to-r ${
             currentTask.hasGoldenEgg 
               ? 'from-yellow-50 to-orange-50 border-yellow-200' 
+              : currentTask.hasConditions
+              ? 'from-red-50 to-pink-50 border-red-200'
+              : currentTask.isFromCampaign
+              ? 'from-blue-50 to-indigo-50 border-blue-200'
               : 'from-red-50 to-pink-50 border-red-200'
           }`}>
             <div className="text-center mb-6">
@@ -377,11 +504,33 @@ export default function CampaignPage() {
                     <span className="text-xs font-bold text-yellow-700">Golden Egg</span>
                   </div>
                 )}
+                {currentTask.hasConditions && (
+                  <div className="flex items-center gap-1 bg-red-100 px-2 py-1 rounded-full">
+                    <AlertCircle className="w-4 h-4 text-red-600" />
+                    <span className="text-xs font-bold text-red-700">Admin Conditions</span>
+                  </div>
+                )}
+                {currentTask.isFromCampaign && (
+                  <div className="flex items-center gap-1 bg-blue-100 px-2 py-1 rounded-full">
+                    <Calendar className="w-4 h-4 text-blue-600" />
+                    <span className="text-xs font-bold text-blue-700">Campaign</span>
+                  </div>
+                )}
               </div>
               <p className="text-gray-600">{currentTask.taskTitle}</p>
               {currentTask.hasGoldenEgg && (
                 <p className="text-sm text-yellow-700 mt-2 font-medium">
                   🎉 This task contains a golden egg bonus reward!
+                </p>
+              )}
+              {currentTask.hasConditions && currentTask.lossCondition && (
+                <p className="text-sm text-red-700 mt-2 font-medium">
+                  ⚠️ Loss condition applied - special rules in effect
+                </p>
+              )}
+              {currentTask.isFromCampaign && (
+                <p className="text-sm text-blue-700 mt-2 font-medium">
+                  📋 This is a standard campaign task
                 </p>
               )}
             </div>
