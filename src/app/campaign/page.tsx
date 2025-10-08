@@ -71,6 +71,8 @@ export default function CampaignPage() {
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragProgress, setDragProgress] = useState(0);
+  const [showPlatformSelection, setShowPlatformSelection] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
 
   // Handle swipe gestures - improved version
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -108,18 +110,14 @@ export default function CampaignPage() {
     }
     
     const distance = touchEnd - touchStart;
-    const minSwipeDistance = 120; // Reduced minimum distance
+    const minSwipeDistance = 200; // Full swipe required
     
     console.log('Swipe distance:', distance, 'Min required:', minSwipeDistance);
     
     if (distance >= minSwipeDistance) {
-      // Swipe successful - trigger campaign action
-      console.log('Swipe successful! Triggering action...');
-      if (currentTask && !currentTask.isClaimed) {
-        claimTask(currentTask);
-      } else if (currentTask && currentTask.isClaimed) {
-        completeTask(currentTask);
-      }
+      // Full swipe successful - show platform selection
+      console.log('Full swipe successful! Showing platform selection...');
+      setShowPlatformSelection(true);
     }
     
     resetSwipe();
@@ -130,6 +128,26 @@ export default function CampaignPage() {
     setDragProgress(0);
     setTouchStart(null);
     setTouchEnd(null);
+  };
+
+  // Platform selection
+  const platforms = [
+    { id: 'facebook', name: 'Facebook', image: '/campaign/facebook.png' },
+    { id: 'instagram', name: 'Instagram', image: '/campaign/instagram.png' },
+    { id: 'pinterest', name: 'Pinterest', image: '/campaign/pinterest.png' },
+    { id: 'tiktok', name: 'TikTok', image: '/campaign/tiktok.png' },
+    { id: 'twitter', name: 'Twitter', image: '/campaign/twitter.png' }
+  ];
+
+  const handlePlatformSelect = (platformId: string) => {
+    setSelectedPlatform(platformId);
+    // Complete task with selected platform
+    if (currentTask && !currentTask.isClaimed) {
+      claimTask(currentTask);
+    } else if (currentTask && currentTask.isClaimed) {
+      completeTask(currentTask);
+    }
+    setShowPlatformSelection(false);
   };
 
   // Mouse events for desktop testing
@@ -163,14 +181,11 @@ export default function CampaignPage() {
     }
     
     const distance = touchEnd - touchStart;
-    const minSwipeDistance = 120;
+    const minSwipeDistance = 200; // Full swipe required
     
     if (distance >= minSwipeDistance) {
-      if (currentTask && !currentTask.isClaimed) {
-        claimTask(currentTask);
-      } else if (currentTask && currentTask.isClaimed) {
-        completeTask(currentTask);
-      }
+      // Full swipe successful - show platform selection
+      setShowPlatformSelection(true);
     }
     
     resetSwipe();
@@ -505,7 +520,8 @@ export default function CampaignPage() {
               className="absolute left-0 top-0 h-full w-16 bg-white rounded-full shadow-md flex items-center justify-center cursor-grab active:cursor-grabbing transition-transform duration-200 z-20"
               style={{ 
                 transform: `translateX(${dragProgress * 200}px)`,
-                transition: isDragging ? 'none' : 'transform 0.3s ease-out'
+                transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+                maxWidth: 'calc(100% - 64px)' // Allow full movement
               }}
               onClick={(e) => {
                 e.stopPropagation();
@@ -575,6 +591,88 @@ export default function CampaignPage() {
             <h3 className="text-xl font-bold text-gray-800 mb-2">No Tasks Available</h3>
             <p className="text-gray-600">Contact admin to get your tasks assigned.</p>
           </Card>
+        )}
+
+        {/* Platform Selection Modal */}
+        {showPlatformSelection && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-md bg-white rounded-2xl shadow-2xl">
+              <div className="p-6 text-center">
+                <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-8 h-8 text-white" />
+                </div>
+                
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">Choose Platform</h3>
+                <p className="text-gray-600 mb-6">
+                  Select a social media platform to complete this campaign task
+                </p>
+
+                {/* Platform Icons in Arc Layout */}
+                <div className="flex justify-center items-center mb-8">
+                  <div className="relative w-80 h-40">
+                    {platforms.map((platform, index) => {
+                      const angle = (index * 60) - 120; // Spread from -120 to 120 degrees
+                      const radius = 120;
+                      const x = Math.cos(angle * Math.PI / 180) * radius;
+                      const y = Math.sin(angle * Math.PI / 180) * radius;
+                      
+                      return (
+                        <button
+                          key={platform.id}
+                          onClick={() => handlePlatformSelect(platform.id)}
+                          className="absolute w-16 h-16 bg-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform duration-200 border-2 border-gray-200 hover:border-blue-500"
+                          style={{
+                            left: `calc(50% + ${x}px - 32px)`,
+                            top: `calc(50% + ${y}px - 32px)`,
+                            transform: 'translate(-50%, -50%)'
+                          }}
+                        >
+                          <img 
+                            src={platform.image} 
+                            alt={platform.name}
+                            className="w-8 h-8 object-contain"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Platform Names */}
+                <div className="grid grid-cols-3 gap-2 mb-6">
+                  {platforms.map((platform) => (
+                    <div key={platform.id} className="text-center">
+                      <div className="text-xs text-gray-500">{platform.name}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => setShowPlatformSelection(false)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (currentTask && !currentTask.isClaimed) {
+                        claimTask(currentTask);
+                      } else if (currentTask && currentTask.isClaimed) {
+                        completeTask(currentTask);
+                      }
+                      setShowPlatformSelection(false);
+                    }}
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white"
+                  >
+                    Complete Any Platform
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
         )}
 
       </div>
