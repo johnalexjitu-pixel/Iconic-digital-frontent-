@@ -26,9 +26,11 @@ export async function GET(request: NextRequest) {
       const userIdString = new ObjectId(userId).toString();
       const claims = await claimsCollection.find({ customerId: userIdString }).toArray();
       completedTaskIds = claims.map(claim => claim.taskId);
+      console.log(`📝 Found ${claims.length} completed tasks for user ${userIdString}`);
     } catch (e) {
       const claims = await claimsCollection.find({ customerId: userId }).toArray();
       completedTaskIds = claims.map(claim => claim.taskId);
+      console.log(`📝 Found ${claims.length} completed tasks for user ${userId} (string format)`);
     }
 
     // Get user's available tasks
@@ -39,11 +41,13 @@ export async function GET(request: NextRequest) {
         customerId: userIdString,
         _id: { $nin: completedTaskIds.map(id => new ObjectId(id)) }
       }).sort({ taskNumber: 1 }).toArray();
+      console.log(`📋 Found ${availableTasks.length} available customer tasks for user ${userIdString}`);
     } catch (e) {
       availableTasks = await tasksCollection.find({ 
         customerId: userId,
         _id: { $nin: completedTaskIds.map(id => new ObjectId(id)) }
       }).sort({ taskNumber: 1 }).toArray();
+      console.log(`📋 Found ${availableTasks.length} available customer tasks for user ${userId} (string format)`);
     }
 
     if (availableTasks.length > 0) {
@@ -75,6 +79,8 @@ export async function GET(request: NextRequest) {
       
       if (campaignsData.success && campaignsData.data && campaignsData.data.length > 0) {
         const campaign = campaignsData.data[0];
+        console.log(`📊 Using campaign: ${campaign.title} (${campaign.platform})`);
+        
         const campaignTask = {
           _id: new ObjectId().toString(),
           customerId: userId,
@@ -102,6 +108,8 @@ export async function GET(request: NextRequest) {
             source: 'campaign'
           }
         });
+      } else {
+        console.log('❌ No campaigns found in campaigns collection');
       }
     } catch (error) {
       console.error('Error fetching campaigns:', error);
