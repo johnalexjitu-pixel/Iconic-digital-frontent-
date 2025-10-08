@@ -141,25 +141,38 @@ export default function CampaignPage() {
           const campaignsResponse = await fetch('/api/campaigns');
           if (campaignsResponse.ok) {
             const campaignsData = await campaignsResponse.json();
+            console.log('Campaigns API response:', campaignsData);
             if (campaignsData.success && Array.isArray(campaignsData.data)) {
+              console.log(`Found ${campaignsData.data.length} campaigns`);
               // Convert campaigns to task format
-              finalTasks = campaignsData.data.map((campaign: any, index: number) => ({
-                _id: `campaign-${campaign._id}`,
-                customerId: user._id,
-                taskNumber: index + 1,
-                taskPrice: campaign.taskPrice || 0,
-                taskCommission: campaign.taskCommission || 0,
-                taskTitle: campaign.taskTitle || `Campaign Task ${index + 1}`,
-                taskDescription: campaign.taskDescription || 'Complete this campaign task',
-                platform: campaign.platform || 'General',
-                status: 'pending',
-                isClaimed: false,
-                hasGoldenEgg: campaign.hasGoldenEgg || false,
-                hasConditions: false,
-                lossCondition: false,
-                isFromCampaign: true,
-                campaignId: campaign._id
-              }));
+              finalTasks = campaignsData.data.map((campaign: any, index: number) => {
+                console.log(`Converting campaign ${index + 1}:`, {
+                  brand: campaign.brand,
+                  title: campaign.title,
+                  baseAmount: campaign.baseAmount,
+                  commissionAmount: campaign.commissionAmount,
+                  type: campaign.type,
+                  platform: campaign.platform
+                });
+                return {
+                  _id: `campaign-${campaign._id}`,
+                  customerId: user._id,
+                  taskNumber: index + 1,
+                  taskPrice: campaign.baseAmount || campaign.taskPrice || 0,
+                  taskCommission: campaign.commissionAmount || campaign.taskCommission || campaign.commission || 0,
+                  taskTitle: campaign.brand || campaign.title || campaign.taskTitle || `Campaign Task ${index + 1}`,
+                  taskDescription: campaign.description || campaign.taskDescription || 'Complete this campaign task',
+                  platform: campaign.type || campaign.platform || 'General',
+                  status: 'pending',
+                  isClaimed: false,
+                  hasGoldenEgg: campaign.hasGoldenEgg || false,
+                  hasConditions: false,
+                  lossCondition: false,
+                  isFromCampaign: true,
+                  campaignId: campaign._id
+                };
+              });
+              console.log('Converted tasks:', finalTasks.slice(0, 2));
             }
           }
         } catch (error) {
