@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     // Step 2: Search in customerTasks collection first
     const customerTasksCollection = await getCollection('customerTasks');
     const customerTask = await customerTasksCollection.findOne({
-      customerId: membershipId,
+      customerCode: membershipId, // Search by customerCode, not customerId
       taskNumber: nextTaskNumber,
       status: 'pending'
     });
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
 
       const taskData = {
         _id: customerTask._id.toString(),
-        customerId: customerTask.customerId,
+        customerId: customerTask.customerCode, // Use customerCode as customerId for consistency
         taskNumber: customerTask.taskNumber,
         taskTitle: customerTask.taskTitle || `Task ${customerTask.taskNumber}`,
         taskDescription: customerTask.taskDescription || `Complete task ${customerTask.taskNumber}`,
