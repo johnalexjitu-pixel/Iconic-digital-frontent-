@@ -96,12 +96,15 @@ export async function GET(request: NextRequest) {
     let filteredCampaigns = campaigns;
 
     if (status) {
-      filteredCampaigns = filteredCampaigns.filter(c => c.status.toLowerCase() === status.toLowerCase());
+      filteredCampaigns = filteredCampaigns.filter(c => c.status && c.status.toLowerCase() === status.toLowerCase());
     }
 
     if (type) {
-      filteredCampaigns = filteredCampaigns.filter(c => c.platform.toLowerCase() === type.toLowerCase());
+      filteredCampaigns = filteredCampaigns.filter(c => c.platform && c.platform.toLowerCase() === type.toLowerCase());
     }
+
+    // Only return active campaigns by default
+    filteredCampaigns = filteredCampaigns.filter(c => c.status === 'active' || c.status === 'Active' || !c.status);
 
     return NextResponse.json({
       success: true,

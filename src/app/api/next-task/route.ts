@@ -64,21 +64,25 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // If no customer tasks, try to get from campaigns
-    console.log('📋 No customer tasks found, checking campaigns...');
+    // If no customer tasks, try to get from campaigns directly
+    console.log('📋 No customer tasks found, checking campaigns directly...');
     try {
-      const campaignsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/campaigns`);
+      // Get campaigns directly from database instead of API call
+      const campaignsCollection = await getCollection('campaigns');
+      const campaigns = await campaignsCollection.find({}).toArray();
       
-      if (!campaignsResponse.ok) {
-        console.error('❌ Campaigns API failed:', campaignsResponse.status, campaignsResponse.statusText);
-        throw new Error(`Campaigns API failed: ${campaignsResponse.status}`);
+      console.log(`📊 Found ${campaigns.length} campaigns in database`);
+      
+      if (campaigns.length > 0) {
+        console.log('📋 Sample campaign from DB:', {
+          title: campaigns[0].title,
+          platform: campaigns[0].platform,
+          commission: campaigns[0].commission,
+          status: campaigns[0].status
+        });
       }
-      
-      const campaignsData = await campaignsResponse.json();
-      console.log('📊 Campaigns API response:', campaignsData);
-      
-      if (campaignsData.success && campaignsData.data && campaignsData.data.length > 0) {
-        const campaign = campaignsData.data[0];
+      if (campaigns.length > 0) {
+        const campaign = campaigns[0];
         console.log(`📊 Using campaign: ${campaign.title} (${campaign.platform})`);
         
         const campaignTask = {
@@ -103,7 +107,7 @@ export async function GET(request: NextRequest) {
           success: true,
           data: {
             task: campaignTask,
-            totalAvailable: campaignsData.data.length,
+            totalAvailable: campaigns.length,
             completedCount: completedTaskIds.length,
             source: 'campaign'
           }
