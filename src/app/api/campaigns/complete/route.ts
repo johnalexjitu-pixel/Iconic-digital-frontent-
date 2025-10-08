@@ -71,6 +71,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log(`🎯 Completing task: ${taskTitle} (ID: ${taskId}) for user: ${userId}`);
+
     // Create campaign claim
     const claim: ICampaignClaim = {
       customerId: userId,
@@ -82,6 +84,7 @@ export async function POST(request: NextRequest) {
     };
 
     const claimResult = await claimsCollection.insertOne(claim);
+    console.log(`✅ Task completion saved to database with ID: ${claimResult.insertedId}`);
 
     // Update user balance and campaign count
     if (commission > 0) {
@@ -90,6 +93,9 @@ export async function POST(request: NextRequest) {
         const newBalance = (user.accountBalance || 0) + commission;
         const newTotalEarnings = (user.totalEarnings || 0) + commission;
         const newCampaignsCompleted = (user.campaignsCompleted || 0) + 1;
+
+        console.log(`💰 Updating user balance: ${user.accountBalance} → ${newBalance} (+${commission})`);
+        console.log(`📊 Updating campaigns completed: ${user.campaignsCompleted} → ${newCampaignsCompleted}`);
 
         await usersCollection.updateOne(
           { _id: new ObjectId(userId) },
@@ -102,7 +108,13 @@ export async function POST(request: NextRequest) {
             }
           }
         );
+        
+        console.log(`✅ User stats updated successfully`);
+      } else {
+        console.log(`❌ User not found: ${userId}`);
       }
+    } else {
+      console.log(`ℹ️ No commission to add (commission: ${commission})`);
     }
 
     return NextResponse.json({

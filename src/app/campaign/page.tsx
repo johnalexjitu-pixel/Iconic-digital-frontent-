@@ -13,7 +13,8 @@ import {
   TrendingUp, 
   ArrowRight,
   CheckCircle,
-  Users
+  Users,
+  RefreshCw
 } from 'lucide-react';
 
 interface CustomerTask {
@@ -65,6 +66,7 @@ export default function CampaignPage() {
   const [currentTask, setCurrentTask] = useState<CustomerTask | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Swipe gesture states
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -247,24 +249,31 @@ export default function CampaignPage() {
   }, [user?.email]);
 
   // Fetch tasks using database
-  const fetchTasks = useCallback(async () => {
+  const fetchTasks = useCallback(async (isRefresh = false) => {
     if (!user?._id) return;
 
     try {
+      if (isRefresh) {
+        setRefreshing(true);
+      }
+      
       console.log('🔍 Fetching next task for user:', user._id);
       
       // Get next available task from database
       const response = await fetch(`/api/next-task?userId=${user._id}`);
       const data = await response.json();
       
+      console.log('📊 Next task API response:', data);
+      
       if (data.success && data.data && data.data.task) {
-        console.log(`✅ Next task loaded: ${data.data.task.taskTitle}`);
+        console.log(`✅ Next task loaded: ${data.data.task.taskTitle} (Task #${data.data.task.taskNumber})`);
+        console.log(`📈 Progress: ${data.data.completedCount} completed, ${data.data.totalAvailable} available`);
         setCurrentTask(data.data.task);
         
         // Also fetch all tasks for display purposes
         await fetchAllTasks();
       } else {
-        console.log('📋 No tasks available');
+        console.log('📋 No tasks available - API response:', data);
         setCurrentTask(null);
         setTasks([]);
       }
@@ -272,8 +281,17 @@ export default function CampaignPage() {
     } catch (error) {
       console.error('Error fetching next task:', error);
       setError('Failed to fetch tasks');
+    } finally {
+      if (isRefresh) {
+        setRefreshing(false);
+      }
     }
   }, [user?._id]);
+
+  // Manual refresh function
+  const handleRefresh = () => {
+    fetchTasks(true);
+  };
 
   // Fetch all tasks for display purposes
   const fetchAllTasks = useCallback(async () => {
@@ -486,6 +504,20 @@ export default function CampaignPage() {
           </Card>
                   </div>
 
+        {/* Refresh Button */}
+        <div className="flex justify-center mb-4">
+          <Button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh Tasks'}
+          </Button>
+        </div>
+
         {/* Launch Campaign Button with Swipe Gesture */}
         <div className="pt-4 relative">
           <div 
@@ -560,7 +592,15 @@ export default function CampaignPage() {
                   Commission: {currentTask.taskCommission > 0 ? `BDT ${currentTask.taskCommission.toLocaleString()}` : 'No Commission'}
                 </span>
                 <span>Platform: {currentTask.platform}</span>
+                <span>Task #{currentTask.taskNumber}</span>
               </div>
+              {currentTask.isFromCampaign && (
+                <div className="mt-2 p-2 bg-blue-100 border border-blue-300 rounded-lg">
+                  <p className="text-blue-800 text-sm">
+                    📋 Task loaded from Campaign Database
+                  </p>
+                </div>
+              )}
               {currentTask.taskCommission === 0 && (
                 <div className="mt-3 p-2 bg-yellow-100 border border-yellow-300 rounded-lg">
                   <p className="text-yellow-800 text-sm">

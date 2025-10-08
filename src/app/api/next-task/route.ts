@@ -47,6 +47,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (availableTasks.length > 0) {
+      console.log(`📋 Found ${availableTasks.length} available tasks for user ${userId}`);
+      console.log(`📋 Next task: ${availableTasks[0].taskTitle} (Task #${availableTasks[0].taskNumber})`);
+      
       return NextResponse.json({
         success: true,
         data: {
@@ -58,16 +61,19 @@ export async function GET(request: NextRequest) {
     }
 
     // If no customer tasks, try to get from campaigns
+    console.log('📋 No customer tasks found, checking campaigns...');
     try {
       const campaignsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/campaigns`);
       const campaignsData = await campaignsResponse.json();
+      
+      console.log('📊 Campaigns API response:', campaignsData);
       
       if (campaignsData.success && campaignsData.data && campaignsData.data.length > 0) {
         const campaign = campaignsData.data[0];
         const campaignTask = {
           _id: new ObjectId().toString(),
           customerId: userId,
-          taskNumber: 1,
+          taskNumber: completedTaskIds.length + 1, // Next task number based on completed count
           taskPrice: campaign.baseAmount || 0,
           taskCommission: campaign.commissionAmount || 0,
           taskTitle: campaign.brand || 'Campaign Task',
@@ -80,11 +86,13 @@ export async function GET(request: NextRequest) {
           updatedAt: new Date()
         };
 
+        console.log(`✅ Campaign task loaded: ${campaignTask.taskTitle} (Task #${campaignTask.taskNumber})`);
+
         return NextResponse.json({
           success: true,
           data: {
             task: campaignTask,
-            totalAvailable: 1,
+            totalAvailable: campaignsData.data.length,
             completedCount: completedTaskIds.length,
             source: 'campaign'
           }
