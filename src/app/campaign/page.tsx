@@ -64,6 +64,60 @@ export default function CampaignPage() {
   const [currentTask, setCurrentTask] = useState<CustomerTask | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Swipe gesture states
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragProgress, setDragProgress] = useState(0);
+
+  // Handle swipe gestures
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+    setIsDragging(true);
+    setDragProgress(0);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!touchStart) return;
+    
+    const currentTouch = e.targetTouches[0].clientX;
+    const distance = currentTouch - touchStart;
+    
+    // Calculate progress (0 to 1)
+    const maxDistance = 200; // Maximum swipe distance
+    const progress = Math.min(Math.max(distance / maxDistance, 0), 1);
+    setDragProgress(progress);
+    
+    setTouchEnd(currentTouch);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) {
+      setIsDragging(false);
+      setDragProgress(0);
+      return;
+    }
+    
+    const distance = touchEnd - touchStart;
+    const minSwipeDistance = 150; // Minimum distance to trigger action
+    
+    if (distance >= minSwipeDistance) {
+      // Swipe successful - trigger campaign action
+      if (currentTask && !currentTask.isClaimed) {
+        claimTask(currentTask);
+      } else if (currentTask && currentTask.isClaimed) {
+        completeTask(currentTask);
+      }
+    }
+    
+    // Reset states
+    setIsDragging(false);
+    setDragProgress(0);
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
 
   // Fetch user stats from database
   const fetchUserStats = useCallback(async () => {
@@ -359,16 +413,65 @@ export default function CampaignPage() {
           </Card>
         </div>
 
-        {/* Launch Campaign Button */}
+        {/* Launch Campaign Button with Swipe Gesture */}
         <div className="pt-4 relative">
-          <div className="relative h-16 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-r from-red-500 to-pink-500 transition-colors duration-300">
-            <div className="absolute inset-0 flex items-center justify-center w-full h-full">
-              <span className="text-white font-medium text-lg">Launch Campaign</span>
+          <div 
+            className="relative h-16 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-r from-red-500 to-pink-500 transition-colors duration-300 select-none"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            style={{ userSelect: 'none' }}
+          >
+            {/* Background with swipe progress */}
+            <div 
+              className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-200"
+              style={{ 
+                width: `${dragProgress * 100}%`,
+                opacity: dragProgress > 0.3 ? 0.8 : 0
+              }}
+            />
+            
+            {/* Main content */}
+            <div className="absolute inset-0 flex items-center justify-center w-full h-full z-10">
+              <span className="text-white font-medium text-lg">
+                {isDragging ? 'Swipe to Launch' : 'Launch Campaign'}
+              </span>
             </div>
-            <div className="absolute left-0 top-0 h-full w-16 bg-white rounded-full shadow-md flex items-center justify-center cursor-pointer" 
-                 onClick={() => currentTask && !currentTask.isClaimed ? claimTask(currentTask) : currentTask && completeTask(currentTask)}>
+            
+            {/* Drag handle */}
+            <div 
+              className="absolute left-0 top-0 h-full w-16 bg-white rounded-full shadow-md flex items-center justify-center cursor-grab active:cursor-grabbing transition-transform duration-200 z-20"
+              style={{ 
+                transform: `translateX(${dragProgress * 200}px)`,
+                transition: isDragging ? 'none' : 'transform 0.3s ease-out'
+              }}
+            >
               <ArrowRight className="w-8 h-8 transition-transform duration-300 text-red-500" />
             </div>
+          </div>
+          
+          {/* Swipe indicator arrows */}
+          <div className="flex justify-center mt-2 space-x-1">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <ArrowRight 
+                key={i}
+                className={`w-4 h-4 transition-colors duration-200 ${
+                  dragProgress > (i * 0.2) ? 'text-red-500' : 'text-gray-300'
+                }`}
+              />
+            ))}
+          </div>
+          
+          {/* Swipe instruction */}
+          <div className="text-center mt-2">
+            <p className="text-xs text-gray-500">
+              {currentTask && !currentTask.isClaimed 
+                ? 'Swipe right to claim task' 
+                : currentTask && currentTask.isClaimed 
+                ? 'Swipe right to complete task'
+                : 'Swipe right to launch campaign'
+              }
+            </p>
           </div>
         </div>
 
