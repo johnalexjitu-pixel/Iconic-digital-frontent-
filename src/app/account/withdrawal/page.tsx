@@ -174,7 +174,7 @@ export default function WithdrawalInfoPage() {
 
       // Save withdrawal info to user profile
       const withdrawalInfoResponse = await apiClient.updateUserProfile({
-        userId: user._id,
+        _id: user._id,
         withdrawalInfo: {
           method: formData.withdrawalMethod,
           accountHolderName: formData.accountHolderName,
