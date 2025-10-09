@@ -19,9 +19,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('🔍 Fetching withdrawals for customerId:', customerId);
     const withdrawals = await withdrawalsCollection.find({ customerId }).sort({ createdAt: -1 }).toArray();
-    console.log('🔍 Found withdrawals:', withdrawals.length, 'records');
 
     return NextResponse.json({
       success: true,
@@ -81,12 +79,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Deduct amount from user balance (hold it)
-    console.log('💰 Deducting balance:', { customerId, amount, currentBalance: user.accountBalance });
-    const balanceUpdateResult = await usersCollection.updateOne(
+    await usersCollection.updateOne(
       { _id: new ObjectId(customerId) },
       { $inc: { accountBalance: -amount } }
     );
-    console.log('💰 Balance update result:', balanceUpdateResult);
 
     const now = new Date();
     const withdrawal = {
@@ -100,9 +96,7 @@ export async function POST(request: NextRequest) {
       updatedAt: now
     };
 
-    console.log('📝 Creating withdrawal record:', withdrawal);
     const result = await withdrawalsCollection.insertOne(withdrawal);
-    console.log('📝 Withdrawal creation result:', result);
 
     return NextResponse.json({
       success: true,

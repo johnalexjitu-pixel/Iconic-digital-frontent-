@@ -365,21 +365,12 @@ export default function WithdrawalInfoPage() {
       };
 
       // Create withdrawal request using the saved withdrawal information
-      console.log('🚀 Creating withdrawal request with data:', {
-        customerId: user._id,
-        amount: parseFloat(formData.amount),
-        method: withdrawalInfo.method,
-        accountDetails: accountDetails
-      });
-
       const response = await apiClient.createWithdrawal({
         customerId: user._id,
         amount: parseFloat(formData.amount),
         method: withdrawalInfo.method,
         accountDetails: accountDetails
       });
-
-      console.log('📝 Withdrawal API response:', response);
 
         if (response.success) {
           setSuccess(true);
