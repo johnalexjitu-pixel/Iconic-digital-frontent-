@@ -234,8 +234,8 @@ export default function DailyCheckinPage() {
         <Card className="p-4">
           <h4 className="font-semibold text-gray-900 mb-3">Daily Bonus Schedule</h4>
           <div className="grid grid-cols-2 gap-2">
-            {checkInData.bonusAmounts.slice(0, 10).map((bonus) => (
-              <div key={bonus.dayNumber} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+            {checkInData.bonusAmounts.slice(0, 10).map((bonus, index) => (
+              <div key={`bonus-${bonus.dayNumber}-${index}`} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                 <span className="text-sm font-medium">Day {bonus.dayNumber}</span>
                 <span className="text-sm font-bold text-teal-600">BDT {bonus.amount.toLocaleString()}</span>
               </div>
