@@ -1,36 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCollection } from '@/lib/mongodb';
-import { verifyToken } from '@/lib/auth';
+import { ObjectId } from 'mongodb';
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { success: false, message: 'No token provided' },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.substring(7);
-    const decoded = verifyToken(token);
-    
-    if (!decoded) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid token' },
-        { status: 401 }
-      );
-    }
-
-    const { userId } = decoded;
     const body = await request.json();
-    const { streak, daysClaimed } = body;
+    const { userId, streak, daysClaimed } = body;
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: 'User ID is required' },
+        { status: 400 }
+      );
+    }
 
     const usersCollection = await getCollection('users');
     
     // Update user's daily check-in data
     const result = await usersCollection.updateOne(
-      { _id: userId },
+      { _id: new ObjectId(userId) },
       {
         $set: {
           dailyCheckIn: {
@@ -69,28 +57,18 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId');
+
+    if (!userId) {
       return NextResponse.json(
-        { success: false, message: 'No token provided' },
-        { status: 401 }
+        { success: false, message: 'User ID is required' },
+        { status: 400 }
       );
     }
-
-    const token = authHeader.substring(7);
-    const decoded = verifyToken(token);
-    
-    if (!decoded) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid token' },
-        { status: 401 }
-      );
-    }
-
-    const { userId } = decoded;
 
     const usersCollection = await getCollection('users');
-    const user = await usersCollection.findOne({ _id: userId });
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
 
     if (!user) {
       return NextResponse.json(

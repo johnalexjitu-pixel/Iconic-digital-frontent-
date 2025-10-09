@@ -31,15 +31,13 @@ export default function DailyCheckinPage() {
 
   const fetchRewards = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
+      const userData = localStorage.getItem('user');
+      if (!userData) return;
 
-      const response = await fetch('/api/daily-checkin', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const user = JSON.parse(userData);
+      if (!user._id) return;
+
+      const response = await fetch(`/api/daily-checkin?userId=${user._id}`);
 
       if (response.ok) {
         const data = await response.json();
@@ -64,19 +62,25 @@ export default function DailyCheckinPage() {
   const handleClaimReward = async (day: number) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.error('No token found');
+      const userData = localStorage.getItem('user');
+      if (!userData) {
+        console.error('No user data found');
+        return;
+      }
+
+      const user = JSON.parse(userData);
+      if (!user._id) {
+        console.error('No user ID found');
         return;
       }
 
       const response = await fetch('/api/daily-checkin', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          userId: user._id,
           streak: day,
           daysClaimed: [...rewards.filter(r => r.claimed).map(r => r.day), day]
         })
