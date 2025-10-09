@@ -15,6 +15,7 @@ import { apiClient } from '@/lib/api-client';
 export default function WithdrawalPasswordPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
     currentWithdrawalPassword: "",
     newWithdrawalPassword: "",
@@ -36,7 +37,14 @@ export default function WithdrawalPasswordPage() {
     if (userData) {
       setUser(JSON.parse(userData));
     }
+    setIsLoading(false);
   }, []);
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/auth/login');
+    }
+  }, [isLoading, user, router]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -93,9 +101,23 @@ export default function WithdrawalPasswordPage() {
     }));
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="max-w-4xl mx-auto px-4 py-6 pb-20">
+          <div className="flex justify-center items-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
-    router.push('/auth/login');
-    return null;
+    return null; // Will redirect via useEffect
   }
 
   return (
