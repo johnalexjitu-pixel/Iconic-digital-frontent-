@@ -29,6 +29,7 @@ interface User {
   accountBalance: number;
   totalEarnings: number;
   campaignsCompleted: number;
+  status: string;
   createdAt: string;
 }
 
@@ -110,6 +111,20 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       console.error(`Error deleting ${type}:`, error);
+    }
+  };
+
+  const activateUser = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/users/${userId}/activate`, {
+        method: 'PATCH'
+      });
+      
+      if (response.ok) {
+        fetchData('users');
+      }
+    } catch (error) {
+      console.error('Error activating user:', error);
     }
   };
 
@@ -200,6 +215,7 @@ export default function AdminDashboard() {
                       <th className="text-left p-2">Name</th>
                       <th className="text-left p-2">Email</th>
                       <th className="text-left p-2">Level</th>
+                      <th className="text-left p-2">Status</th>
                       <th className="text-left p-2">Balance</th>
                       <th className="text-left p-2">Earnings</th>
                       <th className="text-left p-2">Campaigns</th>
@@ -216,11 +232,25 @@ export default function AdminDashboard() {
                             {user.level}
                           </Badge>
                         </td>
+                        <td className="p-2">
+                          <Badge variant={user.status === 'active' ? 'default' : 'destructive'}>
+                            {user.status}
+                          </Badge>
+                        </td>
                         <td className="p-2">BDT {user.accountBalance.toLocaleString()}</td>
                         <td className="p-2">BDT {user.totalEarnings.toLocaleString()}</td>
                         <td className="p-2">{user.campaignsCompleted}</td>
                         <td className="p-2">
                           <div className="flex gap-1">
+                            {user.status === 'inactive' && (
+                              <Button 
+                                size="sm" 
+                                onClick={() => activateUser(user._id)}
+                                className="bg-green-600 hover:bg-green-700 text-white"
+                              >
+                                Activate
+                              </Button>
+                            )}
                             <Button size="sm" variant="outline">
                               <Edit className="w-3 h-3" />
                             </Button>

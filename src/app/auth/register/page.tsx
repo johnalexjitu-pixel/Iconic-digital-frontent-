@@ -6,6 +6,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Modal } from '@/components/ui/modal';
 import { ArrowLeft, UserPlus, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
@@ -16,16 +18,19 @@ export default function RegisterPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    referralCode: ''
+    referralCode: '',
+    acceptTerms: false
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: type === 'checkbox' ? checked : value
     });
   };
 
@@ -35,6 +40,12 @@ export default function RegisterPage() {
     setError('');
 
     // Validation
+    if (!formData.acceptTerms) {
+      setError('You must accept the Terms and Conditions to continue');
+      setLoading(false);
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       setLoading(false);
@@ -64,8 +75,8 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (data.success) {
-        // Registration successful, redirect to login
-        router.push('/auth/login?message=Registration successful! Please login.');
+        // Registration successful, redirect to contact support for verification
+        router.push('/contact-support?message=Registration successful! Please contact support for account verification.');
       } else {
         setError(data.error || 'Registration failed');
       }
@@ -92,7 +103,7 @@ export default function RegisterPage() {
               <UserPlus className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
-            <p className="text-gray-600 mt-2">Join SocialTrend and start earning</p>
+            <p className="text-gray-600 mt-2">Join Iconic Digital and start earning</p>
           </div>
 
           {error && (
@@ -179,6 +190,25 @@ export default function RegisterPage() {
               />
             </div>
 
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="acceptTerms"
+                name="acceptTerms"
+                checked={formData.acceptTerms}
+                onCheckedChange={(checked) => setFormData({ ...formData, acceptTerms: checked as boolean })}
+              />
+              <Label htmlFor="acceptTerms" className="text-sm text-gray-600">
+                I accept the{' '}
+                <button
+                  type="button"
+                  onClick={() => setShowTermsModal(true)}
+                  className="text-teal-600 hover:text-teal-700 underline"
+                >
+                  Terms and Conditions
+                </button>
+              </Label>
+            </div>
+
             <Button
               type="submit"
               className="w-full"
@@ -198,6 +228,61 @@ export default function RegisterPage() {
           </div>
         </Card>
       </div>
+
+      {/* Terms and Conditions Modal */}
+      <Modal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        title="Terms and Conditions"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Please read our terms and conditions carefully before proceeding.
+          </p>
+          
+          <p className="text-gray-800">
+            Welcome to Iconic Digital. By using our services, you agree to the following terms:
+          </p>
+
+          <ol className="list-decimal list-inside space-y-2 text-gray-700">
+            <li>All products in campaigns are subject to availability.</li>
+            <li>Cancellation or return policies vary by suppliers and merchants.</li>
+            <li>Payment information is secured using industry-standard encryption.</li>
+            <li>You must be at least 18 years old to participate in a campaign.</li>
+            <li>Prices are subject to change until the purchase is confirmed.</li>
+            <li>We respect your privacy and handle your data in accordance with our privacy policy.</li>
+            <li>By creating an account, you agree to receive occasional promotional emails from us.</li>
+            <li>You are responsible for providing accurate information during the campaign process.</li>
+            <li>Platform reserves the right to modify terms and conditions at any time.</li>
+            <li>Violation of terms may result in account suspension or termination.</li>
+          </ol>
+
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-semibold text-gray-900 mb-2">Contact Information:</h3>
+            <p className="text-gray-700 mb-3">• Telegram: t.me/Iconicdigital_customerservice_BD</p>
+            <p className="text-gray-700 mb-4">• Service Hours: 10:00 AM to 10:00 PM (Monday - Sunday)</p>
+            
+            <div className="flex justify-center">
+              <Button
+                onClick={() => window.open('https://t.me/Iconicdigital_customerservice_BD', '_blank')}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg flex items-center gap-2"
+              >
+                <img src="/Telegram_logo.svg.webp" alt="Telegram" className="w-4 h-4" />
+                Contact Support
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex justify-end mt-6">
+            <Button
+              onClick={() => setShowTermsModal(false)}
+              className="bg-teal-600 hover:bg-teal-700 text-white"
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

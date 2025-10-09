@@ -34,6 +34,16 @@ export async function POST(request: NextRequest) {
       }, { status: 401 });
     }
 
+    // Check if user account is active
+    if (user.status === 'inactive') {
+      return NextResponse.json({
+        success: false,
+        error: 'Account verification required',
+        requiresVerification: true,
+        userEmail: user.email
+      }, { status: 403 });
+    }
+
     // Update last login
     await usersCollection.updateOne(
       { _id: user._id },

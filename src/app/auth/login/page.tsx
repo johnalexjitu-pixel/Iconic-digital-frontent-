@@ -75,7 +75,7 @@ function LoginForm() {
               <LogIn className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
-            <p className="text-gray-600 mt-2">Sign in to your SocialTrend account</p>
+            <p className="text-gray-600 mt-2">Sign in to your Iconic Digital account</p>
           </div>
 
           {successMessage && (

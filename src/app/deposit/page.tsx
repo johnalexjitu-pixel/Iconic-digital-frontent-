@@ -134,7 +134,7 @@ export default function DepositPage() {
                     <Clock className="w-5 h-5 text-gray-600" />
                     <div>
                       <p className="font-medium text-gray-700">Operation Hours</p>
-                      <p className="text-sm text-gray-600">Monday - Sunday: 9:00 AM to 9:00 PM</p>
+                      <p className="text-sm text-gray-600">Monday - Sunday: 10:00 AM to 10:00 PM</p>
                     </div>
                   </div>
                 </div>
@@ -230,7 +230,14 @@ export default function DepositPage() {
                 
                 <div>
                   <p className="font-medium text-gray-700 mb-2">Service Hours:</p>
-                  <p className="text-gray-600">Monday - Sunday: 9:00 AM to 9:00 PM</p>
+                  <p className="text-gray-600">Monday - Sunday: 10:00 AM to 10:00 PM</p>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-700 mb-2">Contact Information:</p>
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                    <MessageCircle className="w-5 h-5 text-blue-600" />
+                    <span className="text-blue-700">Telegram: t.me/Iconicdigital_customerservice_BD</span>
+                  </div>
                 </div>
               </div>
               

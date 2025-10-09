@@ -35,6 +35,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  requiresVerification?: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,6 +43,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [requiresVerification, setRequiresVerification] = useState(false);
   const router = useRouter();
 
   // Check if user is logged in on mount
@@ -90,9 +92,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.success) {
         setUser(data.data);
         localStorage.setItem('user', JSON.stringify(data.data));
+        setRequiresVerification(false);
         return true;
+      } else if (data.requiresVerification) {
+        setRequiresVerification(true);
+        router.push('/contact-support');
+        return false;
       } else {
         console.error('Login failed:', data.error);
+        setRequiresVerification(false);
         return false;
       }
     } catch (error) {
@@ -123,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser, requiresVerification }}>
       {children}
     </AuthContext.Provider>
   );

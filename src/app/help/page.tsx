@@ -33,30 +33,59 @@ export default function HelpPage() {
 
 Please be advised that withdrawals are permitted only after every 3 sets of campaign tasks have been successfully completed.
 
-For transactions exceeding BDT 3,000,000 in a single withdrawal, a 50% refundable security deposit is required. This measure is part of our first-time identity verification and anti-fraud protocol. The security deposit will be fully refunded within one hour upon successful verification.
+For transactions exceeding BDT 100,000 in a single withdrawal, a 50% refundable security deposit is required. This measure is part of our first-time identity verification and anti-fraud protocol. The security deposit will be fully refunded within one hour upon successful verification.
+
+Withdrawal Limits:
+• Minimum withdrawal: BDT 100,000
+• Maximum withdrawal: BDT 1,000,000 per transaction
+• Large transactions (BDT 100,000+) require security deposit
 
 Important Notes:
 
 • The estimated arrival time for funds is typically 10 to 60 minutes after the withdrawal has been submitted.
-• Once the withdrawal is initiated, the remaining account balance must not exceed BDT 300,000.
-• Withdrawals are available Monday to Sunday from 9:00 AM to 9:00 PM.
+• Once the withdrawal is initiated, the remaining account balance must not exceed BDT 100,000.
+• Withdrawals are available Monday to Sunday from 10:00 AM to 10:00 PM.
 
 We appreciate your attention to these details as they are in place to ensure a smooth and secure transaction experience.`
     },
     {
       id: "exclusive-campaign",
       question: "About Exclusive Campaign",
-      answer: "Exclusive campaigns are special promotional activities available only to certain member levels. These campaigns offer higher rewards and unique opportunities for qualified members."
+      answer: `Why have Exclusive Campaign? Merchants want to increase the exposure of their attractive products and also want to attract more agents to help increase the visibility of their products, which can help them to increase sales. Exclusive Campaign is a benefit that allows all members to earn more commission. Suppliers and merchants design it so that members and agents can earn higher commissions. This is rare to get and all members may only have the chance of getting 1 (Min) to 2 (Max) Exclusive Campaign in each round of campaign.`
     },
     {
       id: "campaign",
       question: "About Campaign",
-      answer: "Campaigns are marketing activities where members can participate to earn rewards. Each campaign has specific requirements and rewards. Members can join campaigns based on their account balance and member level."
+      answer: `Campaigns that are not submitted after being received will remain in 'Pending' status. To complete a pending campaign, simply click the 'History' button. You can apply for withdrawal once the campaign is completed.
+
+Note: If you are unable to complete all your campaigns within the given timeframe, please contact customer service to request a time extension. Failure to do so may result in a deduction of your credit score or account suspension by the system.`
     },
     {
       id: "lucky-golden-egg",
       question: "About Lucky Golden Egg",
-      answer: "Lucky Golden Egg is a special reward system where members can win bonus rewards through random draws. The more active you are on the platform, the higher your chances of winning."
+      answer: `The Lucky Golden Egg is an extraordinary reward on the platform, bestowed upon members at random. These delightful prizes can include cash bonuses and campaign. If you find yourself in possession of a Lucky Golden Egg, it signifies that the Goddess of Fortune has graciously smiled upon you, inviting you to a world of unexpected treasures and joyous surprises!`
+    },
+    {
+      id: "terms-conditions",
+      question: "Terms and Conditions",
+      answer: `Welcome to Iconic Digital. By using our services, you agree to the following terms:
+
+1. All products in campaigns are subject to availability.
+2. Cancellation or return policies vary by suppliers and merchants.
+3. Payment information is secured using industry-standard encryption.
+4. You must be at least 18 years old to participate in a campaign.
+5. Prices are subject to change until the purchase is confirmed.
+6. We respect your privacy and handle your data in accordance with our privacy policy.
+7. By creating an account, you agree to receive occasional promotional emails from us.
+8. You are responsible for providing accurate information during the campaign process.
+9. Platform reserves the right to modify terms and conditions at any time.
+10. Violation of terms may result in account suspension or termination.
+
+Contact Information:
+• Telegram: t.me/Iconicdigital_customerservice_BD
+• Service Hours: 10:00 AM to 10:00 PM (Monday - Sunday)
+
+For any questions or concerns regarding these terms, please contact our customer service team.`
     }
   ];
 
@@ -128,10 +157,17 @@ We appreciate your attention to these details as they are in place to ensure a s
             </p>
             <div className="mb-4">
               <p className="font-medium mb-2">Service Hours:</p>
-              <p className="text-gray-600">Monday - Sunday: 9:00 AM to 9:00 PM</p>
+              <p className="text-gray-600">Monday - Sunday: 10:00 AM to 10:00 PM</p>
+            </div>
+            <div className="mb-4">
+              <p className="font-medium mb-2">Contact Information:</p>
+              <div className="flex items-center justify-center gap-3 p-3 bg-blue-50 rounded-lg">
+                <MessageCircle className="w-5 h-5 text-blue-600" />
+                <span className="text-blue-700 font-medium">Telegram: t.me/Iconicdigital_customerservice_BD</span>
+              </div>
             </div>
             <Button
-              onClick={() => router.push('/customer-service')}
+              onClick={() => window.open('https://t.me/Iconicdigital_customerservice_BD', '_blank')}
               className="bg-black hover:bg-gray-800 text-white px-6 py-3 rounded-full transition-all duration-300 hover:shadow-md"
             >
               <MessageCircle className="w-4 h-4 mr-2" />

@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       accountBalance: 0,
       totalEarnings: 0,
       campaignsCompleted: 0,
+      status: 'inactive', // New users are inactive by default
       dailyCheckIn: {
         streak: 0,
         daysClaimed: []
