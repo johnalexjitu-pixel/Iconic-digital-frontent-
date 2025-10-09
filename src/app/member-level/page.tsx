@@ -113,15 +113,15 @@ export default function MemberLevelPage() {
       ...level,
       icon: getLevelIcon(level.name),
       ...getLevelColors(level.name),
-      requirements: `Account Balance: BDT ${level.minAmount.toLocaleString()}${maxAmount !== Infinity ? ` - BDT ${maxAmount.toLocaleString()}` : '+'}`,
+      requirements: `Account Balance: BDT ${(level.minAmount || 0).toLocaleString()}${maxAmount !== Infinity ? ` - BDT ${maxAmount.toLocaleString()}` : '+'}`,
       benefits: [
-        `${level.commissionPercentage}% commission rate`,
-        `${level.comboCommissionPercentage}% combo commission`,
-        `${level.taskCount} tasks available`,
-        `Min withdrawal: BDT ${level.minwithdrawal.toLocaleString()}`,
-        `Max withdrawal: BDT ${level.maxWithdrawal.toLocaleString()}`,
-        `${level.completedTasksToWithdraw} tasks to withdraw`,
-        level.withdrawalFees === 0 ? "No withdrawal fees" : `Withdrawal fees: ${level.withdrawalFees}%`
+        `${level.commissionPercentage || 0}% commission rate`,
+        `${level.comboCommissionPercentage || 0}% combo commission`,
+        `${level.taskCount || 0} tasks available`,
+        `Min withdrawal: BDT ${(level.minwithdrawal || 0).toLocaleString()}`,
+        `Max withdrawal: BDT ${(level.maxWithdrawal || 0).toLocaleString()}`,
+        `${level.completedTasksToWithdraw || 0} tasks to withdraw`,
+        (level.withdrawalFees || 0) === 0 ? "No withdrawal fees" : `Withdrawal fees: ${level.withdrawalFees || 0}%`
       ]
     };
   });

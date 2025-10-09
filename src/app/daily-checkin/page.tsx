@@ -8,7 +8,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Gift, CheckCircle, Star } from "lucide-react";
 import Link from "next/link";
-import { apiClient } from '@/lib/api-client';
 
 interface Reward {
   day: number;
@@ -32,19 +31,30 @@ export default function DailyCheckinPage() {
 
   const fetchRewards = async () => {
     try {
-      const response = await apiClient.getUserProfile();
-      if (response.success && response.data) {
-        const userData = response.data as Record<string, unknown>;
-        const dailyCheckIn = (userData.dailyCheckIn as { streak: number; daysClaimed: number[] }) || { streak: 0, daysClaimed: [] };
-        
-        // Generate rewards based on user data
-        const rewardsData = Array.from({ length: 30 }, (_, i) => ({
-          day: i + 1,
-          amount: `Rs ${(i + 1) * 2000}`,
-          claimed: dailyCheckIn.daysClaimed.includes(i + 1)
-        }));
-        
-        setRewards(rewardsData);
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch('/api/daily-checkin', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          const dailyCheckIn = data.data;
+          
+          // Generate rewards based on user data
+          const rewardsData = Array.from({ length: 30 }, (_, i) => ({
+            day: i + 1,
+            amount: `BDT ${(i + 1) * 2000}`,
+            claimed: dailyCheckIn.daysClaimed.includes(i + 1)
+          }));
+          
+          setRewards(rewardsData);
+        }
       }
     } catch (error) {
       console.error('Error fetching rewards:', error);
@@ -54,17 +64,31 @@ export default function DailyCheckinPage() {
   const handleClaimReward = async (day: number) => {
     setLoading(true);
     try {
-      const response = await apiClient.updateUserProfile({
-        dailyCheckIn: {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No token found');
+        return;
+      }
+
+      const response = await fetch('/api/daily-checkin', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           streak: day,
           daysClaimed: [...rewards.filter(r => r.claimed).map(r => r.day), day]
-        }
+        })
       });
 
-      if (response.success) {
-        setSuccess(true);
-        fetchRewards();
-        setTimeout(() => setSuccess(false), 3000);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setSuccess(true);
+          fetchRewards();
+          setTimeout(() => setSuccess(false), 3000);
+        }
       }
     } catch (error) {
       console.error('Error claiming reward:', error);
