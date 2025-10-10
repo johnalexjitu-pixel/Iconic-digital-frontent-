@@ -35,7 +35,7 @@ interface WithdrawalRecord {
 }
 
 export default function WithdrawalHistoryPage() {
-  const [user, setUser] = useState<{ name: string; level: string; avatar?: string } | null>(null);
+  const [user, setUser] = useState<{ username: string; level: string; avatar?: string } | null>(null);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRecord[]>([]);
   const [loading, setLoading] = useState(true);
 

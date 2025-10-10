@@ -35,9 +35,8 @@ The `.env.local` file has been created with the following configuration:
 # MongoDB Connection
 MONGODB_URI=mongodb://localhost:27017/iconic-digital
 
-# NextAuth Configuration
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your-secret-key-here
+# Authentication Configuration
+AUTH_SECRET=your-secret-key-here
 
 # Development Environment
 NODE_ENV=development
@@ -138,7 +137,7 @@ bun run format       # Format code with Biome
 - **Frontend**: Next.js 15, React 18, TypeScript
 - **Styling**: Tailwind CSS, Shadcn/ui components
 - **Database**: MongoDB with Mongoose ODM
-- **Authentication**: NextAuth.js
+- **Authentication**: Custom JWT-based authentication
 - **Real-time**: Socket.io
 - **Package Manager**: Bun
 - **Code Quality**: ESLint, Biome

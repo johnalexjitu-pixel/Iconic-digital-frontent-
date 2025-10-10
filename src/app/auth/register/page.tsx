@@ -8,16 +8,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Modal } from '@/components/ui/modal';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, UserPlus, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
 export default function RegisterPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
+    username: '',
     password: '',
     confirmPassword: '',
+    phoneNumber: '',
+    gender: '',
     referralCode: '',
     acceptTerms: false
   });
@@ -34,6 +36,13 @@ export default function RegisterPage() {
     });
   };
 
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -42,6 +51,18 @@ export default function RegisterPage() {
     // Validation
     if (!formData.acceptTerms) {
       setError('You must accept the Terms and Conditions to continue');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.phoneNumber) {
+      setError('Phone number is required');
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.gender) {
+      setError('Please select your gender');
       setLoading(false);
       return;
     }
@@ -65,9 +86,10 @@ export default function RegisterPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
+          username: formData.username,
           password: formData.password,
+          phoneNumber: formData.phoneNumber,
+          gender: formData.gender,
           referralCode: formData.referralCode
         }),
       });
@@ -102,7 +124,7 @@ export default function RegisterPage() {
             <div className="w-16 h-16 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <UserPlus className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Sign Up</h1>
             <p className="text-gray-600 mt-2">Join Iconic Digital and start earning</p>
           </div>
 
@@ -114,29 +136,51 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
-                id="name"
-                name="name"
+                id="username"
+                name="username"
                 type="text"
                 required
-                value={formData.name}
+                value={formData.username}
                 onChange={handleChange}
-                placeholder="Enter your full name"
+                placeholder="Enter your username"
               />
             </div>
 
             <div>
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="Enter your email"
-              />
+              <Label htmlFor="phoneNumber">Phone Number</Label>
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <div className="h-10 px-3 border border-gray-300 border-r-0 rounded-l-md bg-gray-50 flex items-center text-sm text-gray-500">
+                    +880
+                  </div>
+                </div>
+                <Input
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  type="tel"
+                  required
+                  value={formData.phoneNumber}
+                  onChange={handleChange}
+                  placeholder="Enter your phone number"
+                  className="rounded-l-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="gender">Gender</Label>
+              <Select value={formData.gender} onValueChange={(value) => handleSelectChange('gender', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -214,7 +258,7 @@ export default function RegisterPage() {
               className="w-full"
               disabled={loading}
             >
-              {loading ? 'Creating Account...' : 'Create Account'}
+              {loading ? 'Signing Up...' : 'Sign Up'}
             </Button>
           </form>
 

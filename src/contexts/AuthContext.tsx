@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 
 interface User {
   _id: string;
-  name: string;
-  email: string;
+  username: string;
+  number?: string;
   level: string;
   membershipId: string;
   referralCode: string;
@@ -15,24 +15,30 @@ interface User {
   walletBalance: number;
   totalEarnings: number;
   campaignsCompleted: number;
-  todayCommission: number;
-  withdrawalAmount: number;
-  avatar?: string;
+  campaignSet: number[];
+  campaignCommission: number;
+  depositCount: number;
+  trialBalance: number;
+  campaignStatus: string;
+  withdrawStatus: string;
+  accountStatus: string;
   dailyCheckIn: {
     lastCheckIn: string | null;
     streak: number;
     daysClaimed: number[];
   };
+  isActive: boolean;
+  allowTask: boolean;
+  avatar?: string;
   lastLogin: string;
   createdAt: string;
   updatedAt: string;
-  phoneNumber: string;
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   refreshUser: () => Promise<void>;
   requiresVerification?: boolean;
@@ -58,8 +64,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
         
-        // Verify with server using the logged-in user's email
-        const response = await fetch(`/api/user?email=${encodeURIComponent(parsedUser.email)}`);
+        // Verify with server using the logged-in user's username
+        const response = await fetch(`/api/user?username=${encodeURIComponent(parsedUser.username)}`);
         if (response.ok) {
           const data = await response.json();
           if (data.success) {
@@ -77,14 +83,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (username: string, password: string): Promise<boolean> => {
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ username, password }),
       });
 
       const data = await response.json();

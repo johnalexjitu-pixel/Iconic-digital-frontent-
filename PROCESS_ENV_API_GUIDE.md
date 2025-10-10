@@ -198,17 +198,21 @@ http://localhost:3001/api/api-status
 // Development environment
 // Calls: http://localhost:5000/api/auth/register
 await apiClient.register({
-  name: 'MD SHAMIM SIDDIK',
-  email: 'shamimtest@gmail.com',
-  password: 'password123'
+  username: 'MD SHAMIM SIDDIK',
+  email: 'shamimtest@example.com',
+  password: 'password123',
+  phoneNumber: '1234567890',
+  gender: 'male'
 });
 
 // Production environment  
 // Calls: https://admin.iconicdigital.site/api/auth/register
 await apiClient.register({
-  name: 'MD SHAMIM SIDDIK',
-  email: 'shamimtest@gmail.com', 
-  password: 'password123'
+  username: 'MD SHAMIM SIDDIK',
+  email: 'shamimtest@example.com', 
+  password: 'password123',
+  phoneNumber: '1234567890',
+  gender: 'male'
 });
 ```
 

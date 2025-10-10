@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { apiClient } from '@/lib/api-client';
 import { config } from '@/lib/config';
 import { getCollection } from '@/lib/mongodb';
-import bcrypt from 'bcryptjs';
 import { ObjectId } from 'mongodb';
 
 export async function GET(request: NextRequest) {
@@ -10,12 +9,12 @@ export async function GET(request: NextRequest) {
     // Get user data from database
     const usersCollection = await getCollection('users');
     
-    // Get user email from query parameters or default to test@test.com
+    // Get user username from query parameters or default to testuser
     const { searchParams } = new URL(request.url);
-    const email = searchParams.get('email') || 'test@test.com';
+    const username = searchParams.get('username') || 'testuser';
     
-    // Get the specific user by email
-    const user = await usersCollection.findOne({ email });
+    // Get the specific user by username
+    const user = await usersCollection.findOne({ username });
     
     if (!user) {
       return NextResponse.json({
@@ -27,29 +26,36 @@ export async function GET(request: NextRequest) {
     // Return user data (without password)
         const userResponse = {
           _id: user._id,
-          name: user.name?.trim() || 'User',
-          email: user.email,
+          username: user.username || '',
+          number: user.number || '',
+          gender: user.gender || 'male',
           level: user.level || 'Bronze',
           membershipId: user.membershipId || '',
           referralCode: user.referralCode || '',
-          creditScore: user.creditScore || 100,
+          referStatus: user.referStatus || 'inactive',
+          creditScore: user.creditScore || 0,
           accountBalance: user.accountBalance || 0,
-          walletBalance: user.walletBalance || 0,
           totalEarnings: user.totalEarnings || 0,
           campaignsCompleted: user.campaignsCompleted || 0,
-          todayCommission: user.todayCommission || 0,
-          withdrawalAmount: user.withdrawalAmount || 0,
-          dailyCampaignsCompleted: user.dailyCampaignsCompleted || 0,
+          campaignSet: user.campaignSet || [],
+          campaignCommission: user.campaignCommission || 0,
+          depositCount: user.depositCount || 0,
+          trialBalance: user.trialBalance || 0,
+          campaignStatus: user.campaignStatus || 'inactive',
+          withdrawStatus: user.withdrawStatus || 'inactive',
+          accountStatus: user.accountStatus || 'inactive',
           dailyCheckIn: user.dailyCheckIn || { 
             lastCheckIn: null, 
             streak: 0, 
             daysClaimed: [] 
           },
+          isActive: user.isActive || false,
+          allowTask: user.allowTask || true,
           withdrawalInfo: user.withdrawalInfo || null,
+          withdrawalPassword: user.withdrawalPassword ? '***' : undefined, // Indicate if password exists without exposing it
           lastLogin: user.lastLogin,
           createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-          phoneNumber: user.phoneNumber || ''
+          updatedAt: user.updatedAt
         };
 
     return NextResponse.json({
@@ -84,20 +90,46 @@ export async function PATCH(request: NextRequest) {
 
     // Handle password updates
     if (updateData.currentPassword && updateData.newPassword) {
-      // Update login password
-      const hashedPassword = await bcrypt.hash(updateData.newPassword, 12);
+      // Update login password - store plain text
       await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
-        { $set: { password: hashedPassword } }
+        { $set: { password: updateData.newPassword } }
       );
     }
 
+    // Handle initial withdrawal password creation (only if user doesn't have one)
+    if (updateData.newWithdrawalPassword && !updateData.currentWithdrawalPassword) {
+      const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+      if (!user?.withdrawalPassword) {
+        // Create initial withdrawal password - store plain text
+        await usersCollection.updateOne(
+          { _id: new ObjectId(userId) },
+          { $set: { withdrawalPassword: updateData.newWithdrawalPassword } }
+        );
+      } else {
+        return NextResponse.json(
+          { success: false, error: 'Withdrawal password already exists. Only admin can change it.' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Handle withdrawal password change (admin only - users cannot change once set)
     if (updateData.currentWithdrawalPassword && updateData.newWithdrawalPassword) {
-      // Update withdrawal password
-      const hashedWithdrawalPassword = await bcrypt.hash(updateData.newWithdrawalPassword, 12);
+      // Check if this is an admin request (you can add proper admin authentication here)
+      const isAdminRequest = updateData.isAdminRequest === true;
+      
+      if (!isAdminRequest) {
+        return NextResponse.json(
+          { success: false, error: 'Users cannot change withdrawal password. Contact admin for assistance.' },
+          { status: 403 }
+        );
+      }
+      
+      // Admin can change withdrawal password - store plain text
       await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
-        { $set: { withdrawalPassword: hashedWithdrawalPassword } }
+        { $set: { withdrawalPassword: updateData.newWithdrawalPassword } }
       );
     }
 

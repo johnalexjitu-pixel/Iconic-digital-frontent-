@@ -12,7 +12,7 @@ import { useState, useEffect } from "react";
 import { apiClient } from '@/lib/api-client';
 
 export default function ChangePasswordPage() {
-  const [user, setUser] = useState<{ name: string; level: string; avatar?: string } | null>(null);
+  const [user, setUser] = useState<{ _id?: string; username: string; level: string; avatar?: string } | null>(null);
   const [formData, setFormData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -49,19 +49,26 @@ export default function ChangePasswordPage() {
     setError('');
     setSuccess(false);
 
+    if (!user?._id) {
+      setError('User information not loaded. Please refresh the page.');
+      return;
+    }
+
     if (formData.newPassword !== formData.confirmPassword) {
       setError('New passwords do not match');
       return;
     }
 
-    if (formData.newPassword.length < 6) {
-      setError('New password must be at least 6 characters');
+    if (formData.newPassword.length < 4) {
+      setError('New password must be at least 4 characters');
       return;
     }
 
     setLoading(true);
     try {
       const response = await apiClient.updateUserProfile({
+        _id: user?._id,
+        userId: user?._id,
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword
       });
@@ -214,8 +221,8 @@ export default function ChangePasswordPage() {
             {/* Change Password Button */}
             <Button
               type="submit"
-              disabled={loading}
-              className="w-full h-12 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl"
+              disabled={loading || !user?._id}
+              className="w-full h-12 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Changing Password...' : 'Change Password'}
             </Button>
@@ -228,23 +235,11 @@ export default function ChangePasswordPage() {
           <div className="space-y-2 text-sm text-blue-700">
             <div className="flex items-start gap-2">
               <div className="w-1 h-1 rounded-full bg-blue-600 mt-2 flex-shrink-0" />
-              <p>Minimum 8 characters long</p>
+              <p>Minimum 4 characters long</p>
             </div>
             <div className="flex items-start gap-2">
               <div className="w-1 h-1 rounded-full bg-blue-600 mt-2 flex-shrink-0" />
-              <p>Include at least one uppercase letter (A-Z)</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-1 h-1 rounded-full bg-blue-600 mt-2 flex-shrink-0" />
-              <p>Include at least one lowercase letter (a-z)</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-1 h-1 rounded-full bg-blue-600 mt-2 flex-shrink-0" />
-              <p>Include at least one number (0-9)</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-1 h-1 rounded-full bg-blue-600 mt-2 flex-shrink-0" />
-              <p>Include at least one special character (!@#$%^&*)</p>
+              <p>Any combination of letters, numbers, and symbols</p>
             </div>
           </div>
         </Card>

@@ -28,7 +28,7 @@ interface VipLevel {
 
 export default function MemberLevelPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string; level: string; avatar?: string; accountBalance?: number } | null>(null);
+  const [user, setUser] = useState<{ username: string; level: string; avatar?: string; accountBalance?: number } | null>(null);
   const [vipLevels, setVipLevels] = useState<VipLevel[]>([]);
   const [loading, setLoading] = useState(true);
 

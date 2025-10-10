@@ -88,9 +88,8 @@ NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
 # Database
 MONGODB_URI=mongodb+srv://iconicdigital:iconicdigital@iconicdigital.t5nr2g9.mongodb.net/?retryWrites=true&w=majority&appName=iconicdigital
 
-# NextAuth
-NEXTAUTH_URL=http://localhost:3001
-NEXTAUTH_SECRET=92586b0f1b72cb5d3d95a7d2bbc52caedb5c608fab35754278a3ad1daeea215f
+# Authentication
+AUTH_SECRET=92586b0f1b72cb5d3d95a7d2bbc52caedb5c608fab35754278a3ad1daeea215f
 
 # Features
 NEXT_PUBLIC_ENABLE_REALTIME=true
@@ -110,9 +109,8 @@ NEXT_PUBLIC_BACKEND_URL=https://your-backend-api.com
 # Database
 MONGODB_URI=mongodb+srv://iconicdigital:iconicdigital@iconicdigital.t5nr2g9.mongodb.net/?retryWrites=true&w=majority&appName=iconicdigital
 
-# NextAuth
-NEXTAUTH_URL=https://your-frontend-domain.com
-NEXTAUTH_SECRET=92586b0f1b72cb5d3d95a7d2bbc52caedb5c608fab35754278a3ad1daeea215f
+# Authentication
+AUTH_SECRET=92586b0f1b72cb5d3d95a7d2bbc52caedb5c608fab35754278a3ad1daeea215f
 
 # Features
 NEXT_PUBLIC_ENABLE_REALTIME=true

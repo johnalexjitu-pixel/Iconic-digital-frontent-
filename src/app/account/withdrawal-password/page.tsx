@@ -8,22 +8,20 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Lock, Eye, EyeOff, CheckCircle } from "lucide-react";
+import { ArrowLeft, Lock, Eye, EyeOff, CheckCircle, AlertCircle, Info } from "lucide-react";
 import Link from "next/link";
 import { apiClient } from '@/lib/api-client';
 
 export default function WithdrawalPasswordPage() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<{ _id: string; username?: string; level?: string; avatar?: string; withdrawalPassword?: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
-    currentWithdrawalPassword: "",
     newWithdrawalPassword: "",
     confirmWithdrawalPassword: ""
   });
 
   const [showPasswords, setShowPasswords] = useState({
-    current: false,
     new: false,
     confirm: false
   });
@@ -33,11 +31,42 @@ export default function WithdrawalPasswordPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-    setIsLoading(false);
+    const fetchUserData = async () => {
+      try {
+        const userData = localStorage.getItem('user');
+        if (userData) {
+          const parsedUser = JSON.parse(userData);
+          // Use the user data directly from localStorage first
+          setUser(parsedUser);
+          
+          // Then fetch fresh user data to check withdrawal password status
+          try {
+            const response = await fetch(`/api/user?email=${encodeURIComponent(parsedUser.email)}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success) {
+                setUser(data.data);
+              } else {
+                console.warn('Failed to fetch fresh user data:', data.error);
+                // Keep using localStorage data if API fails
+              }
+            } else {
+              console.warn('API request failed:', response.status);
+              // Keep using localStorage data if API fails
+            }
+          } catch (apiError) {
+            console.warn('Error fetching fresh user data:', apiError);
+            // Keep using localStorage data if API fails
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchUserData();
   }, []);
 
   useEffect(() => {
@@ -60,32 +89,50 @@ export default function WithdrawalPasswordPage() {
     setSuccess(false);
 
     if (formData.newWithdrawalPassword !== formData.confirmWithdrawalPassword) {
-      setError('New withdrawal passwords do not match');
+      setError('Withdrawal passwords do not match');
       return;
     }
 
     if (formData.newWithdrawalPassword.length < 6) {
-      setError('New withdrawal password must be at least 6 characters');
+      setError('Withdrawal password must be at least 6 characters');
+      return;
+    }
+
+    // Check if user already has a withdrawal password
+    if (user?.withdrawalPassword) {
+      setError('Withdrawal password already exists. Only admin can change it. Contact support for assistance.');
       return;
     }
 
     setLoading(true);
     try {
       const response = await apiClient.updateUserProfile({
-        currentWithdrawalPassword: formData.currentWithdrawalPassword,
+        _id: user?._id,
+        userId: user?._id,
         newWithdrawalPassword: formData.newWithdrawalPassword
       });
 
       if (response.success) {
         setSuccess(true);
         setFormData({
-          currentWithdrawalPassword: "",
           newWithdrawalPassword: "",
           confirmWithdrawalPassword: ""
         });
+        // Refresh user data
+        const userData = localStorage.getItem('user');
+        if (userData) {
+          const parsedUser = JSON.parse(userData);
+          const refreshResponse = await fetch(`/api/user?email=${encodeURIComponent(parsedUser.email)}`);
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json();
+            if (refreshData.success) {
+              setUser(refreshData.data);
+            }
+          }
+        }
         setTimeout(() => setSuccess(false), 3000);
       } else {
-        setError(response.error || 'Failed to change withdrawal password');
+        setError(response.error || 'Failed to create withdrawal password');
       }
     } catch (error) {
       setError('Network error. Please try again.');
@@ -122,7 +169,11 @@ export default function WithdrawalPasswordPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <HomepageHeader user={user} />
+      <HomepageHeader user={{ 
+        username: user.username || 'User', 
+        level: user.level || 'Bronze', 
+        avatar: user.avatar 
+      }} />
       <div className="max-w-4xl mx-auto px-4 py-6 pb-20">
         <div className="space-y-6">
         {/* Header */}
@@ -132,49 +183,55 @@ export default function WithdrawalPasswordPage() {
               <ArrowLeft className="w-4 h-4" />
             </Button>
           </Link>
-          <h1 className="text-xl font-bold text-gray-900">Change Withdrawal Password</h1>
+          <h1 className="text-xl font-bold text-gray-900">
+            {user?.withdrawalPassword ? 'Withdrawal Password' : 'Create Withdrawal Password'}
+          </h1>
         </div>
 
         {/* Form */}
         <Card className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Current Withdrawal Password */}
-            <div className="space-y-2">
-              <Label htmlFor="currentWithdrawalPassword">Current Withdrawal Password</Label>
-              <div className="relative">
-                <Input
-                  id="currentWithdrawalPassword"
-                  type={showPasswords.current ? "text" : "password"}
-                  placeholder="Enter your current withdrawal password"
-                  value={formData.currentWithdrawalPassword}
-                  onChange={(e) => handleInputChange('currentWithdrawalPassword', e.target.value)}
-                  className="h-12 pr-12"
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-12 px-3"
-                  onClick={() => togglePasswordVisibility('current')}
-                >
-                  {showPasswords.current ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </Button>
+          {user?.withdrawalPassword ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-green-600">
+                <CheckCircle className="w-5 h-5" />
+                <span className="font-medium">Withdrawal password is set</span>
+              </div>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-yellow-800 font-medium">Password Protection Active</p>
+                    <p className="text-sm text-yellow-700 mt-1">
+                      Your withdrawal password is set and cannot be changed by you. 
+                      Contact admin support if you need assistance.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div className="flex items-start gap-2">
+                  <Info className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-blue-800 font-medium">Create Withdrawal Password</p>
+                    <p className="text-sm text-blue-700 mt-1">
+                      Set a withdrawal password to secure your withdrawal requests. 
+                      This password will be required for all withdrawal transactions and cannot be changed once set.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
             {/* New Withdrawal Password */}
             <div className="space-y-2">
-              <Label htmlFor="newWithdrawalPassword">New Withdrawal Password</Label>
+              <Label htmlFor="newWithdrawalPassword">Withdrawal Password</Label>
               <div className="relative">
                 <Input
                   id="newWithdrawalPassword"
                   type={showPasswords.new ? "text" : "password"}
-                  placeholder="Enter your new withdrawal password"
+                  placeholder="Enter your withdrawal password"
                   value={formData.newWithdrawalPassword}
                   onChange={(e) => handleInputChange('newWithdrawalPassword', e.target.value)}
                   className="h-12 pr-12"
@@ -198,12 +255,12 @@ export default function WithdrawalPasswordPage() {
 
             {/* Confirm New Withdrawal Password */}
             <div className="space-y-2">
-              <Label htmlFor="confirmWithdrawalPassword">Confirm New Withdrawal Password</Label>
+              <Label htmlFor="confirmWithdrawalPassword">Confirm Withdrawal Password</Label>
               <div className="relative">
                 <Input
                   id="confirmWithdrawalPassword"
                   type={showPasswords.confirm ? "text" : "password"}
-                  placeholder="Confirm your new withdrawal password"
+                  placeholder="Confirm your withdrawal password"
                   value={formData.confirmWithdrawalPassword}
                   onChange={(e) => handleInputChange('confirmWithdrawalPassword', e.target.value)}
                   className="h-12 pr-12"
@@ -236,19 +293,20 @@ export default function WithdrawalPasswordPage() {
             {success && (
               <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
                 <CheckCircle className="w-5 h-5 text-green-600" />
-                <p className="text-green-800">Withdrawal password changed successfully!</p>
+                <p className="text-green-800">Withdrawal password created successfully!</p>
               </div>
             )}
 
-            {/* Change Password Button */}
+            {/* Create Password Button */}
             <Button
               type="submit"
               disabled={loading}
               className="w-full h-12 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl"
             >
-              {loading ? 'Changing Withdrawal Password...' : 'Change Withdrawal Password'}
+              {loading ? 'Creating Withdrawal Password...' : 'Create Withdrawal Password'}
             </Button>
           </form>
+          )}
         </Card>
 
         {/* Password Requirements */}

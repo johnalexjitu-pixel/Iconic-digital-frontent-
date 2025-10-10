@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCollection } from '@/lib/mongodb';
 import { ICampaignClaim, CampaignClaimCollection } from '@/models/CampaignClaim';
+import { UserTaskHistoryCollection } from '@/models/UserTaskHistory';
+import { calculateCommission, getCommissionTier } from '@/lib/commission-calculator';
 import { ObjectId } from 'mongodb';
 
 // GET - Fetch completed campaigns for a customer
@@ -49,7 +51,7 @@ export async function POST(request: NextRequest) {
     const claimsCollection = await getCollection(CampaignClaimCollection);
     const usersCollection = await getCollection('users');
     
-    const { userId, taskId, taskTitle, platform, commission, amount, taskType, campaignId, taskPrice } = await request.json();
+    const { userId, taskId, taskTitle, platform, commission, amount, taskType, campaignId, taskPrice, taskNumber } = await request.json();
     
     if (!userId || !taskId) {
       return NextResponse.json(
@@ -58,63 +60,113 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if task is already completed
-    const existingClaim = await claimsCollection.findOne({
-      customerId: userId,
-      taskId: taskId
-    });
-
-    if (existingClaim) {
+    // Get user data to calculate commission based on balance
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+    if (!user) {
       return NextResponse.json(
-        { success: false, message: 'Task already completed' },
-        { status: 400 }
+        { success: false, message: 'User not found' },
+        { status: 404 }
       );
     }
 
-    console.log(`🎯 Completing task: ${taskTitle} (ID: ${taskId}) for user: ${userId}`);
-    console.log(`📋 Campaign ID being saved: ${campaignId}`);
+    // Check if user has negative balance
+    if ((user.accountBalance || 0) < 0) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Your account balance is negative. Please contact customer support or make a deposit to continue.',
+          errorType: 'negative_balance',
+          redirectTo: '/contact-support'
+        },
+        { status: 403 }
+      );
+    }
 
-    // Create campaign claim
+    // Calculate commission based on user's account balance
+    const balanceBasedCommission = calculateCommission(user.accountBalance || 0);
+    const finalCommission = commission || balanceBasedCommission;
+    
+    console.log(`💰 User balance: ${user.accountBalance}, Commission tier: ${getCommissionTier(user.accountBalance)?.description}, Calculated commission: ${finalCommission}`);
+
+    // Always create a new campaign claim to allow multiple completions of the same task
     const claim: ICampaignClaim = {
       customerId: userId,
       taskId: taskId,
       claimedAt: new Date(),
       status: 'completed',
       campaignId: campaignId, // Store the original campaign ID
-      commissionEarned: commission, // Store commission earned
+      commissionEarned: finalCommission, // Store commission earned
       taskTitle: taskTitle, // Store task title for history
       platform: platform, // Store platform for history
       taskPrice: taskPrice || amount, // Store task price for history
       createdAt: new Date(),
       updatedAt: new Date()
     };
-
     const claimResult = await claimsCollection.insertOne(claim);
     console.log(`✅ Task completion saved to database with ID: ${claimResult.insertedId}`);
 
+    // Get user data for history recording
+    const userForHistory = await usersCollection.findOne({ _id: new ObjectId(userId) });
+
+    // Also record in user task history
+    const historyCollection = await getCollection(UserTaskHistoryCollection);
+    const historyRecord = {
+      membershipId: userForHistory?.membershipId || 'unknown',
+      taskId: taskId,
+      taskNumber: taskNumber || 1,
+      taskTitle: taskTitle,
+      platform: platform,
+      commissionEarned: finalCommission,
+      taskPrice: taskPrice || amount,
+      source: 'campaigns',
+      campaignId: campaignId,
+      completedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    await historyCollection.insertOne(historyRecord);
+    console.log(`📚 Task history recorded for user: ${userForHistory?.membershipId}`);
+
     // Update user balance and campaign count (always update campaign count, even if no commission)
-    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
-    if (user) {
-      const newBalance = (user.accountBalance || 0) + commission;
-      const newTotalEarnings = (user.totalEarnings || 0) + commission;
-      const newCampaignsCompleted = (user.campaignsCompleted || 0) + 1;
+    const userForUpdate = await usersCollection.findOne({ _id: new ObjectId(userId) });
+    if (userForUpdate) {
+      const newBalance = (userForUpdate.accountBalance || 0) + finalCommission;
+      const newTotalEarnings = (userForUpdate.totalEarnings || 0) + finalCommission;
+      const newCampaignsCompleted = (userForUpdate.campaignsCompleted || 0) + 1;
+      const newCampaignCommission = (userForUpdate.campaignCommission || 0) + finalCommission;
 
-      console.log(`💰 Updating user balance: ${user.accountBalance} → ${newBalance} (+${commission})`);
-      console.log(`📊 Updating campaigns completed: ${user.campaignsCompleted} → ${newCampaignsCompleted}`);
+      console.log(`💰 Updating user balance: ${userForUpdate.accountBalance} → ${newBalance} (+${finalCommission})`);
+      console.log(`📊 Updating campaigns completed: ${userForUpdate.campaignsCompleted} → ${newCampaignsCompleted}`);
+      console.log(`💵 Updating campaign commission: ${userForUpdate.campaignCommission} → ${newCampaignCommission}`);
 
-      await usersCollection.updateOne(
+      // Check if user has completed 30 tasks and should increment campaignSet
+      let updatedCampaignSet = userForUpdate.campaignSet || [];
+      if (newCampaignsCompleted > 0 && newCampaignsCompleted % 30 === 0) {
+        const newSetNumber = updatedCampaignSet.length + 1;
+        updatedCampaignSet = [...updatedCampaignSet, newSetNumber];
+        console.log(`🎯 User completed ${newCampaignsCompleted} tasks, adding set ${newSetNumber}. CampaignSet: ${JSON.stringify(updatedCampaignSet)}`);
+      }
+
+      const updateResult = await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
         {
           $set: {
             accountBalance: newBalance,
             totalEarnings: newTotalEarnings,
             campaignsCompleted: newCampaignsCompleted,
+            campaignCommission: newCampaignCommission,
+            campaignSet: updatedCampaignSet,
             updatedAt: new Date()
           }
         }
       );
       
-      console.log(`✅ User stats updated successfully`);
+      if (updateResult.modifiedCount > 0) {
+        console.log(`✅ User stats updated successfully in database`);
+      } else {
+        console.log(`⚠️ User stats update may have failed - no documents modified`);
+      }
     } else {
       console.log(`❌ User not found: ${userId}`);
     }
@@ -123,8 +175,11 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Task completed successfully',
       data: {
-        claimId: claimResult.insertedId,
-        commissionAdded: commission || 0
+        claimId: 'insertedId' in claimResult ? claimResult.insertedId : 'updated',
+        commissionAdded: finalCommission || 0,
+        commission: finalCommission || 0,
+        newBalance: userForUpdate ? (userForUpdate.accountBalance || 0) + finalCommission : 0,
+        accountBalance: userForUpdate ? (userForUpdate.accountBalance || 0) + finalCommission : 0
       }
     });
 

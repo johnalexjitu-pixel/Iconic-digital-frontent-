@@ -1,72 +1,86 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCollection } from '@/lib/mongodb';
-import { IDeposit, DepositCollection } from '@/models/Deposit';
-import { IUser, UserCollection } from '@/models/User';
 import { ObjectId } from 'mongodb';
 
-// POST - Approve deposit (Admin only)
 export async function POST(request: NextRequest) {
   try {
-    const depositsCollection = await getCollection(DepositCollection);
-    const usersCollection = await getCollection(UserCollection);
+    const depositsCollection = await getCollection('deposits');
+    const usersCollection = await getCollection('users');
     
-    const { depositId, adminId, adminNotes } = await request.json();
-    
-    if (!depositId) {
-      return NextResponse.json(
-        { success: false, message: 'Deposit ID is required' },
-        { status: 400 }
-      );
+    const { depositId, status, adminNotes } = await request.json();
+
+    // Validation
+    if (!depositId || !status) {
+      return NextResponse.json({
+        success: false,
+        error: 'Deposit ID and status are required'
+      }, { status: 400 });
     }
 
+    if (!['approved', 'rejected'].includes(status)) {
+      return NextResponse.json({
+        success: false,
+        error: 'Status must be either approved or rejected'
+      }, { status: 400 });
+    }
+
+    // Find the deposit
     const deposit = await depositsCollection.findOne({ _id: new ObjectId(depositId) });
     if (!deposit) {
-      return NextResponse.json(
-        { success: false, message: 'Deposit not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({
+        success: false,
+        error: 'Deposit not found'
+      }, { status: 404 });
     }
 
     if (deposit.status !== 'pending') {
-      return NextResponse.json(
-        { success: false, message: 'Deposit already processed' },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        success: false,
+        error: 'Deposit has already been processed'
+      }, { status: 400 });
     }
 
-    // Add amount to user balance
-    await usersCollection.updateOne(
-      { _id: new ObjectId(deposit.customerId) },
-      { $inc: { accountBalance: deposit.amount } }
-    );
-
     // Update deposit status
-    const now = new Date();
     await depositsCollection.updateOne(
-      { _id: new ObjectId(depositId) },
-      {
-        $set: {
-          status: 'approved',
-          processedAt: now,
-          processedBy: adminId,
-          adminNotes,
-          updatedAt: now
+      { _id: deposit._id },
+      { 
+        $set: { 
+          status,
+          updatedAt: new Date(),
+          adminNotes
         }
       }
     );
 
+    // If approved, update user's deposit count and account balance
+    if (status === 'approved') {
+      await usersCollection.updateOne(
+        { _id: new ObjectId(deposit.userId) },
+        { 
+          $inc: { 
+            depositCount: 1,
+            accountBalance: deposit.amount
+          },
+          $set: { updatedAt: new Date() }
+        }
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Deposit approved successfully',
-      data: deposit
+      message: `Deposit ${status} successfully`,
+      data: {
+        depositId: deposit._id,
+        status,
+        adminNotes
+      }
     });
 
   } catch (error) {
-    console.error('Error approving deposit:', error);
-    return NextResponse.json(
-      { success: false, message: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Deposit approval error:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Deposit approval failed'
+    }, { status: 500 });
   }
 }
-

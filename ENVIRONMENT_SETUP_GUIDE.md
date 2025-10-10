@@ -69,11 +69,11 @@ ALLOWED_FILE_TYPES=jpg,jpeg,png,pdf,doc,docx
 
 # Email Configuration
 EMAIL_SERVICE=nodemailer
-SMTP_HOST=smtp.gmail.com
+SMTP_HOST=smtp.example.com
 SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
+SMTP_USER=your-email@example.com
 SMTP_PASS=your-app-password
-FROM_EMAIL=noreply@socialtrend.com
+FROM_EMAIL=noreply@iconicdigital.com
 
 # Redis Configuration (for caching)
 REDIS_URL=redis://localhost:6379

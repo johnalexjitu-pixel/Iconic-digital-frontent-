@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Upload, AlertCircle, CheckCircle, X, FileImage, DollarSign, Clock, History, Info } from "lucide-react";
+import { ArrowLeft, Upload, AlertCircle, CheckCircle, X, FileImage, DollarSign, Clock, History, Info, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { apiClient } from '@/lib/api-client';
@@ -40,7 +40,17 @@ interface WithdrawalRecord {
 
 export default function WithdrawalInfoPage() {
   const { success: showSuccess, error: showError, info: showInfo } = useToastHelpers();
-  const [user, setUser] = useState<{ name: string; level: string; avatar?: string; _id?: string; accountBalance?: number } | null>(null);
+  const [user, setUser] = useState<{ 
+    username: string; 
+    level: string; 
+    avatar?: string; 
+    _id?: string; 
+    accountBalance?: number;
+    campaignsCompleted?: number;
+    depositCount?: number;
+    campaignCommission?: number;
+    campaignSet?: number[];
+  } | null>(null);
   const [formData, setFormData] = useState({
     withdrawalMethod: "bkash",
     accountHolderName: "",
@@ -50,7 +60,8 @@ export default function WithdrawalInfoPage() {
     mobileNumber: "",
     usdtAddress: "",
     usdtNetwork: "TRC20",
-    amount: ""
+    amount: "",
+    withdrawalPassword: ""
   });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -75,6 +86,38 @@ export default function WithdrawalInfoPage() {
   } | null>(null);
   const [setupLoading, setSetupLoading] = useState(false);
 
+  // Check withdrawal eligibility
+  const checkWithdrawalEligibility = () => {
+    if (!user) return { eligible: false, message: 'User not found' };
+
+    const requiredTasks = user.depositCount && user.depositCount > 0 ? 90 : 30;
+    const tasksCompleted = user.campaignsCompleted || 0;
+    
+    if (tasksCompleted < requiredTasks) {
+      return {
+        eligible: false,
+        message: `You must complete ${requiredTasks - tasksCompleted} more tasks before making a withdrawal`,
+        tasksRemaining: requiredTasks - tasksCompleted
+      };
+    }
+
+    if (user.depositCount === 0) {
+      // New user: can only withdraw commission (accountBalance includes trial balance + commission)
+      const maxWithdrawable = user.campaignCommission || 0;
+      return {
+        eligible: true,
+        message: `You can withdraw up to BDT ${maxWithdrawable} (commission only). Trial balance cannot be withdrawn.`,
+        maxWithdrawable
+      };
+    }
+
+    return {
+      eligible: true,
+      message: 'You can withdraw your full balance',
+      maxWithdrawable: user.accountBalance || 0
+    };
+  };
+
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
@@ -82,8 +125,46 @@ export default function WithdrawalInfoPage() {
       setUser(parsedUser);
       fetchWithdrawals(parsedUser._id);
       fetchUserWithdrawalInfo(parsedUser._id);
+      fetchFreshUserData(parsedUser.username); // Fetch fresh user data from API
     }
   }, []);
+
+  // Fetch fresh user data from API to get updated account balance
+  const fetchFreshUserData = async (username: string) => {
+    try {
+      const response = await fetch(`/api/user?username=${encodeURIComponent(username)}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          const freshUserData = data.data;
+          setUser(prevUser => ({
+            ...prevUser,
+            username: prevUser?.username || '',
+            level: prevUser?.level || 'Bronze',
+            avatar: prevUser?.avatar,
+            _id: prevUser?._id,
+            accountBalance: freshUserData.accountBalance,
+            campaignsCompleted: freshUserData.campaignsCompleted,
+            campaignCommission: freshUserData.campaignCommission,
+            depositCount: freshUserData.depositCount,
+            campaignSet: prevUser?.campaignSet
+          }));
+          
+          // Update localStorage with fresh data
+          const updatedUser = {
+            ...JSON.parse(localStorage.getItem('user') || '{}'),
+            accountBalance: freshUserData.accountBalance,
+            campaignsCompleted: freshUserData.campaignsCompleted,
+            campaignCommission: freshUserData.campaignCommission,
+            depositCount: freshUserData.depositCount
+          };
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching fresh user data:', error);
+    }
+  };
 
   const fetchWithdrawals = async (customerId: string) => {
     setHistoryLoading(true);
@@ -331,14 +412,33 @@ export default function WithdrawalInfoPage() {
   };
 
   const handleWithdrawal = async () => {
+    // Check withdrawal eligibility
+    const eligibility = checkWithdrawalEligibility();
+    if (!eligibility.eligible) {
+      showError(eligibility.message, 'Withdrawal Not Allowed');
+      return;
+    }
+
     // Validate required fields
     if (!formData.amount) {
       showError('Please enter withdrawal amount', 'Validation Error');
       return;
     }
 
+    if (!formData.withdrawalPassword) {
+      showError('Please enter your withdrawal password', 'Validation Error');
+      return;
+    }
+
     if (!withdrawalInfo?.setupCompleted) {
       showError('Please complete withdrawal information setup first', 'Setup Required');
+      return;
+    }
+
+    // Check if amount exceeds maximum withdrawable
+    const amount = parseFloat(formData.amount);
+    if (eligibility.maxWithdrawable && amount > eligibility.maxWithdrawable) {
+      showError(`Amount cannot exceed BDT ${eligibility.maxWithdrawable}`, 'Amount Limit Exceeded');
       return;
     }
     
@@ -369,25 +469,29 @@ export default function WithdrawalInfoPage() {
         customerId: user._id,
         amount: parseFloat(formData.amount),
         method: withdrawalInfo.method,
-        accountDetails: accountDetails
+        accountDetails: accountDetails,
+        withdrawalPassword: formData.withdrawalPassword
       });
 
         if (response.success) {
           setSuccess(true);
         showSuccess('Withdrawal request submitted successfully!', 'Success');
           setFormData({
-          withdrawalMethod: "bkash",
+            withdrawalMethod: "bkash",
             accountHolderName: "",
             bankName: "",
             accountNumber: "",
             branch: "",
-          mobileNumber: "",
-          usdtAddress: "",
-          usdtNetwork: "TRC20",
-            amount: ""
+            mobileNumber: "",
+            usdtAddress: "",
+            usdtNetwork: "TRC20",
+            amount: "",
+            withdrawalPassword: ""
           });
         // Refresh withdrawal history
         fetchWithdrawals(user._id);
+        // Refresh user data to get updated account balance
+        fetchFreshUserData(user.username);
           setTimeout(() => setSuccess(false), 3000);
       } else {
         // Show API error message as toast
@@ -437,6 +541,15 @@ export default function WithdrawalInfoPage() {
                       <p className="text-lg font-semibold text-gray-900">BDT {user?.accountBalance?.toLocaleString() || '0'}</p>
                     </div>
                   </div>
+                  <Button
+                    onClick={() => user?.username && fetchFreshUserData(user.username)}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Refresh
+                  </Button>
                 </div>
               </Card>
 
@@ -526,6 +639,22 @@ export default function WithdrawalInfoPage() {
                           All
                         </Button>
         </div>
+
+                      {/* Withdrawal Password */}
+                      <div className="space-y-2">
+                        <Label htmlFor="withdrawalPassword" className="text-sm font-medium text-gray-700">
+                          Withdrawal Password *
+                        </Label>
+                        <Input
+                          id="withdrawalPassword"
+                          type="password"
+                          placeholder="Enter your withdrawal password"
+                          value={formData.withdrawalPassword}
+                          onChange={(e) => handleInputChange('withdrawalPassword', e.target.value)}
+                          className="h-12"
+                          required
+                        />
+                      </div>
 
                       {/* Action Buttons */}
                       <div className="flex gap-3">

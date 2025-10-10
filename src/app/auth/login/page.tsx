@@ -15,7 +15,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const { login, user } = useAuth();
   const [formData, setFormData] = useState({
-    email: '',
+    username: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -43,7 +43,7 @@ function LoginForm() {
     setError('');
 
     try {
-      const success = await login(formData.email, formData.password);
+      const success = await login(formData.username, formData.password);
       
       if (success) {
         // Redirect to intended page or home
@@ -92,15 +92,15 @@ function LoginForm() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
-                id="email"
-                name="email"
-                type="email"
+                id="username"
+                name="username"
+                type="text"
                 required
-                value={formData.email}
+                value={formData.username}
                 onChange={handleChange}
-                placeholder="Enter your email"
+                placeholder="Enter your username"
               />
             </div>
 
@@ -135,7 +135,7 @@ function LoginForm() {
               className="w-full"
               disabled={loading}
             >
-              {loading ? 'Signing In...' : 'Sign In'}
+              {loading ? 'Logging In...' : 'Login'}
             </Button>
           </form>
 
@@ -143,7 +143,7 @@ function LoginForm() {
             <p className="text-gray-600">
               Don't have an account?{' '}
               <Link href="/auth/register" className="text-teal-600 hover:text-teal-700 font-medium">
-                Create Account
+                Sign Up
               </Link>
             </p>
           </div>

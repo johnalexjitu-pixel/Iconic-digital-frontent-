@@ -45,12 +45,13 @@ export async function POST(request: NextRequest) {
       customerId, 
       amount, 
       method, 
-      accountDetails 
+      accountDetails,
+      withdrawalPassword
     } = await request.json();
     
-    if (!customerId || !amount || !method) {
+    if (!customerId || !amount || !method || !withdrawalPassword) {
       return NextResponse.json(
-        { success: false, message: 'Customer ID, amount, and method are required' },
+        { success: false, message: 'Customer ID, amount, method, and withdrawal password are required' },
         { status: 400 }
       );
     }
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check user balance
+    // Check user balance and withdrawal password
     const user = await usersCollection.findOne({ _id: new ObjectId(customerId) });
     if (!user) {
       return NextResponse.json(
@@ -71,11 +72,72 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if user has withdrawal password set
+    if (!user.withdrawalPassword) {
+      return NextResponse.json(
+        { success: false, message: 'Withdrawal password not set. Please set your withdrawal password first.' },
+        { status: 400 }
+      );
+    }
+
+    // Validate withdrawal password
+    if (user.withdrawalPassword !== withdrawalPassword) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid withdrawal password' },
+        { status: 401 }
+      );
+    }
+
     if (user.accountBalance < amount) {
       return NextResponse.json(
         { success: false, message: 'Insufficient balance' },
         { status: 400 }
       );
+    }
+
+    // Check withdrawal eligibility based on task completion
+    const requiredTasks = user.depositCount > 0 ? 90 : 30;
+    const currentSet = user.campaignSet.length;
+    const tasksInCurrentSet = user.campaignsCompleted - (currentSet * 30);
+    
+    if (user.depositCount === 0) {
+      // New user: must complete 30 tasks and can only withdraw commission (not trial balance)
+      if (user.campaignsCompleted < 30) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            message: `You must complete ${30 - user.campaignsCompleted} more tasks before making a withdrawal`,
+            tasksRemaining: 30 - user.campaignsCompleted
+          },
+          { status: 400 }
+        );
+      }
+      
+      // Check if trying to withdraw more than commission
+      // For new users, accountBalance includes trial balance, but only commission is withdrawable
+      const maxWithdrawable = user.campaignCommission;
+      if (amount > maxWithdrawable) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            message: `You can only withdraw your commission (BDT ${maxWithdrawable}). Trial balance cannot be withdrawn.`,
+            maxWithdrawable
+          },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Deposited user: must complete 90 tasks (3 sets of 30)
+      if (user.campaignsCompleted < 90) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            message: `You must complete ${90 - user.campaignsCompleted} more tasks before making a withdrawal`,
+            tasksRemaining: 90 - user.campaignsCompleted
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Deduct amount from user balance (hold it)

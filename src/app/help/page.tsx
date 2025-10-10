@@ -10,7 +10,7 @@ import { HomepageFooter } from "@/components/HomepageFooter";
 
 export default function HelpPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string; level: string; avatar?: string } | null>(null);
+  const [user, setUser] = useState<{ username: string; level: string; avatar?: string } | null>(null);
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
 
   useEffect(() => {

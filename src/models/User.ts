@@ -2,28 +2,34 @@ import { ObjectId } from 'mongodb';
 
 export interface IUser {
   _id?: ObjectId;
-  name: string;
-  email: string;
+  username: string;
+  number?: string;
   password: string;
   withdrawalPassword?: string;
-  level: 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond';
-  membershipId: string;
-  referralCode: string;
+  gender: 'male' | 'female' | 'other';
+  membershipId?: string;
+  referralCode?: string;
+  referStatus: 'active' | 'inactive';
+  level: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
   creditScore: number;
   accountBalance: number;
-  walletBalance: number;
   totalEarnings: number;
   campaignsCompleted: number;
-  todayCommission: number;
-  withdrawalAmount: number;
-  dailyCampaignsCompleted: number;
+  campaignSet: number[];
+  campaignCommission: number;
+  depositCount: number;
+  trialBalance: number;
+  campaignStatus: 'active' | 'inactive';
+  withdrawStatus: 'active' | 'inactive';
+  accountStatus: 'active' | 'inactive';
   dailyCheckIn: {
     lastCheckIn: Date | null;
     streak: number;
     daysClaimed: string[];
   };
+  isActive: boolean;
+  allowTask: boolean;
   lastLogin?: Date;
-  phoneNumber?: string;
   withdrawalInfo?: {
     accountNumber?: string;
     bankName?: string;

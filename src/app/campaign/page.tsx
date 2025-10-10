@@ -7,6 +7,9 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { HomepageFooter } from '@/components/HomepageFooter';
 import { HomepageHeader } from '@/components/HomepageHeader';
+import { AccountStatusChecker } from '@/components/AccountStatusChecker';
+import { toast } from 'sonner';
+import { getCommissionTier, getMinCommission, getMaxCommission } from '@/lib/commission-calculator';
 import { 
   DollarSign, 
   Calendar, 
@@ -15,7 +18,10 @@ import {
   CheckCircle,
   Users,
   RefreshCw,
-  Gift
+  Gift,
+  X,
+  Star,
+  Crown
 } from 'lucide-react';
 import GoldenEggModal from '@/components/GoldenEggModal';
 
@@ -25,6 +31,7 @@ interface CustomerTask {
   taskNumber: number;
   taskPrice: number;
   taskCommission: number;
+  estimatedNegativeAmount?: number;
   taskTitle: string;
   taskDescription: string;
   platform: string;
@@ -45,9 +52,23 @@ interface CustomerTask {
   source?: string; // Added source field for new workflow
 }
 
+interface CustomerTaskFromAPI {
+  _id: string;
+  customerId: string;
+  customerCode: string;
+  taskNumber: number;
+  taskPrice: number;
+  taskCommission: number;
+  estimatedNegativeAmount?: number;
+  hasGoldenEgg?: boolean;
+  campaignId?: string;
+  status: string;
+}
+
 interface UserStats {
   accountBalance: number;
   campaignsCompleted: number;
+  campaignCommission: number;
   todayCommission: number;
   withdrawalAmount: number;
   dailyCampaignsCompleted: number;
@@ -60,6 +81,7 @@ export default function CampaignPage() {
   const [userStats, setUserStats] = useState<UserStats>({
     accountBalance: 0,
     campaignsCompleted: 0,
+    campaignCommission: 0,
     todayCommission: 0,
     withdrawalAmount: 0,
     dailyCampaignsCompleted: 0,
@@ -247,9 +269,9 @@ export default function CampaignPage() {
   // Fetch user stats from database
   const fetchUserStats = useCallback(async () => {
     try {
-      if (!user?.email) return;
+      if (!user?.username) return;
       
-      const response = await fetch(`/api/user?email=${encodeURIComponent(user.email)}`);
+      const response = await fetch(`/api/user?username=${encodeURIComponent(user.username)}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
@@ -257,17 +279,20 @@ export default function CampaignPage() {
           setUserStats({
             accountBalance: userData.accountBalance || 0,
             campaignsCompleted: userData.campaignsCompleted || 0,
-            todayCommission: userData.todayCommission || 0,
-            withdrawalAmount: userData.withdrawalAmount || 0,
-            dailyCampaignsCompleted: userData.dailyCampaignsCompleted || 0,
+            campaignCommission: userData.campaignCommission || 0,
+            todayCommission: userData.campaignCommission || 0, // Use campaignCommission as today's commission for now
+            withdrawalAmount: user?.depositCount === 0 ? (userData.campaignCommission || 0) : (userData.accountBalance || 0),
+            dailyCampaignsCompleted: userData.campaignsCompleted || 0,
             totalEarnings: userData.totalEarnings || 0
           });
+          return userData; // Return the fresh data
         }
       }
     } catch (error) {
       console.error('Error fetching user stats:', error);
     }
-  }, [user?.email]);
+    return null;
+  }, [user?.username, user?.depositCount]);
 
   // Fetch all tasks for display purposes
   const fetchAllTasks = useCallback(async () => {
@@ -288,7 +313,7 @@ export default function CampaignPage() {
     }
   }, [user?._id]);
 
-  // Fetch tasks using new workflow system
+  // Fetch tasks using customerTasks system
   const fetchTasks = useCallback(async (isRefresh = false) => {
     if (!user?.membershipId) return;
     
@@ -299,28 +324,115 @@ export default function CampaignPage() {
       
       console.log('🔍 Fetching next task for membershipId:', user.membershipId);
       
-      // Get next available task using new workflow
-      const response = await fetch(`/api/task-workflow?membershipId=${user.membershipId}`);
-      const data = await response.json();
+      // Get fresh user data directly from API instead of using stale userStats
+      const freshUserData = await fetchUserStats();
+      if (!freshUserData) {
+        console.log('❌ Failed to fetch fresh user data');
+        return;
+      }
       
-      console.log('📊 Task workflow API response:', data);
+      const campaignsCompleted = freshUserData.campaignsCompleted || 0;
+      console.log('🔍 Fresh campaigns completed:', campaignsCompleted);
+      console.log('🔍 User deposit count:', user.depositCount);
       
-      if (data.success && data.data && data.data.task) {
-        console.log(`✅ Next task loaded: ${data.data.task.taskTitle} (Task #${data.data.task.taskNumber})`);
-        console.log(`📈 Progress: ${data.data.completedCount} completed tasks`);
-        console.log(`💰 Commission: ${data.data.task.taskCommission} (from ${data.data.source})`);
-        console.log(`🥚 Has Golden Egg: ${data.data.task.hasGoldenEgg}`);
-        console.log(`📝 Task Status: ${data.data.task.status}`);
-        console.log(`🧮 Calculation:`, data.data.calculation);
+      // First check customerTasks collection - match customerCode with membershipId
+      const customerTasksResponse = await fetch(`/api/customer-tasks?customerCode=${user.membershipId}&status=pending`);
+      const customerTasksData = await customerTasksResponse.json();
+      console.log('🔍 Customer tasks response:', customerTasksData);
+      console.log('🔍 Searching for customerCode:', user.membershipId, 'in customerTasks collection');
+      
+      // Check if customer task was found
+      let customerTaskFound = false;
+      
+      if (customerTasksData.success && customerTasksData.data && customerTasksData.data.length > 0) {
+        // Find the next task based on fresh campaignsCompleted + 1
+        const nextTaskNumber = campaignsCompleted + 1;
+        console.log(`🔍 Looking for Task #${nextTaskNumber} in customer tasks (based on fresh campaignsCompleted: ${campaignsCompleted})`);
         
-        setCurrentTask(data.data.task);
+        // First try to find the exact next task number
+        const task = customerTasksData.data.find((t: CustomerTaskFromAPI) => t.taskNumber === nextTaskNumber);
         
-        // Update user stats with latest data
-        await fetchUserStats();
+        if (task) {
+          console.log(`✅ Customer task found: Task #${task.taskNumber}`);
+          console.log(`💰 Commission: ${task.taskCommission}`);
+          console.log(`🥚 Has Golden Egg: ${task.hasGoldenEgg}`);
+          console.log(`📊 Estimated Negative Amount: ${task.estimatedNegativeAmount || 0}`);
+          console.log(`💎 Total Commission: ${(task.estimatedNegativeAmount || 0) + (task.taskCommission || 0)} BDT`);
+          
+          setCurrentTask({
+            _id: task._id,
+            customerId: task.customerId,
+            taskNumber: task.taskNumber,
+            taskPrice: task.taskPrice,
+            taskCommission: task.taskCommission,
+            estimatedNegativeAmount: task.estimatedNegativeAmount,
+            taskTitle: `Task #${task.taskNumber}`,
+            taskDescription: `Complete this task to earn BDT ${(task.estimatedNegativeAmount || 0) + (task.taskCommission || 0)}`,
+            platform: 'instagram', // Default platform
+            status: 'pending',
+            isClaimed: false,
+            hasGoldenEgg: task.hasGoldenEgg,
+            campaignId: task.campaignId,
+            source: 'customerTasks'
+          });
+          
+          console.log(`🎯 Customer task set successfully: Task #${task.taskNumber}`);
+          customerTaskFound = true;
       } else {
-        console.log('📋 No tasks available - API response:', data);
+          console.log(`❌ Task #${nextTaskNumber} not found in customer tasks, will show campaign task instead`);
+        }
+      } else {
+        console.log(`❌ No pending customer tasks found, falling back to campaigns`);
+      }
+      
+      // Only call campaign API if no customer task was found
+      if (!customerTaskFound) {
+        console.log('🔍 No customer task found, falling back to campaigns collection...');
+        const campaignsResponse = await fetch('/api/campaigns');
+        const campaignsData = await campaignsResponse.json();
+        console.log('🔍 Campaigns response:', campaignsData);
+        
+        if (campaignsData.success && campaignsData.data && campaignsData.data.length > 0) {
+          // Randomly select a campaign for variety
+          const randomIndex = Math.floor(Math.random() * campaignsData.data.length);
+          const campaign = campaignsData.data[randomIndex];
+          console.log(`✅ Campaign task loaded: ${campaign.title} (random selection)`);
+          
+          // Calculate commission based on user type
+          let taskCommission;
+          if (user.depositCount === 0) {
+            // New user: random commission between 20-50 BDT (part of 1000 BDT total)
+            taskCommission = Math.floor(Math.random() * 31) + 20; // 20-50 BDT
+          } else {
+            // Deposited user: use campaign limits
+            taskCommission = Math.floor(Math.random() * (campaign.maxCommission - campaign.minCommission + 1)) + campaign.minCommission;
+          }
+          
+          const nextTaskNumber = campaignsCompleted + 1;
+          console.log(`🔍 Creating campaign task #${nextTaskNumber} for user (fresh campaignsCompleted: ${campaignsCompleted})`);
+          
+          const newTask = {
+            _id: campaign._id,
+            customerId: user._id,
+            taskNumber: nextTaskNumber,
+            taskPrice: campaign.baseAmount,
+            taskCommission: taskCommission,
+            taskTitle: campaign.title,
+            taskDescription: campaign.description,
+            platform: campaign.platform,
+            status: 'pending' as const,
+            isClaimed: false,
+            hasGoldenEgg: campaign.hasGoldenEgg,
+            campaignId: campaign._id,
+            source: 'campaigns'
+          };
+          
+          console.log('🎯 Setting new campaign task:', newTask);
+          setCurrentTask(newTask);
+        } else {
+          console.log('📋 No tasks available');
         setCurrentTask(null);
-        setTasks([]);
+        }
       }
       
     } catch (error) {
@@ -331,11 +443,47 @@ export default function CampaignPage() {
         setRefreshing(false);
       }
     }
-  }, [user?.membershipId, fetchUserStats]);
+  }, [user?.membershipId, user?._id, userStats.campaignsCompleted, user?.depositCount]);
 
   // Manual refresh function
   const handleRefresh = () => {
     fetchTasks(true);
+  };
+
+  // Task reset function
+  const handleTaskReset = async () => {
+    if (!user?._id) return;
+
+    try {
+      const response = await fetch('/api/customer-tasks/reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user._id
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          console.log('✅ Task reset successful');
+          toast.success('Tasks reset successfully! You can now complete more tasks.');
+          await fetchUserStats();
+          await fetchTasks();
+        } else {
+          setError(data.error || 'Failed to reset tasks');
+          toast.error(data.error || 'Failed to reset tasks');
+        }
+      } else {
+        setError('Failed to reset tasks');
+        toast.error('Failed to reset tasks');
+      }
+    } catch (error) {
+      console.error('Error resetting tasks:', error);
+      setError('Failed to reset tasks');
+    }
   };
 
   // Claim task
@@ -385,7 +533,28 @@ export default function CampaignPage() {
 
   // Complete task
   const completeTask = async (task: CustomerTask, selectedEgg?: number) => {
-    if (!user?.membershipId) return;
+    if (!user?._id) return;
+
+    // Check if user has negative balance
+    if ((userStats.accountBalance || 0) < 0) {
+      setError('Your account balance is negative. Please contact customer support or make a deposit to continue.');
+      toast.error('Negative balance detected. Contact support or make a deposit.');
+      return;
+    }
+
+    // Check if user's campaign status is inactive
+    if (user.campaignStatus === 'inactive') {
+      setError('Your campaign status is inactive. Please contact customer service to start tasks.');
+      toast.error('Campaign status is inactive. Contact customer service to start tasks.');
+      return;
+    }
+
+    // Check if user has reached the 30-task limit for new users
+    if (user.depositCount === 0 && userStats.campaignsCompleted >= 30) {
+      setError('You have completed the maximum 30 tasks. Please contact customer service to get more tasks or make a deposit.');
+      toast.error('You have reached the 30-task limit. Contact customer service for assistance.');
+      return;
+    }
 
     setIsCompleting(true);
     setError(null);
@@ -394,45 +563,127 @@ export default function CampaignPage() {
       console.log('🎯 Completing task:', task.taskTitle, 'Commission:', task.taskCommission);
       console.log('🥚 Selected egg:', selectedEgg || 'N/A');
       
-      // Save task completion using new workflow
-      const completionResponse = await fetch('/api/task-workflow', {
+      console.log(`🎯 Completing task: ${task.taskTitle} (ID: ${task._id})`);
+      console.log(`👤 User ID: ${user._id}`);
+      console.log(`📋 Task data:`, {
+        _id: task._id,
+        taskTitle: task.taskTitle,
+        platform: task.platform,
+        taskCommission: task.taskCommission,
+        taskPrice: task.taskPrice,
+        source: task.source
+      });
+
+      // Complete task based on source
+      let completionResponse;
+      if (task.source === 'customerTasks') {
+        // Complete customer task
+        console.log(`📤 Sending customer task completion request`);
+        completionResponse = await fetch('/api/customer-tasks/complete', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          membershipId: user.membershipId,
-          taskId: task._id.toString(),
+            taskId: task._id,
+            userId: user._id
+          }),
+        });
+      } else {
+        // Complete campaign task directly
+        console.log(`📤 Sending campaign task completion request`);
+        const requestData = {
+          userId: user._id,
+          taskId: task._id,
           taskTitle: task.taskTitle,
           platform: task.platform,
-          commission: task.taskCommission || 0,
-          taskNumber: task.taskNumber,
-          source: task.source || 'customerTasks',
-          selectedEgg: selectedEgg // Pass the selected egg
-        }),
-      });
+          commission: task.taskCommission,
+          amount: task.taskPrice,
+          taskType: 'campaign',
+          campaignId: task._id,
+          taskPrice: task.taskPrice,
+          taskNumber: task.taskNumber
+        };
+        console.log(`📤 Request data:`, requestData);
+        
+        completionResponse = await fetch('/api/campaigns/complete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
+        });
+      }
 
       if (completionResponse.ok) {
         const completionData = await completionResponse.json();
         
         if (completionData.success) {
           console.log(`✅ Task completed successfully: ${completionData.message}`);
-          console.log(`📊 Updated progress: ${completionData.data.completedCount} tasks completed`);
-          console.log(`💰 Commission added: ${completionData.data.commissionAdded}`);
-          console.log(`💳 New balance: ${completionData.data.newBalance}`);
+          console.log(`📊 Commission earned: ${completionData.data.commission || task.taskCommission}`);
+          console.log(`💳 New balance: ${completionData.data.accountBalance || completionData.data.newBalance}`);
           
-          // Refresh user stats from database
+          // Show Golden Egg success message if applicable
+          if (completionData.data.isGoldenEgg) {
+            toast.success(`🥚 Golden Egg Round Completed! Earned ${completionData.data.commission} BDT`);
+          } else if (completionData.data.commissionType === 'customer_task') {
+            toast.success(`📋 Customer Task Completed! Earned ${completionData.data.commission} BDT`);
+          } else {
+            toast.success(`🎯 Task Completed! Earned ${completionData.data.commission} BDT`);
+          }
+          
+          // Update user stats immediately with API response data
+          const earnedCommission = completionData.data.commission || task.taskCommission;
+          const newBalance = completionData.data.accountBalance || completionData.data.newBalance;
+          
+          // For customer tasks: use tasksCompleted (taskNumber), for campaign tasks: increment by 1
+          let newCampaignsCompleted;
+          if (completionData.data.tasksCompleted !== undefined) {
+            // Customer task completion - use the taskNumber
+            newCampaignsCompleted = completionData.data.tasksCompleted;
+            console.log(`📋 Customer task completed - using taskNumber: ${newCampaignsCompleted}`);
+          } else {
+            // Campaign task completion - increment by 1
+            newCampaignsCompleted = userStats.campaignsCompleted + 1;
+            console.log(`🎯 Campaign task completed - incrementing: ${userStats.campaignsCompleted} → ${newCampaignsCompleted}`);
+          }
+          
+          setUserStats(prevStats => ({
+            ...prevStats,
+            accountBalance: newBalance,
+            campaignsCompleted: newCampaignsCompleted,
+            campaignCommission: prevStats.campaignCommission + earnedCommission,
+            todayCommission: prevStats.todayCommission + earnedCommission,
+            withdrawalAmount: user?.depositCount === 0 ? (prevStats.campaignCommission + earnedCommission) : newBalance,
+            totalEarnings: prevStats.totalEarnings + earnedCommission
+          }));
+          
+          // Add a small delay to ensure database is updated
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Refresh user stats from database to ensure accuracy
           await fetchUserStats();
           
           // Get next task from database
+          console.log(`🔄 Loading next task after completion...`);
           await fetchTasks();
           
           console.log(`✅ Task completed and next task loaded`);
         } else {
-          setError(completionData.message || 'Failed to save task completion');
+          console.error(`❌ Task completion failed: ${completionData.message}`);
+          setError(completionData.error || 'Failed to save task completion');
         }
       } else {
-        setError('Failed to save task completion to database');
+        const errorData = await completionResponse.json();
+        console.error(`❌ API Error (${completionResponse.status}):`, errorData);
+        
+        // Handle specific error types
+        if (errorData.errorType === 'negative_balance') {
+          setError('Your account balance is negative. Please contact customer support or make a deposit to continue.');
+          toast.error('Negative balance detected. Contact support or make a deposit.');
+        } else {
+          setError(errorData.message || 'Failed to save task completion to database');
+        }
       }
       
     } catch (error) {
@@ -451,10 +702,14 @@ export default function CampaignPage() {
     }
     
     if (user?.membershipId) {
-      fetchUserStats();
-      fetchTasks();
+      // Initialize data only once when component mounts
+      const initializeData = async () => {
+        await fetchUserStats();
+        await fetchTasks();
+      };
+      initializeData();
     }
-  }, [user, loading, router, fetchUserStats, fetchTasks]);
+  }, [user?.membershipId, loading]); // Only depend on essential values
 
   if (loading) {
   return (
@@ -469,6 +724,7 @@ export default function CampaignPage() {
   }
 
   return (
+    <AccountStatusChecker>
     <div className="min-h-screen bg-gray-50">
       <HomepageHeader />
       <div className="max-w-2xl mx-auto p-4 space-y-6 pt-10">
@@ -506,7 +762,7 @@ export default function CampaignPage() {
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-gray-500 text-sm mb-1">Campaigns Completed</div>
-                <div className="text-xl font-semibold">{userStats.campaignsCompleted}/30</div>
+                <div className="text-xl font-semibold">{userStats.campaignsCompleted}/{user?.depositCount > 0 ? 90 : 30}</div>
               </div>
             </div>
           </Card>
@@ -514,9 +770,9 @@ export default function CampaignPage() {
           <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm">
             <div className="flex items-start justify-between">
               <div>
-                <div className="text-gray-500 text-sm mb-1">Today's Commission</div>
+                <div className="text-gray-500 text-sm mb-1">Total Commission</div>
                 <div className="flex items-center gap-1">
-                  <span className="text-xl font-semibold">BDT {userStats.todayCommission.toLocaleString()}</span>
+                  <span className="text-xl font-semibold">BDT {userStats.campaignCommission?.toLocaleString() || '0'}</span>
                 </div>
               </div>
                     </div>
@@ -525,17 +781,112 @@ export default function CampaignPage() {
           <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm">
             <div className="flex items-start justify-between">
               <div>
-                <div className="text-gray-500 text-sm mb-1">Withdrawal Amount</div>
+                <div className="text-gray-500 text-sm mb-1">Withdrawable Amount</div>
                 <div className="flex items-center gap-1">
-                  <span className="text-xl font-semibold">BDT {userStats.withdrawalAmount.toLocaleString()}</span>
+                  <span className="text-xl font-semibold">
+                    BDT {user?.depositCount === 0 ? (userStats.campaignCommission?.toLocaleString() || '0') : userStats.accountBalance.toLocaleString()}
+                  </span>
                 </div>
               </div>
                     </div>
           </Card>
                   </div>
 
-        {/* Refresh Button */}
-        <div className="flex justify-center mb-4">
+        {/* Commission Tier Card */}
+        <Card className="p-4 mb-8 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-r from-blue-100 to-purple-100">
+                <Crown className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-gray-500">Commission Tier</h4>
+                <p className="text-lg font-semibold text-blue-900">
+                  {getCommissionTier(userStats.accountBalance)?.description || 'Basic Tier'}
+                </p>
+                <p className="text-xs text-gray-600">
+                  Commission Range: BDT {getMinCommission(userStats.accountBalance)} - {getMaxCommission(userStats.accountBalance)}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-gray-500">Current Balance</div>
+              <div className="text-lg font-semibold text-blue-900">
+                BDT {userStats.accountBalance.toLocaleString()}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Negative Balance Warning Card */}
+        {userStats.accountBalance < 0 && (
+          <Card className="p-4 mb-8 bg-red-50 border-red-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-red-100">
+                  <X className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">Account Balance Issue</h4>
+                  <p className="text-lg font-semibold text-red-900">Negative Balance Detected</p>
+                  <p className="text-sm text-red-700">
+                    Current Balance: BDT {userStats.accountBalance.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Button
+                  onClick={() => window.location.href = '/contact-support'}
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Contact Support
+                </Button>
+                <Button
+                  onClick={() => window.location.href = '/deposit'}
+                  size="sm"
+                  variant="outline"
+                  className="border-red-300 text-red-700 hover:bg-red-50"
+                >
+                  Make Deposit
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Campaign Status Card */}
+        <Card className={`p-4 mb-8 ${user?.campaignStatus === 'active' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${user?.campaignStatus === 'active' ? 'bg-green-100' : 'bg-red-100'}`}>
+                {user?.campaignStatus === 'active' ? (
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                ) : (
+                  <X className="w-5 h-5 text-red-600" />
+                )}
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-gray-500">Campaign Status</h4>
+                <p className={`text-lg font-semibold ${user?.campaignStatus === 'active' ? 'text-green-900' : 'text-red-900'}`}>
+                  {user?.campaignStatus === 'active' ? 'Active' : 'Inactive'}
+                </p>
+              </div>
+            </div>
+            {user?.campaignStatus === 'inactive' && (
+              <Button
+                onClick={() => window.location.href = '/contact-support'}
+                size="sm"
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                Contact Support
+              </Button>
+            )}
+          </div>
+        </Card>
+
+        {/* Refresh and Reset Buttons */}
+        <div className="flex justify-center gap-4 mb-4">
           <Button
             onClick={handleRefresh}
             disabled={refreshing}
@@ -546,18 +897,88 @@ export default function CampaignPage() {
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             {refreshing ? 'Refreshing...' : 'Refresh Tasks'}
           </Button>
+          
+          {/* Show reset button only if user has completed 30 tasks in current set */}
+          {user && user.campaignsCompleted > 0 && (user.campaignsCompleted % 30) === 0 && (
+            <Button
+              onClick={handleTaskReset}
+              variant="default"
+              size="sm"
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Reset Tasks
+            </Button>
+          )}
         </div>
 
         {/* Launch Campaign Button with Swipe Gesture */}
         <div className="pt-4 relative">
-          <div 
-            className="relative h-16 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-r from-red-500 to-pink-500 transition-colors duration-300 select-none"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
+          {/* Check if user has negative balance */}
+          {userStats.accountBalance < 0 ? (
+            <div className="bg-red-100 border border-red-300 text-red-800 px-6 py-4 rounded-lg text-center">
+              <h3 className="text-lg font-semibold mb-2">⚠️ Negative Balance Detected!</h3>
+              <p className="mb-3">Your account balance is negative (BDT {userStats.accountBalance.toLocaleString()}). Please contact customer support or make a deposit to continue.</p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button
+                  onClick={() => window.location.href = '/contact-support'}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Contact Customer Support
+                </Button>
+                <Button
+                  onClick={() => window.location.href = '/deposit'}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Make Deposit
+                </Button>
+              </div>
+            </div>
+          ) : user && user.campaignStatus === 'inactive' ? (
+            <div className="bg-red-100 border border-red-300 text-red-800 px-6 py-4 rounded-lg text-center">
+              <h3 className="text-lg font-semibold mb-2">🚫 Campaign Status Inactive!</h3>
+              <p className="mb-3">Your campaign status is currently inactive. Please contact customer service to start tasks.</p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button
+                  onClick={() => window.location.href = '/contact-support'}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Contact Customer Service
+                </Button>
+              </div>
+            </div>
+          ) : user && user.depositCount === 0 && userStats.campaignsCompleted >= 30 ? (
+            <div className="bg-yellow-100 border border-yellow-300 text-yellow-800 px-6 py-4 rounded-lg text-center">
+              <h3 className="text-lg font-semibold mb-2">🎯 Task Limit Reached!</h3>
+              <p className="mb-3">You have completed the maximum 30 tasks. To continue earning:</p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button
+                  onClick={handleTaskReset}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  Reset Tasks (Contact Customer Service)
+                </Button>
+                <Button
+                  onClick={() => window.location.href = '/deposit'}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Make a Deposit
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div 
+              className={`relative h-16 rounded-full overflow-hidden flex items-center justify-center transition-colors duration-300 select-none ${
+                user && (user.campaignStatus === 'inactive' || (user.depositCount === 0 && userStats.campaignsCompleted >= 30))
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-red-500 to-pink-500'
+              }`}
+              onTouchStart={user && (user.campaignStatus === 'inactive' || (user.depositCount === 0 && userStats.campaignsCompleted >= 30)) ? undefined : handleTouchStart}
+              onTouchMove={user && (user.campaignStatus === 'inactive' || (user.depositCount === 0 && userStats.campaignsCompleted >= 30)) ? undefined : handleTouchMove}
+              onTouchEnd={user && (user.campaignStatus === 'inactive' || (user.depositCount === 0 && userStats.campaignsCompleted >= 30)) ? undefined : handleTouchEnd}
+              onMouseDown={user && (user.campaignStatus === 'inactive' || (user.depositCount === 0 && userStats.campaignsCompleted >= 30)) ? undefined : handleMouseDown}
+              onMouseMove={user && (user.campaignStatus === 'inactive' || (user.depositCount === 0 && userStats.campaignsCompleted >= 30)) ? undefined : handleMouseMove}
+              onMouseUp={user && (user.campaignStatus === 'inactive' || (user.depositCount === 0 && userStats.campaignsCompleted >= 30)) ? undefined : handleMouseUp}
             onMouseLeave={resetSwipe}
             style={{ userSelect: 'none', touchAction: 'none' }}
           >
@@ -594,7 +1015,6 @@ export default function CampaignPage() {
               }}
             >
               <ArrowRight className="w-8 h-8 transition-transform duration-300 text-red-500" />
-                </div>
               </div>
           
           {/* Swipe indicator arrows */}
@@ -608,22 +1028,66 @@ export default function CampaignPage() {
               />
             ))}
                 </div>
-          
+          </div>
+          )}
             </div>
 
         {/* Current Task Info */}
         {currentTask && (
-          <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+          <Card className={`p-6 border-2 ${currentTask.hasGoldenEgg ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-300' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'}`}>
             <div className="text-center">
-              <h3 className="text-lg font-bold text-gray-800 mb-2">Current Task</h3>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <h3 className="text-lg font-bold text-gray-800">Current Task</h3>
+                {currentTask.hasGoldenEgg && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-yellow-200 rounded-full">
+                    <Gift className="w-4 h-4 text-yellow-700" />
+                    <span className="text-xs font-semibold text-yellow-800">Golden Egg</span>
+                  </div>
+                )}
+              </div>
               <p className="text-gray-600 mb-4">{currentTask.taskTitle}</p>
               <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
                 <span>
-                  Commission: {currentTask.taskCommission > 0 ? `BDT ${currentTask.taskCommission.toLocaleString()}` : 'No Commission'}
+                  {currentTask.hasGoldenEgg ? (
+                    <>
+                      Golden Egg Commission: BDT {((currentTask.estimatedNegativeAmount || 0) + (currentTask.taskCommission || 0)).toLocaleString()}
+                      <br />
+                      <span className="text-xs text-gray-400">
+                        ({currentTask.estimatedNegativeAmount || 0} + {currentTask.taskCommission || 0})
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      Commission: BDT {((currentTask.estimatedNegativeAmount || 0) + (currentTask.taskCommission || 0)).toLocaleString()}
+                      <br />
+                      <span className="text-xs text-gray-400">
+                        ({currentTask.estimatedNegativeAmount || 0} + {currentTask.taskCommission || 0})
+                      </span>
+                    </>
+                  )}
                 </span>
                 <span>Platform: {currentTask.platform}</span>
                 <span>Task #{currentTask.taskNumber}</span>
               </div>
+              <div className="mt-2 flex items-center justify-center gap-4 text-sm text-gray-600">
+                <span>
+                  Company Profit: BDT {currentTask.taskPrice?.toLocaleString() || '0'}
+                </span>
+                <span>
+                  Source: {currentTask.source === 'customerTasks' ? 'Customer Tasks' : 'Campaigns'}
+                </span>
+              </div>
+              {currentTask.hasGoldenEgg && (
+                <div className="mt-3 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <Gift className="w-5 h-5 text-yellow-600" />
+                    <p className="text-yellow-800 font-semibold text-sm">Golden Egg Round!</p>
+                  </div>
+                  <p className="text-yellow-700 text-xs">
+                    Special bonus round with enhanced commission!
+                  </p>
+                </div>
+              )}
               {currentTask.isFromCampaign && (
                 <div className="mt-2 p-2 bg-blue-100 border border-blue-300 rounded-lg">
                   <p className="text-blue-800 text-sm">
@@ -631,7 +1095,7 @@ export default function CampaignPage() {
                   </p>
                 </div>
               )}
-              {currentTask.taskCommission === 0 && (
+              {currentTask.taskCommission === 0 && !currentTask.hasGoldenEgg && (
                 <div className="mt-3 p-2 bg-yellow-100 border border-yellow-300 rounded-lg">
                   <p className="text-yellow-800 text-sm">
                     ⚠️ This task has no commission reward
@@ -848,5 +1312,6 @@ export default function CampaignPage() {
       
       <HomepageFooter />
     </div>
+    </AccountStatusChecker>
   );
 }

@@ -26,12 +26,12 @@ import {
 } from "lucide-react";
 import Link from 'next/link';
 import { apiClient } from '@/lib/api-client';
+import { AccountStatusChecker } from '@/components/AccountStatusChecker';
 
 interface User {
   _id: string;
   id?: string;
-  name: string;
-  email: string;
+  username: string;
   level: string;
   membershipId: string;
   referralCode: string;
@@ -75,15 +75,15 @@ export default function AccountPage() {
   // Real-time data fetching
   const fetchRealTimeData = useCallback(async () => {
     try {
-      if (!user?.email) return;
+      if (!user?.username) return;
       
-      const response = await fetch(`/api/user?email=${encodeURIComponent(user.email)}`);
+      const response = await fetch(`/api/user?username=${encodeURIComponent(user.username)}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
           const userData = data.data;
           setRealTimeData({
-            name: userData.name || '',
+            name: userData.username || '',
             walletBalance: userData.accountBalance || 0, // Use accountBalance instead of walletBalance
             level: userData.level || 'Bronze',
             membershipId: userData.membershipId || '',
@@ -95,7 +95,7 @@ export default function AccountPage() {
     } catch (error) {
       console.error('Error fetching real-time data:', error);
     }
-  }, [user?.email]);
+  }, [user?.username]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -146,7 +146,6 @@ export default function AccountPage() {
   }
 
   if (!user) {
-    router.push('/auth/login');
     return null;
   }
 
@@ -202,9 +201,10 @@ export default function AccountPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
-      <HomepageHeader user={user} />
-      <div className="max-w-6xl mx-auto px-4 py-6 pb-20">
+    <AccountStatusChecker>
+      <div className="min-h-screen bg-white">
+        <HomepageHeader user={user} />
+        <div className="max-w-6xl mx-auto px-4 py-6 pb-20">
         <div className="space-y-6">
         {/* Profile Header */}
         <Card className="p-6 bg-gradient-to-br from-teal-50 to-cyan-50 border-teal-200">
@@ -214,13 +214,13 @@ export default function AccountPage() {
               <Avatar className="w-16 h-16">
                 <AvatarImage src={user.avatar} />
                 <AvatarFallback className="bg-teal-100 text-teal-600 text-xl">
-                  {(realTimeData.name || user.name)?.charAt(0)?.toUpperCase() || 'U'}
+                  {(realTimeData.name || user.username)?.charAt(0)?.toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl font-bold text-gray-900 animate-pulse">
-                    {realTimeData.name || user.name || 'User'}
+                    {realTimeData.name || user.username || 'User'}
                   </h2>
                   <Badge className={`${
                     (realTimeData.level || user.level) === 'Gold' ? 'bg-yellow-500 text-white' :
@@ -271,9 +271,10 @@ export default function AccountPage() {
                 </Button>
               </div>
               <div className="flex items-center gap-2">
-                <Wallet className="w-6 h-6 text-green-600" />
+              
                 <p className="text-3xl font-bold text-green-600 animate-pulse">
-                  BDT {(realTimeData.walletBalance || user.walletBalance || 0).toLocaleString()}
+                ৳
+                 {(realTimeData.walletBalance || user.walletBalance || 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -397,5 +398,6 @@ export default function AccountPage() {
       </div>
       <HomepageFooter activePage="account" />
     </div>
+    </AccountStatusChecker>
   );
 }

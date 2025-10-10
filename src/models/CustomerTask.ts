@@ -2,19 +2,21 @@ import { ObjectId } from 'mongodb';
 
 export interface ICustomerTask {
   _id?: ObjectId;
-  customerId: string;
-  taskNumber: number; // 1-30
-  taskPrice: number;
+  customerId: string; // Reference to user's _id
+  customerCode: string; // Same as user's membershipId
+  taskNumber: number;
+  campaignId: string; // Reference to campaign
   taskCommission: number;
-  taskTitle: string;
-  taskDescription: string;
-  platform: string;
-  status: 'pending' | 'active' | 'completed' | 'claimed';
-  claimedAt?: Date;
+  taskPrice: number; // Company profit (baseAmount from campaigns)
+  estimatedNegativeAmount: number;
+  priceFrom: number;
+  priceTo: number;
+  hasGoldenEgg: boolean;
+  expiredDate: Date;
+  status: 'pending' | 'completed' | 'expired' | 'cancelled';
   completedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export const CustomerTaskCollection = 'customertasks';
-
+export const CustomerTaskCollection = 'customerTasks';

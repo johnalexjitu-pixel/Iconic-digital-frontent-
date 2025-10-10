@@ -10,7 +10,7 @@ import { HomepageFooter } from '@/components/HomepageFooter';
 
 export default function ContactSupportPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string; email: string; level: string; avatar?: string } | null>(null);
+  const [user, setUser] = useState<{ username: string; level: string; avatar?: string } | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
@@ -145,12 +145,8 @@ export default function ContactSupportPage() {
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Account Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-gray-600">Name</p>
-                <p className="font-medium text-gray-900">{user.name}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Email</p>
-                <p className="font-medium text-gray-900">{user.email}</p>
+                <p className="text-sm text-gray-600">Username</p>
+                <p className="font-medium text-gray-900">{user.username}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Level</p>

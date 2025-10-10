@@ -7,7 +7,7 @@ import { Crown, HelpCircle, Headphones, LogIn, LogOut } from "lucide-react";
 
 interface HomepageHeaderProps {
   user?: {
-    name: string;
+    username: string;
     level: string;
     avatar?: string;
   } | null;

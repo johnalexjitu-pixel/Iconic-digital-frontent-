@@ -7,7 +7,7 @@ import { HomepageFooter } from "@/components/HomepageFooter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Wallet, Clock, X, MessageCircle } from "lucide-react";
+import { ArrowLeft, Wallet, Clock, X, MessageCircle, Calendar, CreditCard, CheckCircle, AlertCircle, XCircle } from "lucide-react";
 import Link from "next/link";
 
 interface Deposit {
@@ -27,8 +27,7 @@ interface Deposit {
 
 interface User {
   _id: string;
-  email: string;
-  name: string;
+  username: string;
   accountBalance: number;
   walletBalance?: number;
 }
@@ -39,6 +38,74 @@ export default function DepositPage() {
   const [depositHistory, setDepositHistory] = useState<Deposit[]>([]);
   const [userBalance, setUserBalance] = useState(0);
   const [showCustomerService, setShowCustomerService] = useState(false);
+
+  // Helper function to format dates properly
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+      }
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  };
+
+  // Helper function to get method display name
+  const getMethodDisplayName = (method: string) => {
+    switch (method) {
+      case 'bank_transfer': return 'Bank Transfer';
+      case 'mobile_banking': return 'Mobile Banking';
+      case 'cash': return 'Cash';
+      case 'nagad': return 'Nagad';
+      case 'bkash': return 'bKash';
+      case 'rocket': return 'Rocket';
+      case 'bank': return 'Bank Transfer';
+      default: return method.charAt(0).toUpperCase() + method.slice(1);
+    }
+  };
+
+  // Helper function to get status icon and color
+  const getStatusInfo = (status: string) => {
+    switch (status) {
+      case 'approved':
+      case 'completed':
+        return {
+          icon: CheckCircle,
+          color: 'text-green-600',
+          bgColor: 'bg-green-100',
+          text: 'Completed'
+        };
+      case 'pending':
+        return {
+          icon: AlertCircle,
+          color: 'text-yellow-600',
+          bgColor: 'bg-yellow-100',
+          text: 'Pending'
+        };
+      case 'rejected':
+        return {
+          icon: XCircle,
+          color: 'text-red-600',
+          bgColor: 'bg-red-100',
+          text: 'Rejected'
+        };
+      default:
+        return {
+          icon: AlertCircle,
+          color: 'text-gray-600',
+          bgColor: 'bg-gray-100',
+          text: status.charAt(0).toUpperCase() + status.slice(1)
+        };
+    }
+  };
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -80,7 +147,7 @@ export default function DepositPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <HomepageHeader user={user ? { name: user.name, level: 'user' } : undefined} />
+      <HomepageHeader user={user ? { username: user.username, level: 'user' } : undefined} />
       <div className="max-w-2xl mx-auto px-4 py-6 pb-20">
         <div className="space-y-6">
           {/* Header */}
@@ -143,56 +210,116 @@ export default function DepositPage() {
 
             <TabsContent value="history" className="space-y-4 mt-6">
               <div className="space-y-4">
-                {depositHistory.map((deposit) => (
-                  <Card key={deposit._id} className="p-4 border border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          deposit.status === 'approved' ? 'bg-green-100' :
-                          deposit.status === 'rejected' ? 'bg-red-100' : 'bg-yellow-100'
-                        }`}>
-                          <Wallet className={`w-5 h-5 ${
-                            deposit.status === 'approved' ? 'text-green-600' :
-                            deposit.status === 'rejected' ? 'text-red-600' : 'text-yellow-600'
-                          }`} />
+                {depositHistory.map((deposit) => {
+                  const statusInfo = getStatusInfo(deposit.status);
+                  const StatusIcon = statusInfo.icon;
+                  
+                  return (
+                    <Card key={deposit._id} className="p-6 border border-gray-200 hover:shadow-md transition-shadow">
+                      <div className="space-y-4">
+                        {/* Header Row */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${statusInfo.bgColor}`}>
+                              <StatusIcon className={`w-6 h-6 ${statusInfo.color}`} />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-gray-900 text-lg">
+                                {getMethodDisplayName(deposit.method)}
+                              </h3>
+                              <p className="text-sm text-gray-500">
+                                Transaction ID: {deposit._id.slice(-8).toUpperCase()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-bold text-green-600">
+                              BDT {deposit.amount.toLocaleString()}
+                            </p>
+                            <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusInfo.bgColor} ${statusInfo.color}`}>
+                              <StatusIcon className="w-3 h-3" />
+                              {statusInfo.text}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {deposit.method === 'bank_transfer' ? 'Bank Transfer' :
-                             deposit.method === 'mobile_banking' ? 'Mobile Banking' :
-                             deposit.method === 'cash' ? 'Cash' : 'Other'}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {new Date(deposit.submittedAt).toLocaleDateString()} • {deposit._id.slice(-8)}
-                          </p>
-                          {deposit.transactionId && (
-                            <p className="text-xs text-gray-400">TXN: {deposit.transactionId}</p>
-                          )}
+
+                        {/* Details Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                          {/* Time Information */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-gray-500" />
+                              <span className="text-sm font-medium text-gray-700">Deposit Time</span>
+                            </div>
+                            <p className="text-sm text-gray-600 ml-6">
+                              {formatDate(deposit.submittedAt || deposit.createdAt)}
+                            </p>
+                            
+                            {deposit.processedAt && (
+                              <>
+                                <div className="flex items-center gap-2">
+                                  <Clock className="w-4 h-4 text-gray-500" />
+                                  <span className="text-sm font-medium text-gray-700">Processed Time</span>
+                                </div>
+                                <p className="text-sm text-gray-600 ml-6">
+                                  {formatDate(deposit.processedAt)}
+                                </p>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Method & Reference Information */}
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <CreditCard className="w-4 h-4 text-gray-500" />
+                              <span className="text-sm font-medium text-gray-700">Payment Method</span>
+                            </div>
+                            <p className="text-sm text-gray-600 ml-6">
+                              {getMethodDisplayName(deposit.method)}
+                            </p>
+                            
+                            {deposit.transactionId && (
+                              <>
+                                <div className="flex items-center gap-2">
+                                  <Wallet className="w-4 h-4 text-gray-500" />
+                                  <span className="text-sm font-medium text-gray-700">Reference</span>
+                                </div>
+                                <p className="text-sm text-gray-600 ml-6 font-mono">
+                                  {deposit.transactionId}
+                                </p>
+                              </>
+                            )}
+                          </div>
                         </div>
+
+                        {/* Admin Notes */}
+                        {deposit.adminNotes && (
+                          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                              <MessageCircle className="w-4 h-4 text-blue-600" />
+                              <span className="text-sm font-medium text-blue-800">Admin Note</span>
+                            </div>
+                            <p className="text-sm text-blue-700">{deposit.adminNotes}</p>
+                          </div>
+                        )}
+
+                        {/* Processed By */}
+                        {deposit.processedBy && (
+                          <div className="mt-2 text-xs text-gray-500">
+                            Processed by: {deposit.processedBy}
+                          </div>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-green-600">BDT {deposit.amount.toLocaleString()}</p>
-                        <p className={`text-sm ${
-                          deposit.status === 'approved' ? 'text-green-600' :
-                          deposit.status === 'rejected' ? 'text-red-600' : 'text-yellow-600'
-                        }`}>
-                          {deposit.status.charAt(0).toUpperCase() + deposit.status.slice(1)}
-                        </p>
-                      </div>
-                    </div>
-                    {deposit.adminNotes && (
-                      <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-600">
-                        <strong>Admin Note:</strong> {deposit.adminNotes}
-                      </div>
-                    )}
-                  </Card>
-                ))}
+                    </Card>
+                  );
+                })}
               </div>
 
               {depositHistory.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <Wallet className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>No deposit history found</p>
+                <div className="text-center py-12 text-gray-500">
+                  <Wallet className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <h3 className="text-lg font-medium text-gray-700 mb-2">No Deposit History</h3>
+                  <p className="text-sm text-gray-500">You haven't made any deposits yet.</p>
                 </div>
               )}
             </TabsContent>
