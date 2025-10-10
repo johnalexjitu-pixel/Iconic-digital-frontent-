@@ -28,6 +28,8 @@ interface TaskHistory {
   completedAt: string;
   createdAt: string;
   updatedAt: string;
+  logo?: string; // Base64 image data
+  brand?: string; // Brand name
 }
 
 interface HistorySummary {
@@ -271,14 +273,19 @@ export default function HistoryPage() {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="w-full sm:w-24 h-40 sm:h-24 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
                     <img 
-                      alt={task.taskTitle} 
-                      className="w-full h-full object-cover" 
-                      src={getBrandLogo(task.taskTitle)}
+                      alt={task.brand || task.taskTitle} 
+                      className="w-full h-full object-contain" 
+                      src={task.logo || getBrandLogo(task.taskTitle)}
+                      onError={(e) => {
+                        e.currentTarget.src = getBrandLogo(task.taskTitle);
+                      }}
                     />
                   </div>
                   <div className="flex flex-1 justify-between mt-2 sm:mt-0">
                     <div className="flex flex-col">
-                      <h3 className="font-semibold text-gray-800 text-lg">{task.taskTitle}</h3>
+                      <h3 className="font-semibold text-gray-800 text-lg">
+                        {task.brand || task.taskTitle}
+                      </h3>
                       <span className="text-sm text-gray-500 font-medium">{task.platform}</span>
                       {task.hasGoldenEgg && (
                         <div className="flex items-center gap-1">

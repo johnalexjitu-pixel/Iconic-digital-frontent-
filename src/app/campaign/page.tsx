@@ -21,8 +21,98 @@ import {
   Gift,
   X,
   Star,
-  Crown
+  Crown,
+  Loader2
 } from 'lucide-react';
+
+// Professional Loading Animation Component
+const ProfessionalLoadingAnimation = ({ 
+  state, 
+  progress 
+}: { 
+  state: 'idle' | 'fetching' | 'connecting' | 'connected';
+  progress: number;
+}) => {
+  const getStateInfo = () => {
+    switch (state) {
+      case 'fetching':
+        return { text: 'Fetching Task Data...', color: 'text-blue-600', icon: Loader2 };
+      case 'connecting':
+        return { text: 'Connecting to Server...', color: 'text-yellow-600', icon: Loader2 };
+      case 'connected':
+        return { text: 'Connected Successfully!', color: 'text-green-600', icon: CheckCircle };
+      default:
+        return { text: 'Ready', color: 'text-gray-600', icon: CheckCircle };
+    }
+  };
+
+  const { text, color, icon: Icon } = getStateInfo();
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl">
+        <div className="text-center">
+          {/* Animated Icon */}
+          <div className="mb-6 flex justify-center">
+            <div className={`relative ${state === 'connected' ? 'animate-pulse' : ''}`}>
+              <Icon className={`w-12 h-12 ${color} ${state !== 'connected' ? 'animate-spin' : ''}`} />
+              {state === 'connected' && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <CheckCircle className="w-8 h-8 text-green-500" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="mb-4">
+            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-blue-500 via-yellow-500 to-green-500 rounded-full transition-all duration-1000 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Status Text */}
+          <h3 className={`text-lg font-semibold ${color} mb-2`}>
+            {text}
+          </h3>
+
+          {/* Progress Percentage */}
+          <p className="text-sm text-gray-500">
+            {Math.round(progress)}% Complete
+          </p>
+
+          {/* Professional Status Messages */}
+          <div className="mt-4 space-y-2 text-sm text-gray-600">
+            {state === 'fetching' && (
+              <>
+                <p>• Retrieving campaign data</p>
+                <p>• Validating user permissions</p>
+                <p>• Preparing task details</p>
+              </>
+            )}
+            {state === 'connecting' && (
+              <>
+                <p>• Establishing secure connection</p>
+                <p>• Synchronizing data</p>
+                <p>• Finalizing task assignment</p>
+              </>
+            )}
+            {state === 'connected' && (
+              <>
+                <p>• Task loaded successfully</p>
+                <p>• Ready for completion</p>
+                <p>• All systems operational</p>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 import GoldenEggModal from '@/components/GoldenEggModal';
 
 interface CustomerTask {
@@ -50,6 +140,8 @@ interface CustomerTask {
   campaignId?: string;
   isFromCampaign?: boolean;
   source?: string; // Added source field for new workflow
+  logo?: string; // Base64 image data
+  brand?: string; // Brand name
 }
 
 interface CustomerTaskFromAPI {
@@ -63,6 +155,8 @@ interface CustomerTaskFromAPI {
   hasGoldenEgg?: boolean;
   campaignId?: string;
   status: string;
+  logo?: string; // Base64 image data
+  brand?: string; // Brand name
 }
 
 interface UserStats {
@@ -93,6 +187,8 @@ export default function CampaignPage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [showGoldenEggModal, setShowGoldenEggModal] = useState(false);
+  const [loadingState, setLoadingState] = useState<'idle' | 'fetching' | 'connecting' | 'connected'>('idle');
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [selectedEgg, setSelectedEgg] = useState<number | null>(null);
   
   // Swipe gesture states
@@ -322,12 +418,18 @@ export default function CampaignPage() {
         setRefreshing(true);
       }
       
+      // Start professional loading animation
+      setLoadingState('fetching');
+      setLoadingProgress(10);
+      
       console.log('🔍 Fetching next task for membershipId:', user.membershipId);
       
       // Get fresh user data directly from API instead of using stale userStats
+      setLoadingProgress(30);
       const freshUserData = await fetchUserStats();
       if (!freshUserData) {
         console.log('❌ Failed to fetch fresh user data');
+        setLoadingState('idle');
         return;
       }
       
@@ -336,6 +438,8 @@ export default function CampaignPage() {
       console.log('🔍 User deposit count:', user.depositCount);
       
       // First check customerTasks collection - match customerCode with membershipId
+      setLoadingProgress(50);
+      setLoadingState('connecting');
       const customerTasksResponse = await fetch(`/api/customer-tasks?customerCode=${user.membershipId}&status=pending`);
       const customerTasksData = await customerTasksResponse.json();
       console.log('🔍 Customer tasks response:', customerTasksData);
@@ -373,11 +477,20 @@ export default function CampaignPage() {
             isClaimed: false,
             hasGoldenEgg: task.hasGoldenEgg,
             campaignId: task.campaignId,
-            source: 'customerTasks'
+            source: 'customerTasks',
+            logo: task.logo, // Base64 image data
+            brand: task.brand // Brand name
           });
           
           console.log(`🎯 Customer task set successfully: Task #${task.taskNumber}`);
           customerTaskFound = true;
+          
+          // Complete loading animation
+          setLoadingProgress(100);
+          setLoadingState('connected');
+          setTimeout(() => {
+            setLoadingState('idle');
+          }, 1500);
       } else {
           console.log(`❌ Task #${nextTaskNumber} not found in customer tasks, will show campaign task instead`);
         }
@@ -424,11 +537,20 @@ export default function CampaignPage() {
             isClaimed: false,
             hasGoldenEgg: campaign.hasGoldenEgg,
             campaignId: campaign._id,
-            source: 'campaigns'
+            source: 'campaigns',
+            logo: campaign.logo, // Base64 image data
+            brand: campaign.brand // Brand name
           };
           
           console.log('🎯 Setting new campaign task:', newTask);
           setCurrentTask(newTask);
+          
+          // Complete loading animation
+          setLoadingProgress(100);
+          setLoadingState('connected');
+          setTimeout(() => {
+            setLoadingState('idle');
+          }, 1500);
         } else {
           console.log('📋 No tasks available');
         setCurrentTask(null);
@@ -727,6 +849,15 @@ export default function CampaignPage() {
     <AccountStatusChecker>
     <div className="min-h-screen bg-gray-50">
       <HomepageHeader />
+      
+      {/* Professional Loading Animation */}
+      {loadingState !== 'idle' && (
+        <ProfessionalLoadingAnimation 
+          state={loadingState} 
+          progress={loadingProgress} 
+        />
+      )}
+      
       <div className="max-w-2xl mx-auto p-4 space-y-6 pt-10">
       
         {/* Hero Video Section */}
@@ -1036,7 +1167,7 @@ export default function CampaignPage() {
         {currentTask && (
           <Card className={`p-6 border-2 ${currentTask.hasGoldenEgg ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-300' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'}`}>
             <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
+              <div className="flex items-center justify-center gap-2 mb-4">
                 <h3 className="text-lg font-bold text-gray-800">Current Task</h3>
                 {currentTask.hasGoldenEgg && (
                   <div className="flex items-center gap-1 px-2 py-1 bg-yellow-200 rounded-full">
@@ -1045,34 +1176,53 @@ export default function CampaignPage() {
                   </div>
                 )}
               </div>
-              <p className="text-gray-600 mb-4">{currentTask.taskTitle}</p>
-              <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
-                <span>
-                  {currentTask.hasGoldenEgg ? (
-                    <>
-                      Golden Egg Commission: BDT {((currentTask.estimatedNegativeAmount || 0) + (currentTask.taskCommission || 0)).toLocaleString()}
-                      <br />
-                      <span className="text-xs text-gray-400">
-                        ({currentTask.estimatedNegativeAmount || 0} + {currentTask.taskCommission || 0})
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      Commission: BDT {((currentTask.estimatedNegativeAmount || 0) + (currentTask.taskCommission || 0)).toLocaleString()}
-                      <br />
-                      <span className="text-xs text-gray-400">
-                        ({currentTask.estimatedNegativeAmount || 0} + {currentTask.taskCommission || 0})
-                      </span>
-                    </>
+              
+              {/* Campaign Image */}
+              {currentTask.logo && (
+                <div className="mb-4 flex justify-center">
+                  <img 
+                    src={currentTask.logo} 
+                    alt={currentTask.brand || currentTask.taskTitle}
+                    className="w-20 h-20 object-contain rounded-lg border border-gray-200 shadow-sm"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                </div>
+              )}
+              
+              {/* Brand/Title */}
+              <p className="text-gray-600 mb-4 font-semibold">
+                {currentTask.brand || currentTask.taskTitle}
+              </p>
+              
+              {/* Commission and Profit Display */}
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                  <div className="text-sm text-green-600 font-medium">Your Commission</div>
+                  <div className="text-lg font-bold text-green-700">
+                    BDT {((currentTask.estimatedNegativeAmount || 0) + (currentTask.taskCommission || 0)).toLocaleString()}
+                  </div>
+                  {currentTask.hasGoldenEgg && (
+                    <div className="text-xs text-green-500">
+                      Golden Egg: {currentTask.estimatedNegativeAmount || 0} + {currentTask.taskCommission || 0}
+                    </div>
                   )}
-                </span>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                  <div className="text-sm text-blue-600 font-medium">Company Profit</div>
+                  <div className="text-lg font-bold text-blue-700">
+                    BDT {currentTask.taskPrice?.toLocaleString() || '0'}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Task Details */}
+              <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
                 <span>Platform: {currentTask.platform}</span>
                 <span>Task #{currentTask.taskNumber}</span>
               </div>
               <div className="mt-2 flex items-center justify-center gap-4 text-sm text-gray-600">
-                <span>
-                  Company Profit: BDT {currentTask.taskPrice?.toLocaleString() || '0'}
-                </span>
                 <span>
                   Source: {currentTask.source === 'customerTasks' ? 'Customer Tasks' : 'Campaigns'}
                 </span>
