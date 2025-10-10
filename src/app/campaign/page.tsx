@@ -36,75 +36,158 @@ const ProfessionalLoadingAnimation = ({
   const getStateInfo = () => {
     switch (state) {
       case 'fetching':
-        return { text: 'Fetching Task Data...', color: 'text-blue-600', icon: Loader2 };
+        return { 
+          text: 'Fetching Task Data...', 
+          color: 'text-blue-600', 
+          icon: Loader2,
+          bgColor: 'bg-blue-50',
+          borderColor: 'border-blue-200',
+          pulseColor: 'bg-blue-100'
+        };
       case 'connecting':
-        return { text: 'Connecting to Server...', color: 'text-yellow-600', icon: Loader2 };
+        return { 
+          text: 'Connecting to Server...', 
+          color: 'text-yellow-600', 
+          icon: Loader2,
+          bgColor: 'bg-yellow-50',
+          borderColor: 'border-yellow-200',
+          pulseColor: 'bg-yellow-100'
+        };
       case 'connected':
-        return { text: 'Connected Successfully!', color: 'text-green-600', icon: CheckCircle };
+        return { 
+          text: 'Connected Successfully!', 
+          color: 'text-green-600', 
+          icon: CheckCircle,
+          bgColor: 'bg-green-50',
+          borderColor: 'border-green-200',
+          pulseColor: 'bg-green-100'
+        };
       default:
-        return { text: 'Ready', color: 'text-gray-600', icon: CheckCircle };
+        return { 
+          text: 'Ready', 
+          color: 'text-gray-600', 
+          icon: CheckCircle,
+          bgColor: 'bg-gray-50',
+          borderColor: 'border-gray-200',
+          pulseColor: 'bg-gray-100'
+        };
     }
   };
 
-  const { text, color, icon: Icon } = getStateInfo();
+  const { text, color, icon: Icon, bgColor, borderColor, pulseColor } = getStateInfo();
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl">
+    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-300">
+      <div className={`bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border-2 ${borderColor} animate-in zoom-in slide-in-from-bottom-4 duration-500`}>
         <div className="text-center">
-          {/* Animated Icon */}
-          <div className="mb-6 flex justify-center">
-            <div className={`relative ${state === 'connected' ? 'animate-pulse' : ''}`}>
-              <Icon className={`w-12 h-12 ${color} ${state !== 'connected' ? 'animate-spin' : ''}`} />
-              {state === 'connected' && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <CheckCircle className="w-8 h-8 text-green-500" />
-                </div>
-              )}
+          {/* Enhanced Animated Icon */}
+          <div className="mb-8 flex justify-center">
+            <div className={`relative ${state === 'connected' ? 'animate-bounce' : ''}`}>
+              {/* Outer pulse ring */}
+              <div className={`absolute inset-0 rounded-full ${pulseColor} animate-ping opacity-20`}></div>
+              {/* Inner pulse ring */}
+              <div className={`absolute inset-2 rounded-full ${pulseColor} animate-pulse opacity-30`}></div>
+              {/* Main icon container */}
+              <div className={`relative w-16 h-16 ${bgColor} rounded-full flex items-center justify-center border-2 ${borderColor} shadow-lg`}>
+                <Icon className={`w-8 h-8 ${color} ${state !== 'connected' ? 'animate-spin' : 'animate-pulse'}`} />
+                {state === 'connected' && (
+                  <div className="absolute inset-0 flex items-center justify-center animate-in zoom-in duration-300">
+                    <CheckCircle className="w-10 h-10 text-green-500 animate-pulse" />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Progress Bar */}
-          <div className="mb-4">
-            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+          {/* Enhanced Progress Bar */}
+          <div className="mb-6">
+            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden shadow-inner">
               <div 
-                className="h-full bg-gradient-to-r from-blue-500 via-yellow-500 to-green-500 rounded-full transition-all duration-1000 ease-out"
+                className={`h-full bg-gradient-to-r from-blue-500 via-yellow-500 to-green-500 rounded-full transition-all duration-1000 ease-out relative ${
+                  progress > 0 ? 'animate-pulse' : ''
+                }`}
                 style={{ width: `${progress}%` }}
-              />
+              >
+                {/* Shimmer effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse"></div>
+              </div>
+            </div>
+            {/* Progress dots */}
+            <div className="flex justify-between mt-2">
+              {[0, 25, 50, 75, 100].map((dot) => (
+                <div 
+                  key={dot}
+                  className={`w-2 h-2 rounded-full transition-all duration-500 ${
+                    progress >= dot ? 'bg-green-500 animate-pulse' : 'bg-gray-300'
+                  }`}
+                ></div>
+              ))}
             </div>
           </div>
 
-          {/* Status Text */}
-          <h3 className={`text-lg font-semibold ${color} mb-2`}>
+          {/* Enhanced Status Text */}
+          <h3 className={`text-xl font-bold ${color} mb-3 animate-in slide-in-from-top-2 duration-500`}>
             {text}
           </h3>
 
-          {/* Progress Percentage */}
-          <p className="text-sm text-gray-500">
-            {Math.round(progress)}% Complete
-          </p>
+          {/* Enhanced Progress Percentage */}
+          <div className="mb-6">
+            <div className={`inline-flex items-center px-4 py-2 ${bgColor} rounded-full border ${borderColor}`}>
+              <div className={`w-2 h-2 ${pulseColor} rounded-full animate-pulse mr-2`}></div>
+              <span className="text-sm font-semibold text-gray-700">
+                {Math.round(progress)}% Complete
+              </span>
+            </div>
+          </div>
 
-          {/* Professional Status Messages */}
-          <div className="mt-4 space-y-2 text-sm text-gray-600">
+          {/* Enhanced Professional Status Messages */}
+          <div className="space-y-3 text-sm text-gray-600">
             {state === 'fetching' && (
               <>
-                <p>• Retrieving campaign data</p>
-                <p>• Validating user permissions</p>
-                <p>• Preparing task details</p>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-100">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-3"></div>
+                  <span>Retrieving campaign data</span>
+                </div>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-200">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-3"></div>
+                  <span>Validating user permissions</span>
+                </div>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-300">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-3"></div>
+                  <span>Preparing task details</span>
+                </div>
               </>
             )}
             {state === 'connecting' && (
               <>
-                <p>• Establishing secure connection</p>
-                <p>• Synchronizing data</p>
-                <p>• Finalizing task assignment</p>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-100">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse mr-3"></div>
+                  <span>Establishing secure connection</span>
+                </div>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-200">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse mr-3"></div>
+                  <span>Synchronizing data</span>
+                </div>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-300">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse mr-3"></div>
+                  <span>Finalizing task assignment</span>
+                </div>
               </>
             )}
             {state === 'connected' && (
               <>
-                <p>• Task loaded successfully</p>
-                <p>• Ready for completion</p>
-                <p>• All systems operational</p>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-100">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-3"></div>
+                  <span>Task loaded successfully</span>
+                </div>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-200">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-3"></div>
+                  <span>Ready for completion</span>
+                </div>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-300">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-3"></div>
+                  <span>All systems operational</span>
+                </div>
               </>
             )}
           </div>
@@ -113,6 +196,102 @@ const ProfessionalLoadingAnimation = ({
     </div>
   );
 };
+
+// Reward Modal Component - Shows after task completion
+const RewardModal = ({ 
+  isOpen, 
+  onClose, 
+  rewardData 
+}: { 
+  isOpen: boolean;
+  onClose: () => void;
+  rewardData: {
+    commission: number;
+    taskTitle: string;
+    brand?: string;
+    logo?: string;
+    isGoldenEgg?: boolean;
+    companyProfit: number;
+  } | null;
+}) => {
+  if (!isOpen || !rewardData) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl animate-in fade-in zoom-in duration-300">
+        <div className="text-center">
+          {/* Success Icon */}
+          <div className="mb-6 flex justify-center">
+            <div className="relative">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center animate-pulse">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+              {rewardData.isGoldenEgg && (
+                <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
+                  <Gift className="w-5 h-5 text-yellow-800" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Task Image */}
+          {rewardData.logo && (
+            <div className="mb-4 flex justify-center">
+              <img 
+                src={rewardData.logo} 
+                alt={rewardData.brand || rewardData.taskTitle}
+                className="w-16 h-16 object-contain rounded-lg border border-gray-200 shadow-sm"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            </div>
+          )}
+
+          {/* Success Message */}
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            {rewardData.isGoldenEgg ? '🥚 Golden Egg Completed!' : '🎯 Task Completed!'}
+          </h2>
+          
+          <p className="text-gray-600 mb-6">
+            {rewardData.brand || rewardData.taskTitle}
+          </p>
+
+          {/* Reward Details */}
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border border-gray-200 mb-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center">
+                <div className="text-sm text-green-600 font-medium mb-1">Your Reward</div>
+                <div className="text-2xl font-bold text-green-700">
+                  BDT {rewardData.commission.toLocaleString()}
+                </div>
+                {rewardData.isGoldenEgg && (
+                  <div className="text-xs text-green-500 mt-1">Golden Egg Bonus!</div>
+                )}
+              </div>
+              <div className="text-center">
+                <div className="text-sm text-blue-600 font-medium mb-1">Company Profit</div>
+                <div className="text-2xl font-bold text-blue-700">
+                  BDT {rewardData.companyProfit.toLocaleString()}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Button */}
+          <Button 
+            onClick={onClose}
+            className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-semibold py-3 rounded-lg transition-all duration-200"
+          >
+            <CheckCircle className="w-5 h-5 mr-2" />
+            Continue
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 import GoldenEggModal from '@/components/GoldenEggModal';
 
 interface CustomerTask {
@@ -189,6 +368,15 @@ export default function CampaignPage() {
   const [showGoldenEggModal, setShowGoldenEggModal] = useState(false);
   const [loadingState, setLoadingState] = useState<'idle' | 'fetching' | 'connecting' | 'connected'>('idle');
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [showRewardModal, setShowRewardModal] = useState(false);
+  const [rewardData, setRewardData] = useState<{
+    commission: number;
+    taskTitle: string;
+    brand?: string;
+    logo?: string;
+    isGoldenEgg?: boolean;
+    companyProfit: number;
+  } | null>(null);
   const [selectedEgg, setSelectedEgg] = useState<number | null>(null);
   
   // Swipe gesture states
@@ -418,18 +606,12 @@ export default function CampaignPage() {
         setRefreshing(true);
       }
       
-      // Start professional loading animation
-      setLoadingState('fetching');
-      setLoadingProgress(10);
-      
       console.log('🔍 Fetching next task for membershipId:', user.membershipId);
       
       // Get fresh user data directly from API instead of using stale userStats
-      setLoadingProgress(30);
       const freshUserData = await fetchUserStats();
       if (!freshUserData) {
         console.log('❌ Failed to fetch fresh user data');
-        setLoadingState('idle');
         return;
       }
       
@@ -438,8 +620,6 @@ export default function CampaignPage() {
       console.log('🔍 User deposit count:', user.depositCount);
       
       // First check customerTasks collection - match customerCode with membershipId
-      setLoadingProgress(50);
-      setLoadingState('connecting');
       const customerTasksResponse = await fetch(`/api/customer-tasks?customerCode=${user.membershipId}&status=pending`);
       const customerTasksData = await customerTasksResponse.json();
       console.log('🔍 Customer tasks response:', customerTasksData);
@@ -484,13 +664,6 @@ export default function CampaignPage() {
           
           console.log(`🎯 Customer task set successfully: Task #${task.taskNumber}`);
           customerTaskFound = true;
-          
-          // Complete loading animation
-          setLoadingProgress(100);
-          setLoadingState('connected');
-          setTimeout(() => {
-            setLoadingState('idle');
-          }, 1500);
       } else {
           console.log(`❌ Task #${nextTaskNumber} not found in customer tasks, will show campaign task instead`);
         }
@@ -544,13 +717,6 @@ export default function CampaignPage() {
           
           console.log('🎯 Setting new campaign task:', newTask);
           setCurrentTask(newTask);
-          
-          // Complete loading animation
-          setLoadingProgress(100);
-          setLoadingState('connected');
-          setTimeout(() => {
-            setLoadingState('idle');
-          }, 1500);
         } else {
           console.log('📋 No tasks available');
         setCurrentTask(null);
@@ -681,6 +847,10 @@ export default function CampaignPage() {
     setIsCompleting(true);
     setError(null);
     
+    // Start connection animation during task completion
+    setLoadingState('connecting');
+    setLoadingProgress(20);
+    
     try {
       console.log('🎯 Completing task:', task.taskTitle, 'Commission:', task.taskCommission);
       console.log('🥚 Selected egg:', selectedEgg || 'N/A');
@@ -697,6 +867,7 @@ export default function CampaignPage() {
       });
 
       // Complete task based on source
+      setLoadingProgress(50);
       let completionResponse;
       if (task.source === 'customerTasks') {
         // Complete customer task
@@ -737,6 +908,9 @@ export default function CampaignPage() {
         });
       }
 
+      // Update progress to 80% after API call
+      setLoadingProgress(80);
+
       if (completionResponse.ok) {
         const completionData = await completionResponse.json();
         
@@ -745,14 +919,23 @@ export default function CampaignPage() {
           console.log(`📊 Commission earned: ${completionData.data.commission || task.taskCommission}`);
           console.log(`💳 New balance: ${completionData.data.accountBalance || completionData.data.newBalance}`);
           
-          // Show Golden Egg success message if applicable
-          if (completionData.data.isGoldenEgg) {
-            toast.success(`🥚 Golden Egg Round Completed! Earned ${completionData.data.commission} BDT`);
-          } else if (completionData.data.commissionType === 'customer_task') {
-            toast.success(`📋 Customer Task Completed! Earned ${completionData.data.commission} BDT`);
-          } else {
-            toast.success(`🎯 Task Completed! Earned ${completionData.data.commission} BDT`);
-          }
+          // Complete loading animation
+          setLoadingProgress(100);
+          setLoadingState('connected');
+          
+          // Show reward modal after a short delay
+          setTimeout(() => {
+            setLoadingState('idle');
+            setRewardData({
+              commission: completionData.data.commission || task.taskCommission,
+              taskTitle: task.taskTitle,
+              brand: task.brand,
+              logo: task.logo,
+              isGoldenEgg: completionData.data.isGoldenEgg || task.hasGoldenEgg,
+              companyProfit: task.taskPrice
+            });
+            setShowRewardModal(true);
+          }, 1500);
           
           // Update user stats immediately with API response data
           const earnedCommission = completionData.data.commission || task.taskCommission;
@@ -873,50 +1056,74 @@ export default function CampaignPage() {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-2 gap-4">
-          <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm">
+        <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <div className="flex items-start justify-between">
               <div className="flex flex-row items-end justify-between w-full">
                 <div className="flex flex-row w-full items-end">
                   <div className="flex flex-col justify-end flex-1">
-                    <div className="text-gray-500 text-sm mb-1">Account Balance</div>
+                    <div className="text-blue-600 text-sm mb-1 font-medium">Account Balance</div>
                     <div className="flex items-center gap-1">
-                      <span className="text-xl font-semibold">BDT {userStats.accountBalance.toLocaleString()}</span>
+                      <span className="text-xl font-semibold text-blue-800">BDT {userStats.accountBalance.toLocaleString()}</span>
               </div>
+                  </div>
+                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center animate-pulse">
+                    <DollarSign className="w-5 h-5 text-white" />
             </div>
                     </div>
                   </div>
             </div>
           </Card>
           
-          <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm">
+          <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
             <div className="flex items-start justify-between">
-              <div>
-                <div className="text-gray-500 text-sm mb-1">Campaigns Completed</div>
-                <div className="text-xl font-semibold">{userStats.campaignsCompleted}/{user?.depositCount > 0 ? 90 : 30}</div>
+              <div className="flex flex-row items-end justify-between w-full">
+                <div className="flex flex-row w-full items-end">
+                  <div className="flex flex-col justify-end flex-1">
+                    <div className="text-green-600 text-sm mb-1 font-medium">Campaigns Completed</div>
+                    <div className="text-xl font-semibold text-green-800">{userStats.campaignsCompleted}/{user?.depositCount > 0 ? 90 : 30}</div>
+                  </div>
+                  <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+                    <TrendingUp className="w-5 h-5 text-white" />
+                  </div>
+                </div>
               </div>
             </div>
           </Card>
           
-          <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm">
+          <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
             <div className="flex items-start justify-between">
-              <div>
-                <div className="text-gray-500 text-sm mb-1">Total Commission</div>
+              <div className="flex flex-row items-end justify-between w-full">
+                <div className="flex flex-row w-full items-end">
+                  <div className="flex flex-col justify-end flex-1">
+                    <div className="text-purple-600 text-sm mb-1 font-medium">Total Commission</div>
                 <div className="flex items-center gap-1">
-                  <span className="text-xl font-semibold">BDT {userStats.campaignCommission?.toLocaleString() || '0'}</span>
+                      <span className="text-xl font-semibold text-purple-800">BDT {userStats.campaignCommission?.toLocaleString() || '0'}</span>
+                    </div>
+                  </div>
+                  <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center animate-pulse">
+                    <Star className="w-5 h-5 text-white" />
+                  </div>
                 </div>
               </div>
                     </div>
           </Card>
           
-          <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm">
+          <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
             <div className="flex items-start justify-between">
-              <div>
-                <div className="text-gray-500 text-sm mb-1">Withdrawable Amount</div>
+              <div className="flex flex-row items-end justify-between w-full">
+                <div className="flex flex-row w-full items-end">
+                  <div className="flex flex-col justify-end flex-1">
+                    <div className="text-orange-600 text-sm mb-1 font-medium">Withdrawable Amount</div>
                 <div className="flex items-center gap-1">
-                  <span className="text-xl font-semibold">
-                    BDT {user?.depositCount === 0 ? (userStats.campaignCommission?.toLocaleString() || '0') : userStats.accountBalance.toLocaleString()}
-                  </span>
+                      <span className="text-xl font-semibold text-orange-800">
+                        BDT {user?.depositCount === 0 ? (userStats.campaignCommission?.toLocaleString() || '0') : userStats.accountBalance.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center animate-pulse">
+                    <Calendar className="w-5 h-5 text-white" />
+                  </div>
                 </div>
               </div>
                     </div>
@@ -924,10 +1131,10 @@ export default function CampaignPage() {
                   </div>
 
         {/* Commission Tier Card */}
-        <Card className="p-4 mb-8 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+        <Card className="p-4 mb-8 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 hover:shadow-lg transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-r from-blue-100 to-purple-100">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-r from-blue-100 to-purple-100 animate-pulse">
                 <Crown className="w-5 h-5 text-blue-600" />
               </div>
               <div>
@@ -1115,25 +1322,34 @@ export default function CampaignPage() {
           >
             {/* Background with swipe progress */}
             <div 
-              className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-200"
+              className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-300 ease-out"
               style={{ 
                 width: `${dragProgress * 100}%`,
-                opacity: dragProgress > 0.3 ? 0.8 : 0
+                opacity: dragProgress > 0.3 ? 0.9 : 0
+              }}
+            />
+            
+            {/* Shimmer effect */}
+            <div 
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-20 transition-all duration-500"
+              style={{ 
+                transform: `translateX(${dragProgress * 100 - 100}%)`,
+                opacity: dragProgress > 0.5 ? 0.3 : 0
               }}
             />
             
             {/* Main content */}
             <div className="absolute inset-0 flex items-center justify-center w-full h-full z-10">
-              <span className="text-white font-medium text-lg">
+              <span className={`text-white font-bold text-lg transition-all duration-300 ${isDragging ? 'scale-110' : 'scale-100'}`}>
                 {isDragging ? 'Swipe to Launch' : 'Launch Campaign'}
               </span>
             </div>
             
             {/* Drag handle */}
             <div 
-              className="absolute left-0 top-0 h-full w-16 bg-white rounded-full shadow-md flex items-center justify-center cursor-grab active:cursor-grabbing transition-transform duration-200 z-20"
+              className="absolute left-0 top-0 h-full w-16 bg-white rounded-full shadow-lg flex items-center justify-center cursor-grab active:cursor-grabbing transition-all duration-300 z-20 hover:shadow-xl"
               style={{ 
-                transform: `translateX(${dragProgress * 200}px)`,
+                transform: `translateX(${dragProgress * 200}px) scale(${isDragging ? 1.1 : 1})`,
                 transition: isDragging ? 'none' : 'transform 0.3s ease-out'
               }}
               onClick={(e) => {
@@ -1145,7 +1361,7 @@ export default function CampaignPage() {
                 }
               }}
             >
-              <ArrowRight className="w-8 h-8 transition-transform duration-300 text-red-500" />
+              <ArrowRight className={`w-8 h-8 transition-all duration-300 text-red-500 ${isDragging ? 'scale-110' : 'scale-100'}`} />
               </div>
           
           {/* Swipe indicator arrows */}
@@ -1153,8 +1369,8 @@ export default function CampaignPage() {
             {[1, 2, 3, 4, 5].map((i) => (
               <ArrowRight 
                 key={i}
-                className={`w-4 h-4 transition-colors duration-200 ${
-                  dragProgress > (i * 0.2) ? 'text-red-500' : 'text-gray-300'
+                className={`w-4 h-4 transition-all duration-300 ${
+                  dragProgress > (i * 0.2) ? 'text-red-500 scale-125 animate-pulse' : 'text-gray-300 scale-100'
                 }`}
               />
             ))}
@@ -1165,12 +1381,12 @@ export default function CampaignPage() {
 
         {/* Current Task Info */}
         {currentTask && (
-          <Card className={`p-6 border-2 ${currentTask.hasGoldenEgg ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-300' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'}`}>
+          <Card className={`p-6 border-2 hover:shadow-xl transition-all duration-500 hover:scale-105 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 ${currentTask.hasGoldenEgg ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-300 shadow-yellow-200' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 shadow-blue-200'}`}>
             <div className="text-center">
               <div className="flex items-center justify-center gap-2 mb-4">
                 <h3 className="text-lg font-bold text-gray-800">Current Task</h3>
                 {currentTask.hasGoldenEgg && (
-                  <div className="flex items-center gap-1 px-2 py-1 bg-yellow-200 rounded-full">
+                  <div className="flex items-center gap-1 px-2 py-1 bg-yellow-200 rounded-full animate-pulse">
                     <Gift className="w-4 h-4 text-yellow-700" />
                     <span className="text-xs font-semibold text-yellow-800">Golden Egg</span>
                   </div>
@@ -1183,7 +1399,7 @@ export default function CampaignPage() {
                   <img 
                     src={currentTask.logo} 
                     alt={currentTask.brand || currentTask.taskTitle}
-                    className="w-20 h-20 object-contain rounded-lg border border-gray-200 shadow-sm"
+                    className="w-20 h-20 object-contain rounded-lg border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-110"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
                     }}
@@ -1198,7 +1414,7 @@ export default function CampaignPage() {
               
               {/* Commission and Profit Display */}
               <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                <div className="bg-green-50 p-3 rounded-lg border border-green-200 hover:shadow-md transition-all duration-300 hover:scale-105">
                   <div className="text-sm text-green-600 font-medium">Your Commission</div>
                   <div className="text-lg font-bold text-green-700">
                     BDT {((currentTask.estimatedNegativeAmount || 0) + (currentTask.taskCommission || 0)).toLocaleString()}
@@ -1209,7 +1425,7 @@ export default function CampaignPage() {
                     </div>
                   )}
                 </div>
-                <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 hover:shadow-md transition-all duration-300 hover:scale-105">
                   <div className="text-sm text-blue-600 font-medium">Company Profit</div>
                   <div className="text-lg font-bold text-blue-700">
                     BDT {currentTask.taskPrice?.toLocaleString() || '0'}
@@ -1458,6 +1674,18 @@ export default function CampaignPage() {
         onEggSelect={handleEggSelect}
         taskTitle={currentTask?.taskTitle || ''}
         commission={currentTask?.taskCommission || 0}
+      />
+      
+      {/* Reward Modal - Shows after task completion */}
+      <RewardModal
+        isOpen={showRewardModal}
+        onClose={() => {
+          setShowRewardModal(false);
+          setRewardData(null);
+          // Refresh tasks after closing reward modal
+          fetchTasks();
+        }}
+        rewardData={rewardData}
       />
       
       <HomepageFooter />
