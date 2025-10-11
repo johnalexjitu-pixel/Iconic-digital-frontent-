@@ -1053,17 +1053,27 @@ export default function CampaignPage() {
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <Card className={`p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 ${
+            userStats.accountBalance < 0 
+              ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-200' 
+              : 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200'
+          }`}>
             <div className="flex items-start justify-between">
               <div className="flex flex-row items-end justify-between w-full">
                 <div className="flex flex-row w-full items-end">
                   <div className="flex flex-col justify-end flex-1">
-                    <div className="text-blue-600 text-sm mb-1 font-medium">Account Balance</div>
+                    <div className={`text-sm mb-1 font-medium ${
+                      userStats.accountBalance < 0 ? 'text-red-600' : 'text-blue-600'
+                    }`}>Account Balance</div>
                     <div className="flex items-center gap-1">
-                      <span className="text-xl font-semibold text-blue-800">BDT {userStats.accountBalance.toLocaleString()}</span>
+                      <span className={`text-xl font-semibold ${
+                        userStats.accountBalance < 0 ? 'text-red-800' : 'text-blue-800'
+                      }`}>BDT {userStats.accountBalance.toLocaleString()}</span>
               </div>
                   </div>
-                  <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center animate-pulse">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center animate-pulse ${
+                    userStats.accountBalance < 0 ? 'bg-red-500' : 'bg-blue-500'
+                  }`}>
                     <DollarSign className="w-5 h-5 text-white" />
             </div>
                     </div>

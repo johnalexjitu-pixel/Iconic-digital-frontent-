@@ -90,6 +90,16 @@ export default function WithdrawalInfoPage() {
   const checkWithdrawalEligibility = () => {
     if (!user) return { eligible: false, message: 'User not found' };
 
+    // Check if account balance is negative
+    if (user.accountBalance && user.accountBalance < 0) {
+      return {
+        eligible: false,
+        message: 'Cannot make withdrawal with negative account balance. Please contact support or make a deposit.',
+        errorType: 'negative_balance',
+        redirectTo: '/contact-support'
+      };
+    }
+
     const requiredTasks = user.depositCount && user.depositCount > 0 ? 90 : 30;
     const tasksCompleted = user.campaignsCompleted || 0;
     
@@ -538,7 +548,9 @@ export default function WithdrawalInfoPage() {
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Wallet Balance</p>
-                      <p className="text-lg font-semibold text-gray-900">BDT {user?.accountBalance?.toLocaleString() || '0'}</p>
+                      <p className={`text-lg font-semibold ${user?.accountBalance && user.accountBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                        BDT {user?.accountBalance?.toLocaleString() || '0'}
+                      </p>
                     </div>
                   </div>
                   <Button
@@ -552,6 +564,36 @@ export default function WithdrawalInfoPage() {
                   </Button>
                 </div>
               </Card>
+
+              {/* Negative Balance Warning */}
+              {user?.accountBalance && user.accountBalance < 0 && (
+                <Card className="p-4 bg-red-50 border-red-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <AlertCircle className="w-4 h-4 text-red-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-red-800 mb-1">Negative Balance Detected!</h4>
+                      <p className="text-sm text-red-700 mb-3">
+                        Your account balance is negative (BDT {user.accountBalance.toLocaleString()}). 
+                        You cannot make withdrawals until your balance is positive.
+                      </p>
+                      <div className="flex gap-2">
+                        <Link href="/contact-support">
+                          <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white">
+                            Contact Support
+                          </Button>
+                        </Link>
+                        <Link href="/deposit">
+                          <Button size="sm" variant="outline" className="border-red-300 text-red-700 hover:bg-red-50">
+                            Make Deposit
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              )}
 
               {/* Withdrawal Information */}
               <Card className="p-4">
@@ -659,11 +701,12 @@ export default function WithdrawalInfoPage() {
                       {/* Action Buttons */}
                       <div className="flex gap-3">
                         <Button 
-                          className="flex-1 h-12 bg-teal-500 hover:bg-teal-600 text-white"
+                          className="flex-1 h-12 bg-teal-500 hover:bg-teal-600 text-white disabled:bg-gray-300"
                           onClick={handleWithdrawal}
-                          disabled={loading}
+                          disabled={loading || !!(user?.accountBalance && user.accountBalance < 0)}
                         >
-                          {loading ? 'Processing...' : 'Withdraw'}
+                          {loading ? 'Processing...' : 
+                           (user?.accountBalance && user.accountBalance < 0) ? 'Negative Balance - Cannot Withdraw' : 'Withdraw'}
                         </Button>
                         <Button variant="outline" className="h-12 px-6">
                           Contact Support

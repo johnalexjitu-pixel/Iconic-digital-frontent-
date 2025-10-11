@@ -88,6 +88,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if account balance is negative
+    if (user.accountBalance < 0) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Cannot make withdrawal with negative account balance. Please contact support or make a deposit.',
+          errorType: 'negative_balance',
+          redirectTo: '/contact-support'
+        },
+        { status: 400 }
+      );
+    }
+
     if (user.accountBalance < amount) {
       return NextResponse.json(
         { success: false, message: 'Insufficient balance' },
