@@ -1125,7 +1125,10 @@ export default function CampaignPage() {
                     <div className="text-orange-600 text-sm mb-1 font-medium">Withdrawable Amount</div>
                 <div className="flex items-center gap-1">
                       <span className="text-xl font-semibold text-orange-800">
-                        BDT {user?.depositCount === 0 ? (userStats.campaignCommission?.toLocaleString() || '0') : userStats.accountBalance.toLocaleString()}
+                        BDT {user?.depositCount === 0 
+                          ? Math.max(0, userStats.campaignCommission || 0).toLocaleString()
+                          : Math.max(0, userStats.accountBalance).toLocaleString()
+                        }
                       </span>
                     </div>
                   </div>
