@@ -41,7 +41,7 @@ export default function WithdrawalPasswordPage() {
           
           // Then fetch fresh user data to check withdrawal password status
           try {
-            const response = await fetch(`/api/user?email=${encodeURIComponent(parsedUser.email)}`);
+            const response = await fetch(`/api/user?username=${encodeURIComponent(parsedUser.username)}`);
             if (response.ok) {
               const data = await response.json();
               if (data.success) {
@@ -122,7 +122,7 @@ export default function WithdrawalPasswordPage() {
         const userData = localStorage.getItem('user');
         if (userData) {
           const parsedUser = JSON.parse(userData);
-          const refreshResponse = await fetch(`/api/user?email=${encodeURIComponent(parsedUser.email)}`);
+          const refreshResponse = await fetch(`/api/user?username=${encodeURIComponent(parsedUser.username)}`);
           if (refreshResponse.ok) {
             const refreshData = await refreshResponse.json();
             if (refreshData.success) {
