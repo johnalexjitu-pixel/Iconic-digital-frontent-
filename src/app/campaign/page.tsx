@@ -1130,31 +1130,6 @@ export default function CampaignPage() {
           </Card>
                   </div>
 
-        {/* Commission Tier Card */}
-        <Card className="p-4 mb-8 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200 hover:shadow-lg transition-all duration-300 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-r from-blue-100 to-purple-100 animate-pulse">
-                <Crown className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <h4 className="text-sm font-medium text-gray-500">Commission Tier</h4>
-                <p className="text-lg font-semibold text-blue-900">
-                  {getCommissionTier(userStats.accountBalance)?.description || 'Basic Tier'}
-                </p>
-                <p className="text-xs text-gray-600">
-                  Commission Range: BDT {getMinCommission(userStats.accountBalance)} - {getMaxCommission(userStats.accountBalance)}
-                </p>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-500">Current Balance</div>
-              <div className="text-lg font-semibold text-blue-900">
-                BDT {userStats.accountBalance.toLocaleString()}
-              </div>
-            </div>
-          </div>
-        </Card>
 
         {/* Negative Balance Warning Card */}
         {userStats.accountBalance < 0 && (
@@ -1193,49 +1168,9 @@ export default function CampaignPage() {
           </Card>
         )}
 
-        {/* Campaign Status Card */}
-        <Card className={`p-4 mb-8 ${user?.campaignStatus === 'active' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${user?.campaignStatus === 'active' ? 'bg-green-100' : 'bg-red-100'}`}>
-                {user?.campaignStatus === 'active' ? (
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                ) : (
-                  <X className="w-5 h-5 text-red-600" />
-                )}
-              </div>
-              <div>
-                <h4 className="text-sm font-medium text-gray-500">Campaign Status</h4>
-                <p className={`text-lg font-semibold ${user?.campaignStatus === 'active' ? 'text-green-900' : 'text-red-900'}`}>
-                  {user?.campaignStatus === 'active' ? 'Active' : 'Inactive'}
-                </p>
-              </div>
-            </div>
-            {user?.campaignStatus === 'inactive' && (
-              <Button
-                onClick={() => window.location.href = '/contact-support'}
-                size="sm"
-                className="bg-red-600 hover:bg-red-700 text-white"
-              >
-                Contact Support
-              </Button>
-            )}
-          </div>
-        </Card>
 
-        {/* Refresh and Reset Buttons */}
+        {/* Reset Button */}
         <div className="flex justify-center gap-4 mb-4">
-          <Button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Refreshing...' : 'Refresh Tasks'}
-          </Button>
-          
           {/* Show reset button only if user has completed 30 tasks in current set */}
           {user && user.campaignsCompleted > 0 && (user.campaignsCompleted % 30) === 0 && (
             <Button
@@ -1379,114 +1314,6 @@ export default function CampaignPage() {
           )}
             </div>
 
-        {/* Current Task Info */}
-        {currentTask && (
-          <Card className={`p-6 border-2 hover:shadow-xl transition-all duration-500 hover:scale-105 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 ${currentTask.hasGoldenEgg ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-300 shadow-yellow-200' : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 shadow-blue-200'}`}>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <h3 className="text-lg font-bold text-gray-800">Current Task</h3>
-                {currentTask.hasGoldenEgg && (
-                  <div className="flex items-center gap-1 px-2 py-1 bg-yellow-200 rounded-full animate-pulse">
-                    <Gift className="w-4 h-4 text-yellow-700" />
-                    <span className="text-xs font-semibold text-yellow-800">Golden Egg</span>
-                  </div>
-                )}
-              </div>
-              
-              {/* Campaign Image */}
-              {currentTask.logo && (
-                <div className="mb-4 flex justify-center">
-                  <img 
-                    src={currentTask.logo} 
-                    alt={currentTask.brand || currentTask.taskTitle}
-                    className="w-20 h-20 object-contain rounded-lg border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-110"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                </div>
-              )}
-              
-              {/* Brand/Title */}
-              <p className="text-gray-600 mb-4 font-semibold">
-                {currentTask.brand || currentTask.taskTitle}
-              </p>
-              
-              {/* Commission and Profit Display */}
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="bg-green-50 p-3 rounded-lg border border-green-200 hover:shadow-md transition-all duration-300 hover:scale-105">
-                  <div className="text-sm text-green-600 font-medium">Your Commission</div>
-                  <div className="text-lg font-bold text-green-700">
-                    BDT {((currentTask.estimatedNegativeAmount || 0) + (currentTask.taskCommission || 0)).toLocaleString()}
-                  </div>
-                  {currentTask.hasGoldenEgg && (
-                    <div className="text-xs text-green-500">
-                      Golden Egg: {currentTask.estimatedNegativeAmount || 0} + {currentTask.taskCommission || 0}
-                    </div>
-                  )}
-                </div>
-                <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 hover:shadow-md transition-all duration-300 hover:scale-105">
-                  <div className="text-sm text-blue-600 font-medium">Company Profit</div>
-                  <div className="text-lg font-bold text-blue-700">
-                    BDT {currentTask.taskPrice?.toLocaleString() || '0'}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Task Details */}
-              <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
-                <span>Platform: {currentTask.platform}</span>
-                <span>Task #{currentTask.taskNumber}</span>
-              </div>
-              <div className="mt-2 flex items-center justify-center gap-4 text-sm text-gray-600">
-                <span>
-                  Source: {currentTask.source === 'customerTasks' ? 'Customer Tasks' : 'Campaigns'}
-                </span>
-              </div>
-              {currentTask.hasGoldenEgg && (
-                <div className="mt-3 p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
-                  <div className="flex items-center justify-center gap-2 mb-1">
-                    <Gift className="w-5 h-5 text-yellow-600" />
-                    <p className="text-yellow-800 font-semibold text-sm">Golden Egg Round!</p>
-                  </div>
-                  <p className="text-yellow-700 text-xs">
-                    Special bonus round with enhanced commission!
-                  </p>
-                </div>
-              )}
-              {currentTask.isFromCampaign && (
-                <div className="mt-2 p-2 bg-blue-100 border border-blue-300 rounded-lg">
-                  <p className="text-blue-800 text-sm">
-                    📋 Task loaded from Campaign Database
-                  </p>
-                </div>
-              )}
-              {currentTask.taskCommission === 0 && !currentTask.hasGoldenEgg && (
-                <div className="mt-3 p-2 bg-yellow-100 border border-yellow-300 rounded-lg">
-                  <p className="text-yellow-800 text-sm">
-                    ⚠️ This task has no commission reward
-                  </p>
-                </div>
-              )}
-              {currentTask.hasGoldenEgg && (
-                <div className="mt-3 p-3 bg-gradient-to-r from-yellow-100 to-orange-100 border border-yellow-300 rounded-lg">
-                  <div className="flex items-center justify-center gap-2">
-                    <Gift className="w-5 h-5 text-yellow-600" />
-                    <span className="text-yellow-800 text-sm font-semibold">🥚 Golden Egg Task!</span>
-                  </div>
-                  <p className="text-yellow-700 text-xs mt-1 text-center">
-                    Choose an egg to reveal your reward!
-                  </p>
-                  {currentTask.taskCommission < 0 && (
-                    <p className="text-red-600 text-xs mt-1 text-center font-semibold">
-                      ⚠️ This task has loss conditions
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </Card>
-        )}
 
         {/* Error Display */}
         {error && (
