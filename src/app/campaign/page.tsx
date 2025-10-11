@@ -610,7 +610,7 @@ export default function CampaignPage() {
             campaignsCompleted: userData.campaignsCompleted || 0,
             campaignCommission: userData.campaignCommission || 0,
             todayCommission: userData.campaignCommission || 0, // Use campaignCommission as today's commission for now
-            withdrawalAmount: user?.depositCount === 0 ? Math.max(0, userData.campaignCommission || 0) : Math.max(0, userData.accountBalance || 0),
+            withdrawalAmount: user?.depositCount === 0 ? (userData.campaignCommission > 0 ? userData.campaignCommission : 0) : (userData.accountBalance > 0 ? userData.accountBalance : 0),
             dailyCampaignsCompleted: userData.campaignsCompleted || 0,
             totalEarnings: userData.totalEarnings || 0
           });
@@ -1126,8 +1126,8 @@ export default function CampaignPage() {
                 <div className="flex items-center gap-1">
                       <span className="text-xl font-semibold text-orange-800">
                         BDT {user?.depositCount === 0 
-                          ? Math.max(0, userStats.withdrawalAmount || 0).toLocaleString()
-                          : Math.max(0, userStats.accountBalance).toLocaleString()
+                          ? (userStats.withdrawalAmount > 0 ? userStats.withdrawalAmount : 0).toLocaleString()
+                          : (userStats.accountBalance > 0 ? userStats.accountBalance : 0).toLocaleString()
                         }
                       </span>
                     </div>
