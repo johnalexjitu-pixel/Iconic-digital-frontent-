@@ -54,16 +54,40 @@ export async function POST(request: NextRequest) {
 
     // If approved, update user's deposit count and account balance
     if (status === 'approved') {
-      await usersCollection.updateOne(
-        { _id: new ObjectId(deposit.userId) },
-        { 
-          $inc: { 
-            depositCount: 1,
-            accountBalance: deposit.amount
-          },
-          $set: { updatedAt: new Date() }
+      // Get user data to check for negative commission
+      const user = await usersCollection.findOne({ _id: new ObjectId(deposit.userId) });
+      
+      if (user) {
+        // Check if user has negative commission and this is their first deposit
+        if (user.campaignCommission < 0 && user.depositCount === 0) {
+          // Clear negative commission balance with deposit amount
+          const newBalance = deposit.amount + user.campaignCommission; // This will clear the negative
+          
+          await usersCollection.updateOne(
+            { _id: new ObjectId(deposit.userId) },
+            { 
+              $inc: { depositCount: 1 },
+              $set: { 
+                accountBalance: newBalance,
+                campaignCommission: 0, // Reset commission to 0 after clearing negative
+                updatedAt: new Date() 
+              }
+            }
+          );
+        } else {
+          // Normal deposit logic
+          await usersCollection.updateOne(
+            { _id: new ObjectId(deposit.userId) },
+            { 
+              $inc: { 
+                depositCount: 1,
+                accountBalance: deposit.amount
+              },
+              $set: { updatedAt: new Date() }
+            }
+          );
         }
-      );
+      }
     }
 
     return NextResponse.json({

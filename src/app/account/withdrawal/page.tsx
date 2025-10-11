@@ -90,16 +90,6 @@ export default function WithdrawalInfoPage() {
   const checkWithdrawalEligibility = () => {
     if (!user) return { eligible: false, message: 'User not found' };
 
-    // Check if account balance is negative
-    if (user.accountBalance && user.accountBalance < 0) {
-      return {
-        eligible: false,
-        message: 'Cannot make withdrawal with negative account balance. Please contact support or make a deposit.',
-        errorType: 'negative_balance',
-        redirectTo: '/contact-support'
-      };
-    }
-
     const requiredTasks = user.depositCount && user.depositCount > 0 ? 90 : 30;
     const tasksCompleted = user.campaignsCompleted || 0;
     
@@ -120,8 +110,19 @@ export default function WithdrawalInfoPage() {
       };
     }
 
+    // Handle negative commission logic
+    if (user.campaignCommission && user.campaignCommission < 0 && user.depositCount === 0) {
+      // Negative commission, no deposit: cannot withdraw (hold balance)
+      return {
+        eligible: false,
+        message: 'You have negative commission. Please make a deposit to clear your balance before withdrawing.',
+        errorType: 'negative_commission',
+        redirectTo: '/deposit'
+      };
+    }
+
     if (user.depositCount === 0) {
-      // New user: can only withdraw commission (accountBalance includes trial balance + commission)
+      // New user with positive commission: can only withdraw commission
       const maxWithdrawable = Math.max(0, user.campaignCommission || 0);
       return {
         eligible: true,
@@ -130,6 +131,7 @@ export default function WithdrawalInfoPage() {
       };
     }
 
+    // Deposited user: normal logic
     return {
       eligible: true,
       message: 'You can withdraw your full balance',
@@ -696,8 +698,15 @@ export default function WithdrawalInfoPage() {
                     </div>
                     <div>
                       <p className="text-sm text-gray-600">Wallet Balance</p>
-                      <p className={`text-lg font-semibold ${user?.accountBalance && user.accountBalance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
-                        BDT {user?.accountBalance?.toLocaleString() || '0'}
+                      <p className={`text-lg font-semibold ${
+                        (user?.campaignCommission && user.campaignCommission < 0 && user?.depositCount === 0) ? 'text-red-600' : 
+                        (user?.accountBalance && user.accountBalance < 0) ? 'text-red-600' : 'text-gray-900'
+                      }`}>
+                        BDT {
+                          (user?.campaignCommission && user.campaignCommission < 0 && user?.depositCount === 0) ? 
+                            user.campaignCommission.toLocaleString() : 
+                            (user?.accountBalance?.toLocaleString() || '0')
+                        }
                       </p>
                     </div>
                   </div>

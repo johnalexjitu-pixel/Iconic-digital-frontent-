@@ -128,13 +128,22 @@ export async function POST(request: NextRequest) {
     await historyCollection.insertOne(historyRecord);
     console.log(`📚 Task history recorded for user: ${userForHistory?.membershipId}`);
 
-    // Update user balance and campaign count (always update campaign count, even if no commission)
+    // Update user balance and campaign count with hold balance release logic
     const userForUpdate = await usersCollection.findOne({ _id: new ObjectId(userId) });
     if (userForUpdate) {
-      const newBalance = (userForUpdate.accountBalance || 0) + finalCommission;
+      let newBalance = (userForUpdate.accountBalance || 0) + finalCommission;
       const newTotalEarnings = (userForUpdate.totalEarnings || 0) + finalCommission;
       const newCampaignsCompleted = (userForUpdate.campaignsCompleted || 0) + 1;
-      const newCampaignCommission = (userForUpdate.campaignCommission || 0) + finalCommission;
+      let newCampaignCommission = (userForUpdate.campaignCommission || 0) + finalCommission;
+      
+      // Handle hold balance release for deposited users
+      if (userForUpdate.depositCount > 0 && userForUpdate.campaignCommission < 0) {
+        // User has deposited and had negative commission - release hold balance
+        const holdBalance = Math.abs(userForUpdate.campaignCommission);
+        newBalance = newBalance + holdBalance;
+        newCampaignCommission = finalCommission; // Reset to current task commission
+        console.log(`🔄 Hold balance released: ${holdBalance} added to account balance`);
+      }
 
       console.log(`💰 Updating user balance: ${userForUpdate.accountBalance} → ${newBalance} (+${finalCommission})`);
       console.log(`📊 Updating campaigns completed: ${userForUpdate.campaignsCompleted} → ${newCampaignsCompleted}`);

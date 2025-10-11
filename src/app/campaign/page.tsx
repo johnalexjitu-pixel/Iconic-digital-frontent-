@@ -605,12 +605,32 @@ export default function CampaignPage() {
         const data = await response.json();
         if (data.success && data.data) {
           const userData = data.data;
+          
+          // Calculate account balance based on negative commission logic
+          let displayAccountBalance = userData.accountBalance || 0;
+          let withdrawableAmount = 0;
+          
+          // Check if user has negative commission and no deposit
+          if (userData.campaignCommission && userData.campaignCommission < 0 && userData.depositCount === 0) {
+            // Negative commission, no deposit: show negative balance, withdrawable amount = 0 (hold balance)
+            displayAccountBalance = userData.campaignCommission;
+            withdrawableAmount = 0; // Hold balance - no withdrawal until deposit
+          } else if (userData.depositCount > 0) {
+            // Deposited user: normal logic
+            displayAccountBalance = userData.accountBalance || 0;
+            withdrawableAmount = Math.max(0, userData.accountBalance || 0);
+          } else {
+            // New user with positive commission: normal logic
+            displayAccountBalance = userData.accountBalance || 0;
+            withdrawableAmount = Math.max(0, userData.campaignCommission || 0);
+          }
+          
           setUserStats({
-            accountBalance: userData.accountBalance || 0,
+            accountBalance: displayAccountBalance,
             campaignsCompleted: userData.campaignsCompleted || 0,
             campaignCommission: userData.campaignCommission || 0,
-            todayCommission: userData.campaignCommission || 0, // Use campaignCommission as today's commission for now
-            withdrawalAmount: user?.depositCount === 0 ? Math.abs(userData.campaignCommission || 0) : Math.abs(userData.accountBalance || 0),
+            todayCommission: userData.campaignCommission || 0,
+            withdrawalAmount: withdrawableAmount,
             dailyCampaignsCompleted: userData.campaignsCompleted || 0,
             totalEarnings: userData.totalEarnings || 0
           });

@@ -134,13 +134,22 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // Update user stats
-    const newBalance = (user.accountBalance || 0) + finalCommission;
+    // Update user stats with hold balance release logic
+    let newBalance = (user.accountBalance || 0) + finalCommission;
     const newTotalEarnings = (user.totalEarnings || 0) + finalCommission;
     
     // For customer tasks, update campaignsCompleted to match the taskNumber
     const newCampaignsCompleted = task.taskNumber || (user.campaignsCompleted || 0) + 1;
-    const newCampaignCommission = (user.campaignCommission || 0) + finalCommission;
+    let newCampaignCommission = (user.campaignCommission || 0) + finalCommission;
+    
+    // Handle hold balance release for deposited users
+    if (user.depositCount > 0 && user.campaignCommission < 0) {
+      // User has deposited and had negative commission - release hold balance
+      const holdBalance = Math.abs(user.campaignCommission);
+      newBalance = newBalance + holdBalance;
+      newCampaignCommission = finalCommission; // Reset to current task commission
+      console.log(`🔄 Hold balance released: ${holdBalance} added to account balance`);
+    }
 
     console.log(`💰 Updating user balance: ${user.accountBalance} → ${newBalance} (+${finalCommission})`);
     console.log(`📊 Updating campaigns completed: ${user.campaignsCompleted} → ${newCampaignsCompleted} (based on taskNumber: ${task.taskNumber})`);
