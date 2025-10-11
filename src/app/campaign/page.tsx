@@ -1126,8 +1126,8 @@ export default function CampaignPage() {
                 <div className="flex items-center gap-1">
                       <span className="text-xl font-semibold text-orange-800">
                         BDT {user?.depositCount === 0 
-                          ? Math.max(0, userStats.campaignCommission || 0).toLocaleString()
-                          : Math.max(0, userStats.accountBalance).toLocaleString()
+                          ? (userStats.campaignCommission > 0 ? userStats.campaignCommission : 0).toLocaleString()
+                          : (userStats.accountBalance > 0 ? userStats.accountBalance : 0).toLocaleString()
                         }
                       </span>
                     </div>
