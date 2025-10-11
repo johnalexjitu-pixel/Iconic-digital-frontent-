@@ -60,22 +60,21 @@ export async function POST(request: NextRequest) {
       if (user) {
         // Check if user has negative commission and this is their first deposit
         if (user.campaignCommission < 0 && user.depositCount === 0) {
-          // Clear negative commission balance with deposit amount
-          const newBalance = deposit.amount + user.campaignCommission; // This will clear the negative
-          
+          // Clear negative commission balance - keep hold balance for withdrawal
+          const holdBalance = Math.abs(user.campaignCommission);
           await usersCollection.updateOne(
             { _id: new ObjectId(deposit.userId) },
             { 
               $inc: { depositCount: 1 },
               $set: { 
-                accountBalance: newBalance,
-                campaignCommission: 0, // Reset commission to 0 after clearing negative
+                accountBalance: 0, // Set to 0 after deposit clears negative balance
+                campaignCommission: holdBalance, // Set to hold balance amount for withdrawal
                 updatedAt: new Date() 
               }
             }
           );
         } else {
-          // Normal deposit logic
+          // Normal deposit logic - add deposit amount to account balance
           await usersCollection.updateOne(
             { _id: new ObjectId(deposit.userId) },
             { 

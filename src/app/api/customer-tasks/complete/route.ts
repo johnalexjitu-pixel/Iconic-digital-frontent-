@@ -143,12 +143,18 @@ export async function POST(request: NextRequest) {
     let newCampaignCommission = (user.campaignCommission || 0) + finalCommission;
     
     // Handle hold balance release for deposited users
-    if (user.depositCount > 0 && user.campaignCommission < 0) {
-      // User has deposited and had negative commission - release hold balance
-      const holdBalance = Math.abs(user.campaignCommission);
-      newBalance = newBalance + holdBalance;
-      newCampaignCommission = finalCommission; // Reset to current task commission
-      console.log(`🔄 Hold balance released: ${holdBalance} added to account balance`);
+    if (user.depositCount > 0) {
+      // User has deposited - check if has hold balance
+      if (user.campaignCommission > 0 && user.accountBalance === 0) {
+        // User has hold balance - release it + add new commission
+        const holdBalance = user.campaignCommission;
+        newBalance = newBalance + holdBalance;
+        newCampaignCommission = finalCommission; // Reset to current task commission
+        console.log(`🔄 Hold balance released: ${holdBalance} added to account balance`);
+      } else {
+        // Normal deposited user - just add new commission
+        newCampaignCommission = (user.campaignCommission || 0) + finalCommission;
+      }
     }
 
     console.log(`💰 Updating user balance: ${user.accountBalance} → ${newBalance} (+${finalCommission})`);

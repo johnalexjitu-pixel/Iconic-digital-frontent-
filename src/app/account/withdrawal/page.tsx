@@ -87,10 +87,32 @@ export default function WithdrawalInfoPage() {
   const [setupLoading, setSetupLoading] = useState(false);
 
   // Check withdrawal eligibility
-  const checkWithdrawalEligibility = () => {
+  const checkWithdrawalEligibility = async () => {
     if (!user) return { eligible: false, message: 'User not found' };
 
-    const requiredTasks = user.depositCount && user.depositCount > 0 ? 90 : 30;
+    // Check actual deposits from deposits collection
+    let actualDepositCount = 0;
+    let hasActualDeposits = false;
+    
+    try {
+      const depositsResponse = await fetch('/api/deposits/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user._id })
+      });
+      
+      if (depositsResponse.ok) {
+        const depositsData = await depositsResponse.json();
+        if (depositsData.success) {
+          actualDepositCount = depositsData.data.depositCount;
+          hasActualDeposits = depositsData.data.hasDeposits;
+        }
+      }
+    } catch (error) {
+      console.error('Error checking deposits:', error);
+    }
+
+    const requiredTasks = hasActualDeposits ? 90 : 30;
     const tasksCompleted = user.campaignsCompleted || 0;
     
     if (tasksCompleted < requiredTasks) {
@@ -111,32 +133,51 @@ export default function WithdrawalInfoPage() {
     }
 
     // Handle negative commission logic
-    if (user.campaignCommission && user.campaignCommission < 0 && user.depositCount === 0) {
-      // Negative commission, no deposit: cannot withdraw (hold balance)
-      return {
-        eligible: false,
-        message: 'You have negative commission. Please make a deposit to clear your balance before withdrawing.',
-        errorType: 'negative_commission',
-        redirectTo: '/deposit'
-      };
-    }
-
-    if (user.depositCount === 0) {
-      // New user with positive commission: can only withdraw commission
-      const maxWithdrawable = Math.max(0, user.campaignCommission || 0);
+    if (user.campaignCommission && user.campaignCommission < 0 && !hasActualDeposits) {
+      // Negative commission, no deposit: can withdraw abs(negative) + previous balance
+      const previousBalance = (user.accountBalance || 0) - user.campaignCommission; // Previous balance before negative commission
+      const maxWithdrawable = Math.abs(user.campaignCommission) + previousBalance;
       return {
         eligible: true,
-        message: `You can withdraw up to BDT ${maxWithdrawable} (commission only). Trial balance cannot be withdrawn.`,
+        message: `You can withdraw up to BDT ${maxWithdrawable} (from negative commission + previous balance).`,
         maxWithdrawable
       };
     }
 
-    // Deposited user: normal logic
-    return {
-      eligible: true,
-      message: 'You can withdraw your full balance',
-      maxWithdrawable: Math.max(0, user.accountBalance || 0)
-    };
+    if (!hasActualDeposits) {
+      // New user with positive commission: no withdrawal allowed
+      return {
+        eligible: false,
+        message: 'New users cannot withdraw until they receive negative commission or make a deposit.',
+        errorType: 'new_user_no_withdrawal'
+      };
+    }
+
+    // Deposited user: check if has hold balance
+    if (hasActualDeposits) {
+      if (user.campaignCommission && user.campaignCommission > 0 && user.accountBalance === 0) {
+        // User has hold balance after deposit - can withdraw hold balance
+        return {
+          eligible: true,
+          message: `You can withdraw your hold balance of BDT ${user.campaignCommission}`,
+          maxWithdrawable: user.campaignCommission
+        };
+      } else if (user.campaignCommission && user.campaignCommission > 0 && user.accountBalance && user.accountBalance > 0) {
+        // User completed new task after deposit - hold balance released, no withdrawal
+        return {
+          eligible: false,
+          message: 'Hold balance has been released to your wallet. No withdrawal available.',
+          errorType: 'hold_balance_released'
+        };
+      } else {
+        // Normal deposited user logic - no withdrawal allowed (no commission scenario)
+        return {
+          eligible: false,
+          message: 'No withdrawal amount available. Withdrawal only works with negative commission scenario.',
+          errorType: 'no_withdrawal_amount'
+        };
+      }
+    }
   };
 
   useEffect(() => {
@@ -255,9 +296,42 @@ export default function WithdrawalInfoPage() {
         userInfo = parsedUser;
       }
       
-      if (userInfo && userInfo.withdrawalInfo) {
-        console.log('Fetched withdrawal info:', userInfo.withdrawalInfo);
-        setWithdrawalInfo(userInfo.withdrawalInfo);
+      // Check actual deposits from deposits collection
+      const depositsResponse = await fetch('/api/deposits/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: userId })
+      });
+      
+      let actualDepositCount = 0;
+      let hasActualDeposits = false;
+      
+      if (depositsResponse.ok) {
+        const depositsData = await depositsResponse.json();
+        if (depositsData.success) {
+          actualDepositCount = depositsData.data.depositCount;
+          hasActualDeposits = depositsData.data.hasDeposits;
+        }
+      }
+      
+      // Update user info with actual deposit count
+      const updatedUserInfo = {
+        ...userInfo,
+        depositCount: actualDepositCount
+      };
+      
+      setUser(updatedUserInfo);
+      
+      // Update localStorage with actual deposit count
+      const updatedLocalStorageUser = {
+        ...parsedUser,
+        depositCount: actualDepositCount
+      };
+      localStorage.setItem('user', JSON.stringify(updatedLocalStorageUser));
+      
+      if (updatedUserInfo && updatedUserInfo.withdrawalInfo) {
+        console.log('Fetched withdrawal info:', updatedUserInfo.withdrawalInfo);
+        setWithdrawalInfo(updatedUserInfo.withdrawalInfo);
       } else {
         console.log('No withdrawal info found for user');
       }
@@ -522,9 +596,9 @@ export default function WithdrawalInfoPage() {
 
   const handleWithdrawal = async () => {
     // Check withdrawal eligibility
-    const eligibility = checkWithdrawalEligibility();
-    if (!eligibility.eligible) {
-      showError(eligibility.message, 'Withdrawal Not Allowed');
+    const eligibility = await checkWithdrawalEligibility();
+    if (!eligibility || !eligibility.eligible) {
+      showError(eligibility?.message || 'Unable to check withdrawal eligibility', 'Withdrawal Not Allowed');
       return;
     }
 
@@ -546,7 +620,7 @@ export default function WithdrawalInfoPage() {
 
     // Check if amount exceeds maximum withdrawable
     const amount = parseFloat(formData.amount);
-    if (eligibility.maxWithdrawable && amount > eligibility.maxWithdrawable) {
+    if (eligibility?.maxWithdrawable && amount > eligibility.maxWithdrawable) {
       showError(`Amount cannot exceed BDT ${eligibility.maxWithdrawable}`, 'Amount Limit Exceeded');
       return;
     }

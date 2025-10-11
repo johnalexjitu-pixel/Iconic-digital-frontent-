@@ -598,50 +598,84 @@ export default function CampaignPage() {
   // Fetch user stats from database
   const fetchUserStats = useCallback(async () => {
     try {
-      if (!user?.username) return;
+      if (!user?.username || !user?._id) return;
       
-      const response = await fetch(`/api/user?username=${encodeURIComponent(user.username)}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data) {
-          const userData = data.data;
-          
-          // Calculate account balance based on negative commission logic
-          let displayAccountBalance = userData.accountBalance || 0;
-          let withdrawableAmount = 0;
-          
-          // Check if user has negative commission and no deposit
-          if (userData.campaignCommission && userData.campaignCommission < 0 && userData.depositCount === 0) {
-            // Negative commission, no deposit: show negative balance, withdrawable amount = 0 (hold balance)
-            displayAccountBalance = userData.campaignCommission;
-            withdrawableAmount = 0; // Hold balance - no withdrawal until deposit
-          } else if (userData.depositCount > 0) {
-            // Deposited user: normal logic
-            displayAccountBalance = userData.accountBalance || 0;
-            withdrawableAmount = Math.max(0, userData.accountBalance || 0);
-          } else {
-            // New user with positive commission: normal logic
-            displayAccountBalance = userData.accountBalance || 0;
-            withdrawableAmount = Math.max(0, userData.campaignCommission || 0);
-          }
-          
-          setUserStats({
-            accountBalance: displayAccountBalance,
-            campaignsCompleted: userData.campaignsCompleted || 0,
-            campaignCommission: userData.campaignCommission || 0,
-            todayCommission: userData.campaignCommission || 0,
-            withdrawalAmount: withdrawableAmount,
-            dailyCampaignsCompleted: userData.campaignsCompleted || 0,
-            totalEarnings: userData.totalEarnings || 0
-          });
-          return userData; // Return the fresh data
+      // Fetch user data
+      const userResponse = await fetch(`/api/user?username=${encodeURIComponent(user.username)}`);
+      if (!userResponse.ok) return;
+      
+      const userData = await userResponse.json();
+      if (!userData.success || !userData.data) return;
+      
+      const userInfo = userData.data;
+      
+      // Check actual deposits from deposits collection
+      const depositsResponse = await fetch('/api/deposits/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user._id })
+      });
+      
+      let actualDepositCount = 0;
+      let hasActualDeposits = false;
+      
+      if (depositsResponse.ok) {
+        const depositsData = await depositsResponse.json();
+        if (depositsData.success) {
+          actualDepositCount = depositsData.data.depositCount;
+          hasActualDeposits = depositsData.data.hasDeposits;
         }
       }
+          
+      // Calculate account balance based on negative commission logic
+      let displayAccountBalance = userInfo.accountBalance || 0;
+      let withdrawableAmount = 0;
+      
+      // Check if user has negative commission and no actual deposits
+      if (userInfo.campaignCommission && userInfo.campaignCommission < 0 && !hasActualDeposits) {
+        // Negative commission, no deposit: show negative balance, withdrawable = abs(negative) + previous balance
+        displayAccountBalance = userInfo.campaignCommission;
+        const previousBalance = (userInfo.accountBalance || 0) - userInfo.campaignCommission; // Previous balance before negative commission
+        withdrawableAmount = Math.abs(userInfo.campaignCommission) + previousBalance;
+      } else if (hasActualDeposits) {
+        // Deposited user: check if has hold balance (positive campaignCommission)
+        if (userInfo.campaignCommission > 0 && userInfo.accountBalance === 0) {
+          // User has hold balance after deposit - show hold balance as withdrawable
+          displayAccountBalance = 0;
+          withdrawableAmount = userInfo.campaignCommission; // Hold balance amount
+        } else if (userInfo.campaignCommission > 0 && userInfo.accountBalance > 0) {
+          // User completed new task after deposit - hold balance released to wallet
+          displayAccountBalance = userInfo.accountBalance || 0;
+          withdrawableAmount = 0; // No withdrawal after hold balance released
+        } else {
+          // Normal deposited user logic - no commission in withdrawable amount
+          displayAccountBalance = userInfo.accountBalance || 0;
+          withdrawableAmount = 0; // No commission added to withdrawal amount
+        }
+      } else {
+        // New user with positive commission: no withdrawal allowed
+        displayAccountBalance = userInfo.accountBalance || 0;
+        withdrawableAmount = 0; // No withdrawal for new users without negative commission
+      }
+          
+      setUserStats({
+        accountBalance: displayAccountBalance,
+        campaignsCompleted: userInfo.campaignsCompleted || 0,
+        campaignCommission: userInfo.campaignCommission || 0,
+        todayCommission: userInfo.campaignCommission || 0,
+        withdrawalAmount: withdrawableAmount,
+        dailyCampaignsCompleted: userInfo.campaignsCompleted || 0,
+        totalEarnings: userInfo.totalEarnings || 0
+      });
+      
+      // Note: User state will be updated in localStorage by other components
+      
+      return userInfo; // Return the fresh data
     } catch (error) {
       console.error('Error fetching user stats:', error);
     }
     return null;
-  }, [user?.username, user?.depositCount]);
+  }, [user?.username, user?._id]);
 
   // Fetch all tasks for display purposes
   const fetchAllTasks = useCallback(async () => {
