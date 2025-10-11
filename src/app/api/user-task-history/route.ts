@@ -32,13 +32,20 @@ export async function GET(request: NextRequest) {
     const campaignsCollection = await getCollection(CampaignCollection);
     const campaignTasks = completedTasks.filter(task => task.source === 'campaigns');
     
+    console.log(`🎯 Found ${campaignTasks.length} campaign tasks`);
+    console.log(`📋 Campaign task IDs:`, campaignTasks.map(task => ({ taskId: task.taskId, campaignId: task.campaignId })));
+    
     // Get unique campaign IDs
     const campaignIds = [...new Set(campaignTasks.map(task => task.campaignId).filter(Boolean))];
+    console.log(`🔍 Unique campaign IDs to fetch:`, campaignIds);
     
     // Fetch campaign details
     const campaigns = await campaignsCollection.find({ 
       campaignId: { $in: campaignIds } 
     }).toArray();
+    
+    console.log(`📊 Found ${campaigns.length} campaigns in database`);
+    console.log(`🏷️ Campaign details:`, campaigns.map(c => ({ campaignId: c.campaignId, brand: c.brand, hasLogo: !!c.logo })));
     
     // Create campaign lookup map
     const campaignMap = new Map();
@@ -50,6 +57,7 @@ export async function GET(request: NextRequest) {
     const enhancedTasks = completedTasks.map(task => {
       if (task.source === 'campaigns' && task.campaignId) {
         const campaign = campaignMap.get(task.campaignId);
+        console.log(`🔗 Task ${task.taskId} -> Campaign ${task.campaignId}:`, campaign ? 'Found' : 'Not found');
         if (campaign) {
           return {
             ...task,
