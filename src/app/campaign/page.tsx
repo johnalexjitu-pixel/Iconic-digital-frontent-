@@ -42,7 +42,9 @@ const ProfessionalLoadingAnimation = ({
           icon: Loader2,
           bgColor: 'bg-blue-50',
           borderColor: 'border-blue-200',
-          pulseColor: 'bg-blue-100'
+          pulseColor: 'bg-blue-100',
+          gradientFrom: 'from-blue-400',
+          gradientTo: 'to-blue-600'
         };
       case 'connecting':
         return { 
@@ -51,7 +53,9 @@ const ProfessionalLoadingAnimation = ({
           icon: Loader2,
           bgColor: 'bg-yellow-50',
           borderColor: 'border-yellow-200',
-          pulseColor: 'bg-yellow-100'
+          pulseColor: 'bg-yellow-100',
+          gradientFrom: 'from-yellow-400',
+          gradientTo: 'to-yellow-600'
         };
       case 'connected':
         return { 
@@ -60,7 +64,9 @@ const ProfessionalLoadingAnimation = ({
           icon: CheckCircle,
           bgColor: 'bg-green-50',
           borderColor: 'border-green-200',
-          pulseColor: 'bg-green-100'
+          pulseColor: 'bg-green-100',
+          gradientFrom: 'from-green-400',
+          gradientTo: 'to-green-600'
         };
       default:
         return { 
@@ -69,127 +75,144 @@ const ProfessionalLoadingAnimation = ({
           icon: CheckCircle,
           bgColor: 'bg-gray-50',
           borderColor: 'border-gray-200',
-          pulseColor: 'bg-gray-100'
+          pulseColor: 'bg-gray-100',
+          gradientFrom: 'from-gray-400',
+          gradientTo: 'to-gray-600'
         };
     }
   };
 
-  const { text, color, icon: Icon, bgColor, borderColor, pulseColor } = getStateInfo();
+  const { text, color, icon: Icon, bgColor, borderColor, pulseColor, gradientFrom, gradientTo } = getStateInfo();
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-300">
-      <div className={`bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border-2 ${borderColor} animate-in zoom-in slide-in-from-bottom-4 duration-500`}>
+    <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-md flex items-center justify-center z-50 animate-in fade-in duration-500">
+      <div className={`bg-white rounded-3xl p-10 max-w-lg w-full mx-4 shadow-2xl border-2 ${borderColor} animate-in zoom-in slide-in-from-bottom-4 duration-700`}>
         <div className="text-center">
-          {/* Enhanced Animated Icon */}
-          <div className="mb-8 flex justify-center">
+          {/* Enhanced Animated Icon with Multiple Layers */}
+          <div className="mb-10 flex justify-center">
             <div className={`relative ${state === 'connected' ? 'animate-bounce' : ''}`}>
+              {/* Outer glow effect */}
+              <div className={`absolute -inset-4 rounded-full bg-gradient-to-r ${gradientFrom} ${gradientTo} opacity-20 animate-pulse`}></div>
               {/* Outer pulse ring */}
-              <div className={`absolute inset-0 rounded-full ${pulseColor} animate-ping opacity-20`}></div>
+              <div className={`absolute inset-0 rounded-full ${pulseColor} animate-ping opacity-30`}></div>
               {/* Inner pulse ring */}
-              <div className={`absolute inset-2 rounded-full ${pulseColor} animate-pulse opacity-30`}></div>
-              {/* Main icon container */}
-              <div className={`relative w-16 h-16 ${bgColor} rounded-full flex items-center justify-center border-2 ${borderColor} shadow-lg`}>
-                <Icon className={`w-8 h-8 ${color} ${state !== 'connected' ? 'animate-spin' : 'animate-pulse'}`} />
+              <div className={`absolute inset-2 rounded-full ${pulseColor} animate-pulse opacity-40`}></div>
+              {/* Main icon container with gradient */}
+              <div className={`relative w-20 h-20 bg-gradient-to-br ${gradientFrom} ${gradientTo} rounded-full flex items-center justify-center border-2 ${borderColor} shadow-2xl`}>
+                <Icon className={`w-10 h-10 text-white ${state !== 'connected' ? 'animate-spin' : 'animate-pulse'}`} />
                 {state === 'connected' && (
-                  <div className="absolute inset-0 flex items-center justify-center animate-in zoom-in duration-300">
-                    <CheckCircle className="w-10 h-10 text-green-500 animate-pulse" />
+                  <div className="absolute inset-0 flex items-center justify-center animate-in zoom-in duration-500">
+                    <CheckCircle className="w-12 h-12 text-white animate-pulse" />
                   </div>
                 )}
               </div>
+              {/* Floating particles effect */}
+              <div className="absolute -top-2 -right-2 w-3 h-3 bg-white rounded-full animate-ping opacity-60"></div>
+              <div className="absolute -bottom-2 -left-2 w-2 h-2 bg-white rounded-full animate-ping opacity-40 delay-300"></div>
             </div>
           </div>
 
-          {/* Enhanced Progress Bar */}
-          <div className="mb-6">
-            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden shadow-inner">
+          {/* Enhanced Progress Bar with Glow Effect */}
+          <div className="mb-8">
+            <div className="relative w-full bg-gray-200 rounded-full h-6 overflow-hidden shadow-inner border border-gray-300">
               <div 
-                className={`h-full bg-gradient-to-r from-blue-500 via-yellow-500 to-green-500 rounded-full transition-all duration-1000 ease-out relative ${
-                  progress > 0 ? 'animate-pulse' : ''
+                className={`h-full bg-gradient-to-r ${gradientFrom} ${gradientTo} rounded-full transition-all duration-1500 ease-out relative ${
+                  progress > 0 ? 'animate-pulse shadow-lg' : ''
                 }`}
                 style={{ width: `${progress}%` }}
               >
                 {/* Shimmer effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-40 animate-pulse"></div>
+                {/* Glow effect */}
+                <div className={`absolute inset-0 bg-gradient-to-r ${gradientFrom} ${gradientTo} opacity-30 blur-sm`}></div>
+              </div>
+              {/* Progress percentage overlay */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xs font-bold text-gray-700 bg-white px-2 py-1 rounded-full shadow-sm">
+                  {Math.round(progress)}%
+                </span>
               </div>
             </div>
-            {/* Progress dots */}
-            <div className="flex justify-between mt-2">
-              {[0, 25, 50, 75, 100].map((dot) => (
+            
+            {/* Enhanced Progress dots with animation */}
+            <div className="flex justify-between mt-4">
+              {[0, 25, 50, 75, 100].map((dot, index) => (
                 <div 
                   key={dot}
-                  className={`w-2 h-2 rounded-full transition-all duration-500 ${
-                    progress >= dot ? 'bg-green-500 animate-pulse' : 'bg-gray-300'
+                  className={`w-3 h-3 rounded-full transition-all duration-700 ${
+                    progress >= dot 
+                      ? `bg-gradient-to-r ${gradientFrom} ${gradientTo} animate-pulse shadow-lg` 
+                      : 'bg-gray-300'
                   }`}
+                  style={{ animationDelay: `${index * 100}ms` }}
                 ></div>
               ))}
             </div>
           </div>
 
-          {/* Enhanced Status Text */}
-          <h3 className={`text-xl font-bold ${color} mb-3 animate-in slide-in-from-top-2 duration-500`}>
-            {text}
+          {/* Enhanced Status Text with Typing Effect */}
+          <h3 className={`text-2xl font-bold ${color} mb-4 animate-in slide-in-from-top-2 duration-700`}>
+            <span className="inline-block animate-pulse">{text}</span>
           </h3>
 
-          {/* Enhanced Progress Percentage */}
-          <div className="mb-6">
-            <div className={`inline-flex items-center px-4 py-2 ${bgColor} rounded-full border ${borderColor}`}>
-              <div className={`w-2 h-2 ${pulseColor} rounded-full animate-pulse mr-2`}></div>
-              <span className="text-sm font-semibold text-gray-700">
-                {Math.round(progress)}% Complete
-              </span>
-            </div>
-          </div>
-
-          {/* Enhanced Professional Status Messages */}
-          <div className="space-y-3 text-sm text-gray-600">
+          {/* Enhanced Professional Status Messages with Staggered Animation */}
+          <div className="space-y-4 text-sm text-gray-600">
             {state === 'fetching' && (
               <>
-                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-100">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-3"></div>
-                  <span>Retrieving campaign data</span>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-500 delay-100">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse mr-4 shadow-lg"></div>
+                  <span className="font-medium">Retrieving campaign data from database</span>
                 </div>
-                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-200">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-3"></div>
-                  <span>Validating user permissions</span>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-500 delay-200">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse mr-4 shadow-lg"></div>
+                  <span className="font-medium">Validating user permissions and access</span>
                 </div>
-                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-300">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-3"></div>
-                  <span>Preparing task details</span>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-500 delay-300">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse mr-4 shadow-lg"></div>
+                  <span className="font-medium">Preparing task details and commission data</span>
                 </div>
               </>
             )}
             {state === 'connecting' && (
               <>
-                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-100">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse mr-3"></div>
-                  <span>Establishing secure connection</span>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-500 delay-100">
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse mr-4 shadow-lg"></div>
+                  <span className="font-medium">Establishing secure SSL connection</span>
                 </div>
-                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-200">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse mr-3"></div>
-                  <span>Synchronizing data</span>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-500 delay-200">
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse mr-4 shadow-lg"></div>
+                  <span className="font-medium">Synchronizing user data and preferences</span>
                 </div>
-                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-300">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse mr-3"></div>
-                  <span>Finalizing task assignment</span>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-500 delay-300">
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse mr-4 shadow-lg"></div>
+                  <span className="font-medium">Finalizing task assignment and rewards</span>
                 </div>
               </>
             )}
             {state === 'connected' && (
               <>
-                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-100">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-3"></div>
-                  <span>Task loaded successfully</span>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-500 delay-100">
+                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse mr-4 shadow-lg"></div>
+                  <span className="font-medium">Task loaded successfully from server</span>
                 </div>
-                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-200">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-3"></div>
-                  <span>Ready for completion</span>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-500 delay-200">
+                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse mr-4 shadow-lg"></div>
+                  <span className="font-medium">Ready for task completion and rewards</span>
                 </div>
-                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-300 delay-300">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-3"></div>
-                  <span>All systems operational</span>
+                <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-500 delay-300">
+                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse mr-4 shadow-lg"></div>
+                  <span className="font-medium">All systems operational and verified</span>
                 </div>
               </>
             )}
+          </div>
+
+          {/* Connection Status Indicator */}
+          <div className="mt-8 flex items-center justify-center">
+            <div className={`w-3 h-3 rounded-full ${state === 'connected' ? 'bg-green-500 animate-pulse' : 'bg-yellow-500 animate-pulse'} mr-2`}></div>
+            <span className="text-xs text-gray-500 font-medium">
+              {state === 'connected' ? 'Connected' : 'Connecting...'}
+            </span>
           </div>
         </div>
       </div>
@@ -1385,22 +1408,80 @@ export default function CampaignPage() {
               </div>
         )}
 
-        {/* Loading Screen */}
+        {/* Enhanced Loading Screen */}
         {showLoading && (
-          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
-              <div className="text-center">
-              {/* Loading Bar */}
-              <div className="w-80 h-4 bg-white rounded-full mx-auto mb-4 overflow-hidden">
+          <div className="fixed inset-0 bg-black bg-opacity-95 backdrop-blur-md flex items-center justify-center z-50 animate-in fade-in duration-500">
+            <div className="text-center">
+              {/* Enhanced Loading Animation Container */}
+              <div className="mb-8 flex justify-center">
+                <div className="relative">
+                  {/* Outer glow effect */}
+                  <div className="absolute -inset-6 rounded-full bg-gradient-to-r from-red-400 to-red-600 opacity-20 animate-pulse"></div>
+                  {/* Outer pulse ring */}
+                  <div className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-30"></div>
+                  {/* Inner pulse ring */}
+                  <div className="absolute inset-2 rounded-full bg-red-400 animate-pulse opacity-40"></div>
+                  {/* Main loading icon */}
+                  <div className="relative w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center shadow-2xl">
+                    <Loader2 className="w-8 h-8 text-white animate-spin" />
+                  </div>
+                  {/* Floating particles */}
+                  <div className="absolute -top-2 -right-2 w-3 h-3 bg-white rounded-full animate-ping opacity-60"></div>
+                  <div className="absolute -bottom-2 -left-2 w-2 h-2 bg-white rounded-full animate-ping opacity-40 delay-300"></div>
+                </div>
+              </div>
+
+              {/* Enhanced Loading Bar */}
+              <div className="w-96 h-6 bg-gray-800 rounded-full mx-auto mb-6 overflow-hidden shadow-inner border border-gray-600">
                 <div 
-                  className="h-full bg-red-500 rounded-full transition-all duration-3000 ease-out"
+                  className="h-full bg-gradient-to-r from-red-400 via-red-500 to-red-600 rounded-full transition-all duration-3000 ease-out relative animate-pulse"
                   style={{ width: '45%' }}
-                />
+                >
+                  {/* Shimmer effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-40 animate-pulse"></div>
+                  {/* Glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-red-600 opacity-30 blur-sm"></div>
+                </div>
+                {/* Progress percentage overlay */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-xs font-bold text-white bg-black bg-opacity-50 px-2 py-1 rounded-full">
+                    45%
+                  </span>
+                </div>
+              </div>
+
+              {/* Enhanced Loading Text with Typing Effect */}
+              <div className="space-y-4">
+                <h3 className="text-2xl font-bold text-white animate-pulse">
+                  Connecting to server...
+                </h3>
+                
+                {/* Professional Status Messages */}
+                <div className="space-y-3 text-sm text-gray-300">
+                  <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-500 delay-100">
+                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-4 shadow-lg"></div>
+                    <span className="font-medium">Establishing secure connection</span>
+                  </div>
+                  <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-500 delay-200">
+                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-4 shadow-lg"></div>
+                    <span className="font-medium">Authenticating user credentials</span>
+                  </div>
+                  <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-500 delay-300">
+                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-4 shadow-lg"></div>
+                    <span className="font-medium">Synchronizing campaign data</span>
+                  </div>
                 </div>
 
-              {/* Loading Text */}
-              <p className="text-white text-lg">Connecting to server...</p>
-              </div>
+                {/* Connection Status */}
+                <div className="mt-6 flex items-center justify-center">
+                  <div className="w-3 h-3 rounded-full bg-yellow-500 animate-pulse mr-2"></div>
+                  <span className="text-xs text-gray-400 font-medium">
+                    Connecting...
+                  </span>
                 </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Success Modal */}
