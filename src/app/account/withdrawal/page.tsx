@@ -572,13 +572,64 @@ export default function WithdrawalInfoPage() {
       };
 
       // Create withdrawal request using the saved withdrawal information
-      const response = await apiClient.createWithdrawal({
+      console.log('🔄 Creating withdrawal request with data:', {
         customerId: user._id,
         amount: parseFloat(formData.amount),
         method: withdrawalInfo.method,
         accountDetails: accountDetails,
         withdrawalPassword: formData.withdrawalPassword
       });
+      
+      let response;
+      
+      try {
+        // Try direct fetch first (for deployment compatibility)
+        const directResponse = await fetch('/api/withdrawals', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            customerId: user._id,
+            amount: parseFloat(formData.amount),
+            method: withdrawalInfo.method,
+            accountDetails: accountDetails,
+            withdrawalPassword: formData.withdrawalPassword
+          })
+        });
+
+        console.log('📊 Direct withdrawal API response status:', directResponse.status);
+        
+        if (directResponse.ok) {
+          response = await directResponse.json();
+          console.log('✅ Direct withdrawal API response:', response);
+        } else {
+          const errorData = await directResponse.json();
+          console.error('❌ Direct withdrawal API error:', errorData);
+          throw new Error(errorData.message || `HTTP ${directResponse.status}: ${directResponse.statusText}`);
+        }
+      } catch (directError) {
+        console.log('Direct fetch failed, trying apiClient:', directError);
+        
+        // Fallback to apiClient
+        try {
+          response = await apiClient.createWithdrawal({
+            customerId: user._id,
+            amount: parseFloat(formData.amount),
+            method: withdrawalInfo.method,
+            accountDetails: accountDetails,
+            withdrawalPassword: formData.withdrawalPassword
+          });
+          console.log('✅ API Client withdrawal response:', response);
+        } catch (apiClientError) {
+          console.error('Both methods failed:', apiClientError);
+          throw new Error('Failed to create withdrawal request. Please try again or contact support.');
+        }
+      }
+
+      console.log('📊 Final withdrawal response:', response);
+      console.log('✅ Response success:', response.success);
+      console.log('📝 Response message:', response.message);
 
         if (response.success) {
           setSuccess(true);
