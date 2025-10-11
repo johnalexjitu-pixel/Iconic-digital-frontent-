@@ -145,12 +145,43 @@ export default function HistoryPage() {
 
   // Helper function to get logo based on task source
   const getTaskLogo = (task: TaskHistory) => {
-    if (task.source === 'campaigns' && task.logo) {
-      return task.logo; // Use original campaign logo
+    if (task.source === 'campaigns') {
+      // For campaign tasks, try to get logo from task data first
+      if (task.logo) {
+        return task.logo; // Use original campaign logo
+      }
+      // If no logo in task data, try to get from brand name
+      if (task.brand) {
+        return getBrandLogo(task.brand);
+      }
+      // Fallback to random logo for campaign tasks
+      return getRandomLogo();
     } else if (task.source === 'customerTasks') {
       return getRandomLogo(); // Use random logo for customer tasks
     }
-    return '/logo/logo.png'; // Fallback
+    return '/logo/logo.png'; // Final fallback
+  };
+
+  // Helper function to get brand logo based on brand name
+  const getBrandLogo = (brandName: string) => {
+    const brandLogos: { [key: string]: string } = {
+      'NIKON': 'https://taanimagestore.online/SD01C03_422.png',
+      'PEPSICO': 'https://taanimagestore.online/SD01C03_422.png',
+      'JAEGER-LECOULTRE': 'https://taanimagestore.online/SD01C03_419.png',
+      'MAESA': 'https://taanimagestore.online/SD01C03_189.png',
+      'CHANEL': 'https://taanimagestore.online/SD01C03_364.png',
+      'DANIEL WELLINGTON': 'https://taanimagestore.online/SD01C03_485.png',
+      'TACO BELL': 'https://taanimagestore.online/SD01C03_383.png',
+      'RENAULT': 'https://taanimagestore.online/SD01C03_326.png',
+      'LOUIS-PHILLIPPE': 'https://taanimagestore.online/SD01C03_101.png',
+      'SHISEIDO': 'https://taanimagestore.online/SD01C03_179.png',
+      'ROCHAS': 'https://taanimagestore.online/SD01C03_52.png',
+      'INTEL': 'https://taanimagestore.online/SD01C03_24.png',
+      'STELLA MCCARTNEY': 'https://taanimagestore.online/SD01C03_69.png',
+      'KAO': 'https://taanimagestore.online/SD01C03_132.png'
+    };
+    
+    return brandLogos[brandName.toUpperCase()] || getRandomLogo();
   };
 
   const getFilteredTasks = () => {
