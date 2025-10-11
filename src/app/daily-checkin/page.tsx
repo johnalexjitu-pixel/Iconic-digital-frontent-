@@ -11,6 +11,9 @@ import Link from "next/link";
 
 interface CheckInData {
   canClaimToday: boolean;
+  canClaimDailyCheckin: boolean;
+  requiredTasks: number;
+  completedTasks: number;
   streak: number;
   totalCheckIns: number;
   totalAmountEarned: number;
@@ -151,6 +154,25 @@ export default function DailyCheckinPage() {
           </p>
         </Card>
 
+        {/* Task Requirement Card */}
+        {!checkInData.canClaimDailyCheckin && (
+          <Card className="p-4 bg-orange-50 border-orange-200">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <Clock className="w-4 h-4 text-orange-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-orange-800 mb-1">Task Requirement</h4>
+                <p className="text-sm text-orange-700">
+                  You need to complete at least {checkInData.requiredTasks} tasks before claiming daily check-in bonus.
+                  <br />
+                  <span className="font-medium">Completed: {checkInData.completedTasks}/{checkInData.requiredTasks} tasks</span>
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Current Streak */}
         <Card className="p-4 bg-gradient-to-r from-teal-50 to-cyan-50 border-teal-200">
           <div className="text-center">
@@ -207,10 +229,12 @@ export default function DailyCheckinPage() {
 
             <Button
               onClick={handleClaimReward}
-              disabled={loading || !checkInData.canClaimToday}
+              disabled={loading || !checkInData.canClaimToday || !checkInData.canClaimDailyCheckin}
               className="w-full h-12 bg-teal-500 hover:bg-teal-600 text-white font-semibold rounded-xl disabled:bg-gray-300"
             >
-              {loading ? 'Claiming...' : checkInData.canClaimToday ? 'Claim Daily Bonus' : 'Already Claimed Today'}
+              {loading ? 'Claiming...' : 
+               !checkInData.canClaimDailyCheckin ? 'Complete 30 Tasks First' :
+               checkInData.canClaimToday ? 'Claim Daily Bonus' : 'Already Claimed Today'}
             </Button>
           </div>
         </Card>
@@ -252,6 +276,10 @@ export default function DailyCheckinPage() {
         <Card className="p-4">
           <h4 className="font-semibold text-gray-900 mb-3">Rules & Guidelines</h4>
           <div className="space-y-2 text-sm text-gray-600">
+            <div className="flex items-start gap-2">
+              <div className="w-1 h-1 rounded-full bg-gray-400 mt-2 flex-shrink-0" />
+              <p>You must complete at least 30 tasks before claiming daily check-in bonus</p>
+            </div>
             <div className="flex items-start gap-2">
               <div className="w-1 h-1 rounded-full bg-gray-400 mt-2 flex-shrink-0" />
               <p>You can claim one daily check-in bonus per day</p>

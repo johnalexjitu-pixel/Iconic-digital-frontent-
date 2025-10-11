@@ -240,75 +240,129 @@ const RewardModal = ({
   if (!isOpen || !rewardData) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl animate-in fade-in zoom-in duration-300">
-        <div className="text-center">
-          {/* Success Icon */}
-          <div className="mb-6 flex justify-center">
-            <div className="relative">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center animate-pulse">
-                <CheckCircle className="w-10 h-10 text-green-600" />
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+      <div className="w-full h-full max-w-4xl max-h-[90vh] bg-gradient-to-br from-white via-gray-50 to-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
+        {/* Header with Gradient Background */}
+        <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 p-6 text-white relative overflow-hidden">
+          <div className="absolute inset-0 bg-black opacity-10"></div>
+          <div className="relative z-10">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-xl font-bold">#{Math.floor(Math.random() * 900000) + 100000}</h3>
+              <div className="flex items-center gap-2 bg-white bg-opacity-20 rounded-full px-3 py-1">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium">Completed</span>
               </div>
-              {rewardData.isGoldenEgg && (
-                <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
-                  <Gift className="w-5 h-5 text-yellow-800" />
+            </div>
+            <p className="text-blue-100 text-sm">Task completed successfully!</p>
+          </div>
+          {/* Decorative elements */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -translate-y-16 translate-x-16"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-5 rounded-full translate-y-12 -translate-x-12"></div>
+        </div>
+
+        <div className="p-6 space-y-4 flex-1 overflow-y-auto">
+          {/* Your Commission Section - Enhanced */}
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-5 border border-green-100 shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
+                  {rewardData.logo ? (
+                    <img 
+                      src={rewardData.logo} 
+                      alt={rewardData.brand || rewardData.taskTitle}
+                      className="w-8 h-8 object-contain"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <Crown className="w-6 h-6 text-white" />
+                  )}
                 </div>
-              )}
+                <div>
+                  <h4 className="font-bold text-gray-800 text-lg">{rewardData.brand || rewardData.taskTitle}</h4>
+                  <p className="text-sm text-gray-600 flex items-center gap-1">
+                    <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                    Your Commission
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                  BDT {rewardData.commission.toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Earned</p>
+              </div>
             </div>
           </div>
 
-          {/* Task Image */}
-          {rewardData.logo && (
-            <div className="mb-4 flex justify-center">
-              <img 
-                src={rewardData.logo} 
-                alt={rewardData.brand || rewardData.taskTitle}
-                className="w-16 h-16 object-contain rounded-lg border border-gray-200 shadow-sm"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
+          {/* Company Profit Section - Enhanced */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-100 shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <span className="text-white font-bold text-lg">$</span>
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-800 text-lg">Company Profit</h4>
+                  <p className="text-sm text-gray-600 flex items-center gap-1">
+                    <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                    Base Amount
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  BDT {rewardData.companyProfit.toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Revenue</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Platform Section - Enhanced */}
+          <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl p-5 border border-gray-100 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-lg">f</span>
+              </div>
+              <div className="flex-1">
+                <h4 className="font-bold text-gray-800 text-lg">Facebook</h4>
+                <p className="text-sm text-gray-600">Social Campaign</p>
+              </div>
+              <div className="flex items-center gap-2 bg-green-100 rounded-full px-3 py-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-xs font-medium text-green-700">Active</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Commission Status Message */}
+          {rewardData.commission === 0 && (
+            <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-2xl p-4 shadow-sm">
+              <p className="text-yellow-800 text-sm text-center flex items-center justify-center gap-2">
+                <span className="text-lg">⚠️</span>
+                This task has no commission. You completed it but earned no reward.
+              </p>
             </div>
           )}
 
-          {/* Success Message */}
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">
-            {rewardData.isGoldenEgg ? '🥚 Golden Egg Completed!' : '🎯 Task Completed!'}
-          </h2>
-          
-          <p className="text-gray-600 mb-6">
-            {rewardData.brand || rewardData.taskTitle}
-          </p>
-
-          {/* Reward Details */}
-          <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border border-gray-200 mb-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <div className="text-sm text-green-600 font-medium mb-1">Your Reward</div>
-                <div className="text-2xl font-bold text-green-700">
-                  BDT {rewardData.commission.toLocaleString()}
-                </div>
-                {rewardData.isGoldenEgg && (
-                  <div className="text-xs text-green-500 mt-1">Golden Egg Bonus!</div>
-                )}
-              </div>
-              <div className="text-center">
-                <div className="text-sm text-blue-600 font-medium mb-1">Company Profit</div>
-                <div className="text-2xl font-bold text-blue-700">
-                  BDT {rewardData.companyProfit.toLocaleString()}
-                </div>
-              </div>
-            </div>
+          {/* Action Buttons - Enhanced */}
+          <div className="flex gap-4 pt-2">
+            <Button 
+              onClick={onClose}
+              variant="outline" 
+              className="flex-1 h-12 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 rounded-xl font-medium transition-all duration-200"
+            >
+              Close
+            </Button>
+            <Button 
+              onClick={onClose}
+              className="flex-1 h-12 bg-gradient-to-r from-red-500 via-pink-500 to-red-600 hover:from-red-600 hover:via-pink-600 hover:to-red-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+            >
+              {rewardData.commission > 0 ? 'Launch Campaign' : 'Continue'}
+            </Button>
           </div>
-
-          {/* Action Button */}
-          <Button 
-            onClick={onClose}
-            className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white font-semibold py-3 rounded-lg transition-all duration-200"
-          >
-            <CheckCircle className="w-5 h-5 mr-2" />
-            Continue
-          </Button>
         </div>
       </div>
     </div>
@@ -410,18 +464,6 @@ export default function CampaignPage() {
   const [showPlatformSelection, setShowPlatformSelection] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [showLoading, setShowLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [campaignDetails, setCampaignDetails] = useState<{
-    campaignId: string;
-    brand: string;
-    brandLogo: string;
-    amount: number;
-    commission: number;
-    platform: string;
-    platformIcon: string;
-    type: string;
-    status: string;
-  } | null>(null);
 
   // Handle swipe gestures - improved version
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -461,11 +503,9 @@ export default function CampaignPage() {
     const distance = touchEnd - touchStart;
     const minSwipeDistance = 150; // Reduced for easier swipe
     
-    console.log('Swipe distance:', distance, 'Min required:', minSwipeDistance);
     
     if (distance >= minSwipeDistance) {
       // Swipe successful - show platform selection
-      console.log('Swipe successful! Showing platform selection...');
       setShowPlatformSelection(true);
     }
     
@@ -496,39 +536,19 @@ export default function CampaignPage() {
     // Simulate loading/connecting to server
     await new Promise(resolve => setTimeout(resolve, 3000));
     
-    // Use real campaign data from currentTask
-    const campaignDetails = {
-      campaignId: currentTask?.campaignId ? `#${currentTask.campaignId.slice(-6)}` : `#${Math.floor(Math.random() * 900000) + 100000}`,
-      brand: currentTask?.taskTitle || 'Unknown Brand',
-      brandLogo: '/logo/logo.png',
-      amount: currentTask?.taskCommission || 0,
-      commission: currentTask?.taskCommission || 0, // Real commission from database
-      platform: platforms.find(p => p.id === platformId)?.name || 'Instagram',
-      platformIcon: platforms.find(p => p.id === platformId)?.image || '/campaign/instagram.png',
-      type: 'Social Campaign',
-      status: 'Pending'
-    };
-    
-    setCampaignDetails(campaignDetails);
     setShowLoading(false);
-    setShowSuccess(true);
     
     // Complete task regardless of commission (new workflow handles all tasks)
     if (currentTask) {
-      console.log(`🎯 Platform selected: ${platformId}, Task: ${currentTask.taskTitle}, Commission: ${currentTask.taskCommission}`);
-      console.log(`📝 Task source: ${currentTask.source || 'customerTasks'}`);
       
       // Check if this is a golden egg task
       if (currentTask.hasGoldenEgg) {
-        console.log(`🥚 Golden Egg task detected! Showing egg selection modal`);
-        console.log(`📊 Task status: ${currentTask.status}, Commission: ${currentTask.taskCommission}`);
         setShowGoldenEggModal(true);
       } else {
         // Directly complete the task (no claiming needed in new workflow)
         completeTask(currentTask);
       }
     } else {
-      console.log('❌ No current task available');
     }
   };
 
@@ -629,24 +649,18 @@ export default function CampaignPage() {
         setRefreshing(true);
       }
       
-      console.log('🔍 Fetching next task for membershipId:', user.membershipId);
       
       // Get fresh user data directly from API instead of using stale userStats
       const freshUserData = await fetchUserStats();
       if (!freshUserData) {
-        console.log('❌ Failed to fetch fresh user data');
         return;
       }
       
       const campaignsCompleted = freshUserData.campaignsCompleted || 0;
-      console.log('🔍 Fresh campaigns completed:', campaignsCompleted);
-      console.log('🔍 User deposit count:', user.depositCount);
       
       // First check customerTasks collection - match customerCode with membershipId
       const customerTasksResponse = await fetch(`/api/customer-tasks?customerCode=${user.membershipId}&status=pending`);
       const customerTasksData = await customerTasksResponse.json();
-      console.log('🔍 Customer tasks response:', customerTasksData);
-      console.log('🔍 Searching for customerCode:', user.membershipId, 'in customerTasks collection');
       
       // Check if customer task was found
       let customerTaskFound = false;
@@ -654,17 +668,11 @@ export default function CampaignPage() {
       if (customerTasksData.success && customerTasksData.data && customerTasksData.data.length > 0) {
         // Find the next task based on fresh campaignsCompleted + 1
         const nextTaskNumber = campaignsCompleted + 1;
-        console.log(`🔍 Looking for Task #${nextTaskNumber} in customer tasks (based on fresh campaignsCompleted: ${campaignsCompleted})`);
         
         // First try to find the exact next task number
         const task = customerTasksData.data.find((t: CustomerTaskFromAPI) => t.taskNumber === nextTaskNumber);
         
         if (task) {
-          console.log(`✅ Customer task found: Task #${task.taskNumber}`);
-          console.log(`💰 Commission: ${task.taskCommission}`);
-          console.log(`🥚 Has Golden Egg: ${task.hasGoldenEgg}`);
-          console.log(`📊 Estimated Negative Amount: ${task.estimatedNegativeAmount || 0}`);
-          console.log(`💎 Total Commission: ${(task.estimatedNegativeAmount || 0) + (task.taskCommission || 0)} BDT`);
           
           setCurrentTask({
             _id: task._id,
@@ -685,27 +693,21 @@ export default function CampaignPage() {
             brand: task.brand // Brand name
           });
           
-          console.log(`🎯 Customer task set successfully: Task #${task.taskNumber}`);
           customerTaskFound = true;
       } else {
-          console.log(`❌ Task #${nextTaskNumber} not found in customer tasks, will show campaign task instead`);
         }
       } else {
-        console.log(`❌ No pending customer tasks found, falling back to campaigns`);
       }
       
       // Only call campaign API if no customer task was found
       if (!customerTaskFound) {
-        console.log('🔍 No customer task found, falling back to campaigns collection...');
         const campaignsResponse = await fetch('/api/campaigns');
         const campaignsData = await campaignsResponse.json();
-        console.log('🔍 Campaigns response:', campaignsData);
         
         if (campaignsData.success && campaignsData.data && campaignsData.data.length > 0) {
           // Randomly select a campaign for variety
           const randomIndex = Math.floor(Math.random() * campaignsData.data.length);
           const campaign = campaignsData.data[randomIndex];
-          console.log(`✅ Campaign task loaded: ${campaign.title} (random selection)`);
           
           // Calculate commission based on user type
           let taskCommission;
@@ -718,7 +720,6 @@ export default function CampaignPage() {
           }
           
           const nextTaskNumber = campaignsCompleted + 1;
-          console.log(`🔍 Creating campaign task #${nextTaskNumber} for user (fresh campaignsCompleted: ${campaignsCompleted})`);
           
           const newTask = {
             _id: campaign._id,
@@ -738,10 +739,8 @@ export default function CampaignPage() {
             brand: campaign.brand // Brand name
           };
           
-          console.log('🎯 Setting new campaign task:', newTask);
           setCurrentTask(newTask);
         } else {
-          console.log('📋 No tasks available');
         setCurrentTask(null);
         }
       }
@@ -779,7 +778,6 @@ export default function CampaignPage() {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          console.log('✅ Task reset successful');
           toast.success('Tasks reset successfully! You can now complete more tasks.');
           await fetchUserStats();
           await fetchTasks();
@@ -822,15 +820,12 @@ export default function CampaignPage() {
 
   // Handle golden egg selection
   const handleEggSelect = (eggNumber: number) => {
-    console.log(`🥚 Egg ${eggNumber} selected for golden egg task`);
-    console.log(`📊 Task status: ${currentTask?.status}, Commission: ${currentTask?.taskCommission}`);
     setSelectedEgg(eggNumber);
     
     // Complete the task with the same commission (just for show)
     if (currentTask) {
       // For completed tasks, we don't need to call completeTask again
       if (currentTask.status === 'completed') {
-        console.log(`✅ Golden egg task already completed, just showing result`);
         // Close modal after showing result
         setTimeout(() => {
           setShowGoldenEggModal(false);
@@ -875,26 +870,13 @@ export default function CampaignPage() {
     setLoadingProgress(20);
     
     try {
-      console.log('🎯 Completing task:', task.taskTitle, 'Commission:', task.taskCommission);
-      console.log('🥚 Selected egg:', selectedEgg || 'N/A');
       
-      console.log(`🎯 Completing task: ${task.taskTitle} (ID: ${task._id})`);
-      console.log(`👤 User ID: ${user._id}`);
-      console.log(`📋 Task data:`, {
-        _id: task._id,
-        taskTitle: task.taskTitle,
-        platform: task.platform,
-        taskCommission: task.taskCommission,
-        taskPrice: task.taskPrice,
-        source: task.source
-      });
 
       // Complete task based on source
       setLoadingProgress(50);
       let completionResponse;
       if (task.source === 'customerTasks') {
         // Complete customer task
-        console.log(`📤 Sending customer task completion request`);
         completionResponse = await fetch('/api/customer-tasks/complete', {
         method: 'POST',
         headers: {
@@ -907,7 +889,6 @@ export default function CampaignPage() {
         });
       } else {
         // Complete campaign task directly
-        console.log(`📤 Sending campaign task completion request`);
         const requestData = {
           userId: user._id,
           taskId: task._id,
@@ -920,7 +901,6 @@ export default function CampaignPage() {
           taskPrice: task.taskPrice,
           taskNumber: task.taskNumber
         };
-        console.log(`📤 Request data:`, requestData);
         
         completionResponse = await fetch('/api/campaigns/complete', {
           method: 'POST',
@@ -938,9 +918,6 @@ export default function CampaignPage() {
         const completionData = await completionResponse.json();
         
         if (completionData.success) {
-          console.log(`✅ Task completed successfully: ${completionData.message}`);
-          console.log(`📊 Commission earned: ${completionData.data.commission || task.taskCommission}`);
-          console.log(`💳 New balance: ${completionData.data.accountBalance || completionData.data.newBalance}`);
           
           // Complete loading animation
           setLoadingProgress(100);
@@ -969,11 +946,9 @@ export default function CampaignPage() {
           if (completionData.data.tasksCompleted !== undefined) {
             // Customer task completion - use the taskNumber
             newCampaignsCompleted = completionData.data.tasksCompleted;
-            console.log(`📋 Customer task completed - using taskNumber: ${newCampaignsCompleted}`);
           } else {
             // Campaign task completion - increment by 1
             newCampaignsCompleted = userStats.campaignsCompleted + 1;
-            console.log(`🎯 Campaign task completed - incrementing: ${userStats.campaignsCompleted} → ${newCampaignsCompleted}`);
           }
           
           setUserStats(prevStats => ({
@@ -993,10 +968,8 @@ export default function CampaignPage() {
           await fetchUserStats();
           
           // Get next task from database
-          console.log(`🔄 Loading next task after completion...`);
           await fetchTasks();
           
-          console.log(`✅ Task completed and next task loaded`);
         } else {
           console.error(`❌ Task completion failed: ${completionData.message}`);
           setError(completionData.error || 'Failed to save task completion');
@@ -1054,7 +1027,7 @@ export default function CampaignPage() {
   return (
     <AccountStatusChecker>
     <div className="min-h-screen bg-gray-50">
-      <HomepageHeader />
+      <HomepageHeader user={user} />
       
       {/* Professional Loading Animation */}
       {loadingState !== 'idle' && (
@@ -1064,7 +1037,7 @@ export default function CampaignPage() {
         />
       )}
       
-      <div className="max-w-2xl mx-auto p-4 space-y-6 pt-10">
+      <div className="max-w-2xl mx-auto p-4 space-y-6 pt-6">
       
         {/* Hero Video Section */}
         <div className="w-full flex justify-center mb-4 relative min-h-[8rem] sm:min-h-[20rem] md:min-h-[24rem]">
@@ -1484,94 +1457,6 @@ export default function CampaignPage() {
           </div>
         )}
 
-        {/* Success Modal */}
-        {showSuccess && campaignDetails && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <Card className="w-full max-w-md bg-white rounded-2xl shadow-2xl">
-              <div className="p-6">
-                {/* Header */}
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-bold text-gray-800">{campaignDetails.campaignId}</h3>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-orange-400 rounded-full"></div>
-                    <span className="text-orange-500 font-medium">{campaignDetails.status}</span>
-              </div>
-            </div>
-
-                {/* Brand Section */}
-                <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <img 
-                        src={campaignDetails.brandLogo} 
-                        alt={campaignDetails.brand}
-                        className="w-8 h-8 object-contain"
-                      />
-                      <div>
-                        <h4 className="font-bold text-gray-800">{campaignDetails.brand}</h4>
-                        <p className="text-sm text-gray-600">
-                          Commission: {campaignDetails.commission > 0 ? `BDT ${campaignDetails.commission}` : 'No Commission'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={`text-2xl font-bold ${campaignDetails.amount > 0 ? 'text-green-600' : 'text-gray-400'}`}>
-                        {campaignDetails.amount > 0 ? `BDT ${campaignDetails.amount.toLocaleString()}` : 'No Reward'}
-                      </p>
-                    </div>
-                  </div>
-            </div>
-
-                {/* Platform Section */}
-                <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                  <div className="flex items-center gap-3">
-                    <img 
-                      src={campaignDetails.platformIcon} 
-                      alt={campaignDetails.platform}
-                      className="w-8 h-8 object-contain"
-                    />
-                    <div>
-                      <h4 className="font-bold text-gray-800">{campaignDetails.platform}</h4>
-                      <p className="text-sm text-gray-600">{campaignDetails.type}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Commission Status Message */}
-                {campaignDetails.commission === 0 && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                    <p className="text-yellow-800 text-sm text-center">
-                      ⚠️ This task has no commission. You completed it but earned no reward.
-                    </p>
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex gap-3">
-                  <Button
-                    onClick={() => {
-                      setShowSuccess(false);
-                      setCampaignDetails(null);
-                    }}
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    Close
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setShowSuccess(false);
-                      setCampaignDetails(null);
-                    }}
-                    className="flex-1 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white"
-                  >
-                    {campaignDetails.commission > 0 ? 'Launch Campaign' : 'Continue'}
-                  </Button>
-                </div>
-              </div>
-          </Card>
-          </div>
-        )}
 
       </div>
       

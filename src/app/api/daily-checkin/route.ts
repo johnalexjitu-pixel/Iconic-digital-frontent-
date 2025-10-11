@@ -17,6 +17,28 @@ export async function POST(request: NextRequest) {
     const usersCollection = await getCollection('users');
     const dailyCheckInsCollection = await getCollection('dailyCheckIns');
     
+    // Check if user has completed at least 30 tasks
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    if (user.campaignsCompleted < 30) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'You need to complete at least 30 tasks before claiming daily check-in bonus',
+          errorType: 'insufficient_tasks',
+          requiredTasks: 30,
+          completedTasks: user.campaignsCompleted
+        },
+        { status: 400 }
+      );
+    }
+    
     // Check if user already claimed today
     const today = new Date();
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -105,6 +127,17 @@ export async function GET(request: NextRequest) {
     const usersCollection = await getCollection('users');
     const dailyCheckInsCollection = await getCollection('dailyCheckIns');
     
+    // Check if user has completed at least 30 tasks
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    const canClaimDailyCheckin = user.campaignsCompleted >= 30;
+    
     // Get user's check-in history
     const checkIns = await dailyCheckInsCollection
       .find({ userId: userId })
@@ -152,7 +185,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        canClaimToday: !todayCheckIn,
+        canClaimToday: !todayCheckIn && canClaimDailyCheckin,
+        canClaimDailyCheckin: canClaimDailyCheckin,
+        requiredTasks: 30,
+        completedTasks: user.campaignsCompleted,
         streak: streak,
         totalCheckIns: checkIns.length,
         totalAmountEarned: checkIns.reduce((sum, checkIn) => sum + (checkIn.amount || 0), 0),

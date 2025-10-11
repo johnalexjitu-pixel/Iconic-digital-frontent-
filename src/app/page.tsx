@@ -156,7 +156,7 @@ export default function HomePage() {
                   <p>This is where we're different.</p>
                   <p>Whether we're helping to grow your Social communities, deliver performance-driven Paid Media, produce social-first Creative or Influencer campaigns - we craft strategies based on your brand, business and goals all backed by data and insight.</p>
                 </div>
-                <Button className="bg-black text-white px-8 py-3 font-lexend mt-8">
+                <Button className="bg-black text-white px-8 py-3 font-lexend mt-8" onClick={() => router.push('/services')}>
                   See Our Services
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
@@ -194,7 +194,7 @@ export default function HomePage() {
                     <span className="font-lexend">First Use of Facebook & Instagram Ads</span>
                   </div>
                 </div>
-                <Button className="bg-black text-white px-8 py-3 font-lexend mt-8">
+                <Button className="bg-black text-white px-8 py-3 font-lexend mt-8" onClick={() => router.push('/about')}>
                   Learn More
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
@@ -217,7 +217,7 @@ export default function HomePage() {
           <div className="max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-12">
               <h2 className="text-3xl font-bold text-white font-lexend">Our full-service offering...</h2>
-              <Button variant="outline" className="border-white text-white hover:bg-white hover:text-red-600 font-lexend">
+              <Button variant="outline" className="border-white text-white hover:bg-white hover:text-red-600 font-lexend" onClick={() => router.push('/services')}>
                 View all services
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
@@ -237,7 +237,7 @@ export default function HomePage() {
                     <li>• Content Creators for UGC Content</li>
                     <li>• Reports & Analysis</li>
                   </ul>
-                  <Button className="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-2 font-lexend">
+                  <Button className="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-2 font-lexend" onClick={() => router.push('/campaign')}>
                     Initiate Campaign
                   </Button>
                 </div>
@@ -257,7 +257,7 @@ export default function HomePage() {
                     <li>• Social-first Content Creation</li>
                     <li>• Social Listening & Insights</li>
                   </ul>
-                  <Button className="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-2 font-lexend">
+                  <Button className="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-2 font-lexend" onClick={() => router.push('/campaign')}>
                     Initiate Campaign
                   </Button>
                 </div>
@@ -277,7 +277,7 @@ export default function HomePage() {
                     <li>• Planning, Buying, Creative, Analytics, Testing and more</li>
                     <li>• Feed Optimisation & Shopping</li>
                   </ul>
-                  <Button className="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-2 font-lexend">
+                  <Button className="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-2 font-lexend" onClick={() => router.push('/campaign')}>
                     Initiate Campaign
                   </Button>
                 </div>
@@ -298,7 +298,7 @@ export default function HomePage() {
             <p className="text-gray-600 font-lexend mb-8 max-w-3xl mx-auto leading-relaxed">
               View our official Certificate of Incorporation issued by Companies House. This document verifies our status as a registered private limited company in accordance with the Companies Act 2006.
             </p>
-            <Button className="bg-red-500 hover:bg-red-600 text-white px-8 py-3 font-lexend">
+            <Button className="bg-red-500 hover:bg-red-600 text-white px-8 py-3 font-lexend" onClick={() => window.open('/Iconic-Digital-Certificate-of-Incorporation (1).pdf', '_blank')}>
               View Document
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
@@ -313,7 +313,7 @@ export default function HomePage() {
           <div className="relative max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="bg-blue-600 p-12 rounded-lg">
               <h2 className="text-3xl font-bold text-white font-lexend mb-6">We are here to make a difference</h2>
-              <Button className="bg-white text-blue-600 px-8 py-3 font-lexend">
+              <Button className="bg-white text-blue-600 px-8 py-3 font-lexend" onClick={() => router.push('/campaign')}>
                 Launch Campaign
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
@@ -331,15 +331,18 @@ export default function HomePage() {
         </div>
 
         {/* Footer */}
-        <footer className="bg-black text-white py-16 px-6">
+        <footer className="bg-black text-white py-16 px-6 mb-20">
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
               <div>
                 <div className="flex items-center gap-2 mb-6">
-                  <div className="w-8 h-8 bg-red-500 rounded flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">⚡</span>
-                  </div>
-                  <span className="text-xl font-bold font-lexend">ICONIC DIGITAL</span>
+                  <Image 
+                    src="/image-removebg-preview.png" 
+                    alt="Iconic Digital Logo" 
+                    width={120} 
+                    height={40}
+                    className="h-8 w-auto"
+                  />
                 </div>
                 <p className="text-gray-400 font-lexend text-sm">©2024 Iconic Digital. All rights reserved.</p>
               </div>
@@ -358,7 +361,7 @@ export default function HomePage() {
                   <li><Link href="/services" className="text-gray-300 hover:text-white">Services</Link></li>
                   <li><Link href="/campaign" className="text-gray-300 hover:text-white">Start Campaign</Link></li>
                   <li><Link href="/account" className="text-gray-300 hover:text-white">Account</Link></li>
-                  <li><Link href="#" className="text-gray-300 hover:text-white">Certification</Link></li>
+                  <li><Link href="/certification" className="text-gray-300 hover:text-white">Certification</Link></li>
                 </ul>
               </div>
               <div>
@@ -385,79 +388,4 @@ export default function HomePage() {
         <HomepageFooter activePage="home" />
       </div>
     );
-
-  const stats = [
-    {
-      label: "Account Balance",
-      value: "BDT 61,076",
-      bgColor: "bg-teal-50 border-teal-200",
-      textColor: "text-teal-600"
-    },
-    {
-      label: "Number of Campaigns",
-      value: "8/30",
-      bgColor: "bg-teal-50 border-teal-200",
-      textColor: "text-teal-600"
-    },
-    {
-      label: "Today's Commission",
-      value: "BDT 0",
-      bgColor: "bg-teal-50 border-teal-200",
-      textColor: "text-teal-600"
-    },
-    {
-      label: "Withdrawal Amount",
-      value: "BDT 0",
-      bgColor: "bg-teal-50 border-teal-200",
-      textColor: "text-teal-600"
-    }
-  ];
-
-  return (
-    <AppLayout user={user || undefined}>
-      <div className="space-y-6">
-        {/* Video Section */}
-        <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-amber-100 to-orange-200 h-64">
-          <div className="absolute inset-0 bg-black/20">
-            <img
-              src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&h=400&fit=crop"
-              alt="Campaign preview"
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Button
-              size="lg"
-              className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30"
-            >
-              <Play className="w-6 h-6 text-white mr-2" />
-              <span className="text-white">Play Video</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-4">
-          {stats.map((stat, index) => (
-            <Card key={index} className={`p-4 ${stat.bgColor} border-2`}>
-              <div className="space-y-1">
-                <p className="text-sm text-gray-600 font-medium font-lexend">{stat.label}</p>
-                <p className={`text-xl font-bold ${stat.textColor} font-lexend`}>{stat.value}</p>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* Launch Campaign Button */}
-        <div className="pt-4">
-          <Button
-            className="w-full h-14 text-lg font-semibold bg-red-500 hover:bg-red-600 text-white rounded-2xl flex items-center justify-center gap-3 font-lexend"
-          >
-            <ArrowRight className="w-6 h-6" />
-            Launch Campaign
-          </Button>
-        </div>
-      </div>
-    </AppLayout>
-  );
-}
+  }

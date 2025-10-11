@@ -98,8 +98,6 @@ export function calculateCommission(accountBalance: number): number {
     Math.random() * (tier.maxCommission - tier.minCommission + 1)
   ) + tier.minCommission;
 
-  console.log(`💰 Commission calculated for balance ${accountBalance}: ${commission} BDT (${tier.description})`);
-  
   return commission;
 }
 

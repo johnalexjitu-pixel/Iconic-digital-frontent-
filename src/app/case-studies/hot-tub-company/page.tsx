@@ -202,10 +202,13 @@ export default function HotTubCompanyCaseStudy() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center gap-2 mb-6">
-                <div className="w-8 h-8 bg-red-500 rounded flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">⚡</span>
-                </div>
-                <span className="text-xl font-bold font-lexend">ICONIC DIGITAL</span>
+                <Image 
+                  src="/image-removebg-preview.png" 
+                  alt="Iconic Digital Logo" 
+                  width={120} 
+                  height={40}
+                  className="h-8 w-auto"
+                />
               </div>
               <p className="text-gray-400 font-lexend text-sm">©2024 Iconic Digital. All rights reserved.</p>
             </div>

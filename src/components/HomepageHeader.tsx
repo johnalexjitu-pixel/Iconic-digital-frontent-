@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Crown, HelpCircle, Headphones, LogIn, LogOut } from "lucide-react";
+import Image from 'next/image';
 
 interface HomepageHeaderProps {
   user?: {
@@ -17,16 +18,20 @@ export function HomepageHeader({ user }: HomepageHeaderProps) {
   const router = useRouter();
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <header className="bg-white border-b border-gray-200 px-6 py-6">
       <div className="flex items-center justify-between">
         <div 
-          className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+          className="flex items-center cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => router.push('/')}
         >
-          <div className="w-8 h-8 bg-red-500 rounded flex items-center justify-center">
-            <span className="text-white font-bold text-sm">⚡</span>
-          </div>
-          <span className="text-xl font-bold text-gray-900 font-lexend">ICONIC DIGITAL</span>
+          <Image 
+            src="/image-removebg-preview.png" 
+            alt="Iconic Digital Logo" 
+            width={350}
+            height={120}
+            className="h-24 w-auto"
+            priority
+          />
         </div>
         <div className="flex items-center gap-6 text-sm font-lexend text-gray-600">
           <Button 
