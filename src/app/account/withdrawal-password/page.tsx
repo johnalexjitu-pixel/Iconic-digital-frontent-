@@ -50,6 +50,9 @@ export default function WithdrawalPasswordPage() {
                 console.warn('Failed to fetch fresh user data:', data.error);
                 // Keep using localStorage data if API fails
               }
+            } else if (response.status === 404) {
+              console.warn('User endpoint not found. This might be a deployment issue.');
+              // Keep using localStorage data if API fails
             } else {
               console.warn('API request failed:', response.status);
               // Keep using localStorage data if API fails
@@ -122,12 +125,18 @@ export default function WithdrawalPasswordPage() {
         const userData = localStorage.getItem('user');
         if (userData) {
           const parsedUser = JSON.parse(userData);
-          const refreshResponse = await fetch(`/api/user?username=${encodeURIComponent(parsedUser.username)}`);
-          if (refreshResponse.ok) {
-            const refreshData = await refreshResponse.json();
-            if (refreshData.success) {
-              setUser(refreshData.data);
+          try {
+            const refreshResponse = await fetch(`/api/user?username=${encodeURIComponent(parsedUser.username)}`);
+            if (refreshResponse.ok) {
+              const refreshData = await refreshResponse.json();
+              if (refreshData.success) {
+                setUser(refreshData.data);
+              }
+            } else if (refreshResponse.status === 404) {
+              console.warn('User endpoint not found during refresh. This might be a deployment issue.');
             }
+          } catch (refreshError) {
+            console.warn('Error refreshing user data:', refreshError);
           }
         }
         setTimeout(() => setSuccess(false), 3000);

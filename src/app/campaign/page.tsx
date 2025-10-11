@@ -261,40 +261,42 @@ const RewardModal = ({
         </div>
 
         <div className="p-6 space-y-4 flex-1 overflow-y-auto">
-          {/* Your Commission Section - Enhanced */}
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-5 border border-green-100 shadow-sm hover:shadow-md transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
-                  {rewardData.logo ? (
-                    <img 
-                      src={rewardData.logo} 
-                      alt={rewardData.brand || rewardData.taskTitle}
-                      className="w-8 h-8 object-contain"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <Crown className="w-6 h-6 text-white" />
-                  )}
+          {/* Your Commission Section - Only show if commission is non-negative */}
+          {rewardData.commission >= 0 && (
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-5 border border-green-100 shadow-sm hover:shadow-md transition-all duration-300">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
+                    {rewardData.logo ? (
+                      <img 
+                        src={rewardData.logo} 
+                        alt={rewardData.brand || rewardData.taskTitle}
+                        className="w-8 h-8 object-contain"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <Crown className="w-6 h-6 text-white" />
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-800 text-lg">{rewardData.brand || rewardData.taskTitle}</h4>
+                    <p className="text-sm text-gray-600 flex items-center gap-1">
+                      <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                      Your Commission
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-bold text-gray-800 text-lg">{rewardData.brand || rewardData.taskTitle}</h4>
-                  <p className="text-sm text-gray-600 flex items-center gap-1">
-                    <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                    Your Commission
+                <div className="text-right">
+                  <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                    BDT {rewardData.commission.toLocaleString()}
                   </p>
+                  <p className="text-xs text-gray-500 mt-1">Earned</p>
                 </div>
-              </div>
-              <div className="text-right">
-                <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                  BDT {rewardData.commission.toLocaleString()}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Earned</p>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Company Profit Section - Enhanced */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-100 shadow-sm hover:shadow-md transition-all duration-300">
