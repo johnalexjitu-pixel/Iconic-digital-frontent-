@@ -122,7 +122,7 @@ export default function WithdrawalInfoPage() {
 
     if (user.depositCount === 0) {
       // New user: can only withdraw commission (accountBalance includes trial balance + commission)
-      const maxWithdrawable = user.campaignCommission || 0;
+      const maxWithdrawable = Math.max(0, user.campaignCommission || 0);
       return {
         eligible: true,
         message: `You can withdraw up to BDT ${maxWithdrawable} (commission only). Trial balance cannot be withdrawn.`,
@@ -133,7 +133,7 @@ export default function WithdrawalInfoPage() {
     return {
       eligible: true,
       message: 'You can withdraw your full balance',
-      maxWithdrawable: user.accountBalance || 0
+      maxWithdrawable: Math.max(0, user.accountBalance || 0)
     };
   };
 
@@ -151,11 +151,19 @@ export default function WithdrawalInfoPage() {
   // Fetch fresh user data from API to get updated account balance
   const fetchFreshUserData = async (username: string) => {
     try {
+      console.log('🔄 Fetching fresh user data for username:', username);
       const response = await fetch(`/api/user?username=${encodeURIComponent(username)}`);
+      console.log('📊 Fresh user data response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('📈 Fresh user data:', data);
+        
         if (data.success && data.data) {
           const freshUserData = data.data;
+          console.log('💵 Fresh account balance:', freshUserData.accountBalance);
+          console.log('💰 Fresh campaign commission:', freshUserData.campaignCommission);
+          
           setUser(prevUser => ({
             ...prevUser,
             username: prevUser?.username || '',
@@ -178,7 +186,10 @@ export default function WithdrawalInfoPage() {
             depositCount: freshUserData.depositCount
           };
           localStorage.setItem('user', JSON.stringify(updatedUser));
+          console.log('✅ User data updated successfully');
         }
+      } else {
+        console.error('❌ Failed to fetch fresh user data:', response.status);
       }
     } catch (error) {
       console.error('Error fetching fresh user data:', error);
