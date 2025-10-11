@@ -40,26 +40,49 @@ export default function WithdrawalPasswordPage() {
           setUser(parsedUser);
           
           // Then fetch fresh user data to check withdrawal password status
+          // Try multiple approaches for better compatibility
+          let freshUserData = null;
+          
+          // Method 1: Try direct fetch
           try {
             const response = await fetch(`/api/user?username=${encodeURIComponent(parsedUser.username)}`);
             if (response.ok) {
               const data = await response.json();
               if (data.success) {
+                freshUserData = data.data;
                 setUser(data.data);
               } else {
                 console.warn('Failed to fetch fresh user data:', data.error);
-                // Keep using localStorage data if API fails
               }
             } else if (response.status === 404) {
               console.warn('User endpoint not found. This might be a deployment issue.');
-              // Keep using localStorage data if API fails
             } else {
               console.warn('API request failed:', response.status);
-              // Keep using localStorage data if API fails
             }
           } catch (apiError) {
             console.warn('Error fetching fresh user data:', apiError);
-            // Keep using localStorage data if API fails
+          }
+          
+          // Method 2: If direct fetch failed, try alternative approach
+          if (!freshUserData) {
+            try {
+              // Try with different parameter format
+              const altResponse = await fetch(`/api/user?email=${encodeURIComponent(parsedUser.username)}`);
+              if (altResponse.ok) {
+                const altData = await altResponse.json();
+                if (altData.success) {
+                  freshUserData = altData.data;
+                  setUser(altData.data);
+                }
+              }
+            } catch (altError) {
+              console.warn('Alternative fetch method also failed:', altError);
+            }
+          }
+          
+          // If all methods fail, keep using localStorage data
+          if (!freshUserData) {
+            console.warn('All API methods failed, using localStorage data');
           }
         }
       } catch (error) {
@@ -109,11 +132,48 @@ export default function WithdrawalPasswordPage() {
 
     setLoading(true);
     try {
-      const response = await apiClient.updateUserProfile({
-        _id: user?._id,
-        userId: user?._id,
-        newWithdrawalPassword: formData.newWithdrawalPassword
-      });
+      // Try multiple API approaches for better compatibility
+      let response;
+      let responseData;
+
+      // Method 1: Try direct fetch with PATCH
+      try {
+        const fetchResponse = await fetch('/api/user', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            _id: user?._id,
+            userId: user?._id,
+            newWithdrawalPassword: formData.newWithdrawalPassword
+          })
+        });
+
+        responseData = await fetchResponse.json();
+        
+        if (fetchResponse.ok && responseData.success) {
+          response = { success: true, data: responseData.data };
+        } else if (fetchResponse.status === 404) {
+          throw new Error('API_ENDPOINT_NOT_FOUND');
+        } else {
+          throw new Error('FETCH_FAILED');
+        }
+      } catch (fetchError) {
+        console.warn('Direct fetch failed, trying apiClient:', fetchError);
+        
+        // Method 2: Try apiClient as fallback
+        try {
+          response = await apiClient.updateUserProfile({
+            _id: user?._id,
+            userId: user?._id,
+            newWithdrawalPassword: formData.newWithdrawalPassword
+          });
+        } catch (apiClientError) {
+          console.error('Both API methods failed:', apiClientError);
+          throw new Error('ALL_API_METHODS_FAILED');
+        }
+      }
 
       if (response.success) {
         setSuccess(true);
@@ -121,30 +181,37 @@ export default function WithdrawalPasswordPage() {
           newWithdrawalPassword: "",
           confirmWithdrawalPassword: ""
         });
-        // Refresh user data
+        
+        // Update localStorage directly as fallback
         const userData = localStorage.getItem('user');
         if (userData) {
           const parsedUser = JSON.parse(userData);
-          try {
-            const refreshResponse = await fetch(`/api/user?username=${encodeURIComponent(parsedUser.username)}`);
-            if (refreshResponse.ok) {
-              const refreshData = await refreshResponse.json();
-              if (refreshData.success) {
-                setUser(refreshData.data);
-              }
-            } else if (refreshResponse.status === 404) {
-              console.warn('User endpoint not found during refresh. This might be a deployment issue.');
-            }
-          } catch (refreshError) {
-            console.warn('Error refreshing user data:', refreshError);
-          }
+          const updatedUser = {
+            ...parsedUser,
+            withdrawalPassword: formData.newWithdrawalPassword
+          };
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          setUser(updatedUser);
         }
+        
         setTimeout(() => setSuccess(false), 3000);
       } else {
         setError(response.error || 'Failed to create withdrawal password');
       }
     } catch (error) {
-      setError('Network error. Please try again.');
+      console.error('Withdrawal password creation error:', error);
+      
+      if (error instanceof Error) {
+        if (error.message === 'API_ENDPOINT_NOT_FOUND') {
+          setError('API endpoint not found. This is a deployment issue. Please contact support or try again later.');
+        } else if (error.message === 'ALL_API_METHODS_FAILED') {
+          setError('Service temporarily unavailable. Please try again later or contact support.');
+        } else {
+          setError('Network error. Please check your connection and try again.');
+        }
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
