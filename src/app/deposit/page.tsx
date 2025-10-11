@@ -111,7 +111,15 @@ export default function DepositPage() {
     const userData = localStorage.getItem('user');
     if (userData) {
       const parsedUser = JSON.parse(userData);
+      console.log('👤 User data from localStorage:', parsedUser);
       setUser(parsedUser);
+      
+      // Set balance from localStorage first
+      if (parsedUser.accountBalance !== undefined) {
+        console.log('💵 Setting balance from localStorage:', parsedUser.accountBalance);
+        setUserBalance(parsedUser.accountBalance);
+      }
+      
       fetchDepositHistory(parsedUser._id);
       fetchUserBalance(parsedUser._id);
     }
@@ -133,12 +141,21 @@ export default function DepositPage() {
 
   const fetchUserBalance = async (customerId: string) => {
     try {
+      console.log('💰 Fetching user balance for customerId:', customerId);
       const response = await fetch(`/api/user?id=${customerId}`);
+      console.log('📊 User balance response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('📈 User balance data:', data);
+        
         if (data.success && data.data) {
-          setUserBalance(data.data.accountBalance || data.data.walletBalance || 0);
+          const balance = data.data.accountBalance || data.data.walletBalance || 0;
+          console.log('💵 Setting user balance to:', balance);
+          setUserBalance(balance);
         }
+      } else {
+        console.error('❌ Failed to fetch user balance:', response.status);
       }
     } catch (error) {
       console.error('Error fetching user balance:', error);

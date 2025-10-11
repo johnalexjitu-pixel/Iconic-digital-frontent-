@@ -205,16 +205,48 @@ export default function WithdrawalInfoPage() {
       if (!userData) return;
       
       const parsedUser = JSON.parse(userData);
-      const response = await fetch(`/api/user?email=${parsedUser.email}`);
       
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data.withdrawalInfo) {
-          console.log('Fetched withdrawal info:', data.data.withdrawalInfo);
-          setWithdrawalInfo(data.data.withdrawalInfo);
-        } else {
-          console.log('No withdrawal info found for user');
+      // Try multiple approaches to fetch user data
+      let response;
+      let userInfo;
+      
+      try {
+        // Try with username first
+        response = await fetch(`/api/user?username=${parsedUser.username}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            userInfo = data.data;
+          }
         }
+      } catch (usernameError) {
+        console.log('Username fetch failed, trying email:', usernameError);
+        
+        // Fallback to email (deprecated but might work)
+        try {
+          response = await fetch(`/api/user?email=${parsedUser.email}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data) {
+              userInfo = data.data;
+            }
+          }
+        } catch (emailError) {
+          console.log('Email fetch also failed:', emailError);
+        }
+      }
+      
+      // If API calls failed, use localStorage data
+      if (!userInfo) {
+        console.log('Using localStorage data as fallback');
+        userInfo = parsedUser;
+      }
+      
+      if (userInfo && userInfo.withdrawalInfo) {
+        console.log('Fetched withdrawal info:', userInfo.withdrawalInfo);
+        setWithdrawalInfo(userInfo.withdrawalInfo);
+      } else {
+        console.log('No withdrawal info found for user');
       }
     } catch (error) {
       console.error('Error fetching withdrawal info:', error);
@@ -272,24 +304,69 @@ export default function WithdrawalInfoPage() {
           break;
       }
 
-      // Save withdrawal info to user profile
-      const withdrawalInfoResponse = await apiClient.updateUserProfile({
-        _id: user._id,
-        withdrawalInfo: {
-          method: formData.withdrawalMethod,
-          accountHolderName: formData.accountHolderName,
-          bankName: formData.bankName,
-          accountNumber: formData.accountNumber,
-          branch: formData.branch,
-          mobileNumber: formData.mobileNumber,
-          usdtAddress: formData.usdtAddress,
-          usdtNetwork: formData.usdtNetwork,
-          documentsUploaded: true,
-          uploadedDocuments: uploadResult.data.uploadedDocuments,
-          setupCompleted: true,
-          setupDate: new Date()
+      // Save withdrawal info to user profile with robust error handling
+      let withdrawalInfoResponse;
+      
+      try {
+        // Try direct fetch first (for deployment compatibility)
+        const directResponse = await fetch('/api/user', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            _id: user._id,
+            userId: user._id,
+            withdrawalInfo: {
+              method: formData.withdrawalMethod,
+              accountHolderName: formData.accountHolderName,
+              bankName: formData.bankName,
+              accountNumber: formData.accountNumber,
+              branch: formData.branch,
+              mobileNumber: formData.mobileNumber,
+              usdtAddress: formData.usdtAddress,
+              usdtNetwork: formData.usdtNetwork,
+              documentsUploaded: true,
+              uploadedDocuments: uploadResult.data.uploadedDocuments,
+              setupCompleted: true,
+              setupDate: new Date()
+            }
+          })
+        });
+
+        if (directResponse.ok) {
+          withdrawalInfoResponse = await directResponse.json();
+        } else {
+          throw new Error(`Direct fetch failed: ${directResponse.status}`);
         }
-      });
+      } catch (directError) {
+        console.log('Direct fetch failed, trying apiClient:', directError);
+        
+        // Fallback to apiClient
+        try {
+          withdrawalInfoResponse = await apiClient.updateUserProfile({
+            _id: user._id,
+            userId: user._id,
+            withdrawalInfo: {
+              method: formData.withdrawalMethod,
+              accountHolderName: formData.accountHolderName,
+              bankName: formData.bankName,
+              accountNumber: formData.accountNumber,
+              branch: formData.branch,
+              mobileNumber: formData.mobileNumber,
+              usdtAddress: formData.usdtAddress,
+              usdtNetwork: formData.usdtNetwork,
+              documentsUploaded: true,
+              uploadedDocuments: uploadResult.data.uploadedDocuments,
+              setupCompleted: true,
+              setupDate: new Date()
+            }
+          });
+        } catch (apiClientError) {
+          console.error('Both methods failed:', apiClientError);
+          throw new Error('Failed to save withdrawal information. Please try again or contact support.');
+        }
+      }
 
       if (withdrawalInfoResponse.success) {
         setWithdrawalInfo({
