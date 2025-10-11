@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCollection } from '@/lib/mongodb';
 import { UserTaskHistoryCollection } from '@/models/UserTaskHistory';
+import { CampaignCollection } from '@/models/Campaign';
 
 // GET - Fetch user's completed task history
 export async function GET(request: NextRequest) {
@@ -27,18 +28,51 @@ export async function GET(request: NextRequest) {
 
     console.log(`📊 Found ${completedTasks.length} completed tasks for user ${membershipId}`);
 
+    // Fetch campaign data for campaign tasks to get logos and brand names
+    const campaignsCollection = await getCollection(CampaignCollection);
+    const campaignTasks = completedTasks.filter(task => task.source === 'campaigns');
+    
+    // Get unique campaign IDs
+    const campaignIds = [...new Set(campaignTasks.map(task => task.campaignId).filter(Boolean))];
+    
+    // Fetch campaign details
+    const campaigns = await campaignsCollection.find({ 
+      campaignId: { $in: campaignIds } 
+    }).toArray();
+    
+    // Create campaign lookup map
+    const campaignMap = new Map();
+    campaigns.forEach(campaign => {
+      campaignMap.set(campaign.campaignId, campaign);
+    });
+
+    // Enhance tasks with campaign data
+    const enhancedTasks = completedTasks.map(task => {
+      if (task.source === 'campaigns' && task.campaignId) {
+        const campaign = campaignMap.get(task.campaignId);
+        if (campaign) {
+          return {
+            ...task,
+            logo: campaign.logo,
+            brand: campaign.brand
+          };
+        }
+      }
+      return task;
+    });
+
     // Calculate summary statistics
-    const totalCommission = completedTasks.reduce((sum, task) => sum + task.commissionEarned, 0);
-    const totalTasks = completedTasks.length;
+    const totalCommission = enhancedTasks.reduce((sum, task) => sum + task.commissionEarned, 0);
+    const totalTasks = enhancedTasks.length;
     const tasksBySource = {
-      customerTasks: completedTasks.filter(task => task.source === 'customerTasks').length,
-      campaigns: completedTasks.filter(task => task.source === 'campaigns').length
+      customerTasks: enhancedTasks.filter(task => task.source === 'customerTasks').length,
+      campaigns: enhancedTasks.filter(task => task.source === 'campaigns').length
     };
 
     return NextResponse.json({
       success: true,
       data: {
-        tasks: completedTasks,
+        tasks: enhancedTasks,
         summary: {
           totalTasks,
           totalCommission,

@@ -122,25 +122,35 @@ export default function HistoryPage() {
     return result;
   };
 
-  // Helper function to get brand logo based on task title
-  const getBrandLogo = (taskTitle: string) => {
-    const brandLogos: { [key: string]: string } = {
-      'PEPSICO': 'https://taanimagestore.online/SD01C03_422.png',
-      'JAEGER-LECOULTRE': 'https://taanimagestore.online/SD01C03_419.png',
-      'MAESA': 'https://taanimagestore.online/SD01C03_189.png',
-      'CHANEL': 'https://taanimagestore.online/SD01C03_364.png',
-      'DANIEL WELLINGTON': 'https://taanimagestore.online/SD01C03_485.png',
-      'TACO BELL': 'https://taanimagestore.online/SD01C03_383.png',
-      'RENAULT': 'https://taanimagestore.online/SD01C03_326.png',
-      'LOUIS-PHILLIPPE': 'https://taanimagestore.online/SD01C03_101.png',
-      'SHISEIDO': 'https://taanimagestore.online/SD01C03_179.png',
-      'ROCHAS': 'https://taanimagestore.online/SD01C03_52.png',
-      'INTEL': 'https://taanimagestore.online/SD01C03_24.png',
-      'STELLA MCCARTNEY': 'https://taanimagestore.online/SD01C03_69.png',
-      'KAO': 'https://taanimagestore.online/SD01C03_132.png'
-    };
+  // Helper function to get random logo for customer tasks
+  const getRandomLogo = () => {
+    const randomLogos = [
+      'https://taanimagestore.online/SD01C03_422.png',
+      'https://taanimagestore.online/SD01C03_419.png',
+      'https://taanimagestore.online/SD01C03_189.png',
+      'https://taanimagestore.online/SD01C03_364.png',
+      'https://taanimagestore.online/SD01C03_485.png',
+      'https://taanimagestore.online/SD01C03_383.png',
+      'https://taanimagestore.online/SD01C03_326.png',
+      'https://taanimagestore.online/SD01C03_101.png',
+      'https://taanimagestore.online/SD01C03_179.png',
+      'https://taanimagestore.online/SD01C03_52.png',
+      'https://taanimagestore.online/SD01C03_24.png',
+      'https://taanimagestore.online/SD01C03_69.png',
+      'https://taanimagestore.online/SD01C03_132.png'
+    ];
     
-    return brandLogos[taskTitle] || '/logo/logo.png';
+    return randomLogos[Math.floor(Math.random() * randomLogos.length)];
+  };
+
+  // Helper function to get logo based on task source
+  const getTaskLogo = (task: TaskHistory) => {
+    if (task.source === 'campaigns' && task.logo) {
+      return task.logo; // Use original campaign logo
+    } else if (task.source === 'customerTasks') {
+      return getRandomLogo(); // Use random logo for customer tasks
+    }
+    return '/logo/logo.png'; // Fallback
   };
 
   const getFilteredTasks = () => {
@@ -273,18 +283,18 @@ export default function HistoryPage() {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <div className="w-full sm:w-24 h-40 sm:h-24 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center">
                     <img 
-                      alt={task.brand || task.taskTitle} 
+                      alt={task.source === 'campaigns' ? (task.brand || task.taskTitle) : 'Customer Task'} 
                       className="w-full h-full object-contain" 
-                      src={task.logo || getBrandLogo(task.taskTitle)}
+                      src={getTaskLogo(task)}
                       onError={(e) => {
-                        e.currentTarget.src = getBrandLogo(task.taskTitle);
+                        e.currentTarget.src = '/logo/logo.png';
                       }}
                     />
                   </div>
                   <div className="flex flex-1 justify-between mt-2 sm:mt-0">
                     <div className="flex flex-col">
                       <h3 className="font-semibold text-gray-800 text-lg">
-                        {task.brand || task.taskTitle}
+                        {task.source === 'campaigns' ? (task.brand || task.taskTitle) : 'Customer Task'}
                       </h3>
                       <span className="text-sm text-gray-500 font-medium">{task.platform}</span>
                       {task.hasGoldenEgg && (

@@ -110,6 +110,15 @@ export default function WithdrawalInfoPage() {
         tasksRemaining: requiredTasks - tasksCompleted
       };
     }
+    
+    // Additional check: Ensure user has completed at least 30 tasks
+    if (tasksCompleted < 30) {
+      return {
+        eligible: false,
+        message: `You must complete at least 30 tasks before making a withdrawal`,
+        tasksRemaining: 30 - tasksCompleted
+      };
+    }
 
     if (user.depositCount === 0) {
       // New user: can only withdraw commission (accountBalance includes trial balance + commission)
