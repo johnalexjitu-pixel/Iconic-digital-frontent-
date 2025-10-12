@@ -63,14 +63,16 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // Update user with new set
+    // Update user with new set and reset campaignsCompleted
     await usersCollection.updateOne(
       { _id: user._id },
       { 
         $set: { 
           campaignSet: updatedCampaignSet,
-          updatedAt: new Date()
-        }
+          campaignsCompleted: 0, // Reset campaigns completed to 0
+          trialBalance: 0, // Reset trial balance to 0
+          updatedAt: new Date() 
+        } 
       }
     );
 
