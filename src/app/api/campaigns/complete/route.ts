@@ -199,16 +199,13 @@ export async function POST(request: NextRequest) {
         const nextSet = getNextCampaignSet(updatedCampaignSet.length, userForUpdate.depositCount > 0 ? 1 : 0);
         updatedCampaignSet.push(nextSet);
         
-        // Reset campaignsCompleted to 0 for new set
-        const resetCampaignsCompleted = 0;
-        
         // Reset trial balance to 0 when completing 30 tasks (trial balance disappears)
         const currentTrialBalance = userForUpdate.trialBalance || 0;
         
         console.log(`🎯 User completed 30 tasks, progressing to campaign set ${nextSet}. CampaignSet: ${JSON.stringify(updatedCampaignSet)}`);
-        console.log(`🔄 Campaigns completed reset to 0 for new set`);
         console.log(`💰 Trial balance reset: ${currentTrialBalance} BDT trial balance removed`);
         console.log(`📊 Account balance remains: ${newBalance} BDT`);
+        console.log(`🔒 User is now locked at 30 tasks. Manual reset required from dashboard.`);
       }
 
       // Prepare update data
@@ -227,7 +224,7 @@ export async function POST(request: NextRequest) {
       } = {
         accountBalance: newBalance,
         totalEarnings: newTotalEarnings,
-        campaignsCompleted: shouldProgressCampaignSet(newCampaignsCompleted, updatedCampaignSet.length, userForUpdate.depositCount > 0 ? 1 : 0) ? 0 : newCampaignsCompleted,
+        campaignsCompleted: newCampaignsCompleted,
         campaignCommission: newCampaignCommission,
         campaignSet: updatedCampaignSet,
         updatedAt: new Date()

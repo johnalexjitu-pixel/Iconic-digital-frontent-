@@ -997,10 +997,10 @@ export default function CampaignPage() {
       return;
     }
 
-    // Check if user has reached the 30-task limit for new users (but allow progression to set 2)
-    if (user.depositCount === 0 && userStats.campaignsCompleted >= 30 && user.campaignSet.length >= 2) {
-      setError('You have completed the maximum 30 tasks. Please contact customer service to get more tasks or make a deposit.');
-      toast.error('You have reached the 30-task limit. Contact customer service for assistance.');
+    // Check if user has reached the 30-task limit for new users (lock them until manual reset)
+    if (user.depositCount === 0 && userStats.campaignsCompleted >= 30) {
+      setError('You have completed 30 tasks and are now locked. Please contact customer service to reset your account and continue.');
+      toast.error('Account locked at 30 tasks. Contact customer service for reset.');
       return;
     }
 
