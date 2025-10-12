@@ -1192,7 +1192,7 @@ export default function CampaignPage() {
                   <div className="flex flex-col justify-end flex-1">
                     <div className="text-purple-600 text-sm mb-1 font-medium">Total Commission</div>
                 <div className="flex items-center gap-1">
-                      <span className="text-xl font-semibold text-purple-800">BDT {userStats.campaignCommission?.toLocaleString() || '0'}</span>
+                      <span className="text-xl font-semibold text-purple-800">BDT {userStats.campaignCommission > 0 ? userStats.campaignCommission.toLocaleString() : '0'}</span>
                     </div>
                   </div>
                   <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center animate-pulse">
