@@ -149,6 +149,7 @@ export async function POST(request: NextRequest) {
         campaignCommission: number;
         totalEarnings: number;
         campaignSet: number[];
+        trialBalance?: number;
         updatedAt: Date;
       };
     };
@@ -260,7 +261,18 @@ export async function POST(request: NextRequest) {
       const newSetNumber = updatedCampaignSet.length + 1;
       updatedCampaignSet = [...updatedCampaignSet, newSetNumber];
       updateData.$set.campaignSet = updatedCampaignSet;
+      
+      // Reset trial balance to user's account balance when completing 30 tasks
+      const currentTrialBalance = user.trialBalance || 0;
+      const currentAccountBalance = updateData.$set.accountBalance;
+      
+      // Move trial balance to account balance (add trial balance to current account balance)
+      updateData.$set.accountBalance = currentAccountBalance + currentTrialBalance;
+      updateData.$set.trialBalance = 0; // Reset trial balance to 0
+      
       console.log(`🎯 User completed ${newCampaignsCompleted} tasks, adding set ${newSetNumber}. CampaignSet: ${JSON.stringify(updatedCampaignSet)}`);
+      console.log(`💰 Trial balance reset: ${currentTrialBalance} BDT moved to account balance`);
+      console.log(`📊 New account balance: ${currentAccountBalance} + ${currentTrialBalance} = ${updateData.$set.accountBalance}`);
     }
 
     await usersCollection.updateOne(

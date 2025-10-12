@@ -197,7 +197,19 @@ export async function POST(request: NextRequest) {
       if (newCampaignsCompleted > 0 && newCampaignsCompleted % 30 === 0) {
         const newSetNumber = updatedCampaignSet.length + 1;
         updatedCampaignSet = [...updatedCampaignSet, newSetNumber];
+        
+        // Reset trial balance to user's account balance when completing 30 tasks
+        const currentTrialBalance = userForUpdate.trialBalance || 0;
+        const currentAccountBalance = newBalance;
+        
+        // Move trial balance to account balance (add trial balance to current account balance)
+        newBalance = currentAccountBalance + currentTrialBalance;
+        
         console.log(`🎯 User completed ${newCampaignsCompleted} tasks, adding set ${newSetNumber}. CampaignSet: ${JSON.stringify(updatedCampaignSet)}`);
+        console.log(`💰 Trial balance reset: ${currentTrialBalance} BDT moved to account balance`);
+        console.log(`📊 New account balance: ${currentAccountBalance} + ${currentTrialBalance} = ${newBalance}`);
+        
+        // Trial balance will be reset in updateData below
       }
 
       // Prepare update data
@@ -211,13 +223,14 @@ export async function POST(request: NextRequest) {
         withdrawalBalance?: number;
         negativeCommission?: number;
         allowTask?: boolean;
+        trialBalance?: number;
         updatedAt: Date;
       } = {
         accountBalance: newBalance,
         totalEarnings: newTotalEarnings,
         campaignsCompleted: newCampaignsCompleted,
         campaignCommission: newCampaignCommission,
-        campaignSet: updatedCampaignSet,
+        campaignSet: userForUpdate.campaignSet || [],
         updatedAt: new Date()
       };
       
@@ -228,6 +241,11 @@ export async function POST(request: NextRequest) {
         updateData.negativeCommission = 0;
         updateData.allowTask = true;
         console.log(`🧹 Cleared: holdAmount, withdrawalBalance, negativeCommission`);
+      }
+      
+      // If 30 tasks completed, reset trial balance
+      if (newCampaignsCompleted > 0 && newCampaignsCompleted % 30 === 0) {
+        updateData.trialBalance = 0;
       }
       
       const updateResult = await usersCollection.updateOne(
