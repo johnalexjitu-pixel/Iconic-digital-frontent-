@@ -22,7 +22,9 @@ import {
   X,
   Star,
   Crown,
-  Loader2
+  Loader2,
+  MessageCircle,
+  CreditCard
 } from 'lucide-react';
 
 // Professional Loading Animation Component
@@ -426,6 +428,8 @@ interface UserStats {
   dailyCampaignsCompleted: number;
   totalEarnings: number;
   trialBalance: number;
+  requiredTask: number;
+  campaignSet: number[];
 }
 
 export default function CampaignPage() {
@@ -439,7 +443,9 @@ export default function CampaignPage() {
     withdrawalAmount: 0,
     dailyCampaignsCompleted: 0,
     totalEarnings: 0,
-    trialBalance: 0
+    trialBalance: 0,
+    requiredTask: 30,
+    campaignSet: []
   });
   const [todayCommission, setTodayCommission] = useState<number>(0);
   const [tasks, setTasks] = useState<CustomerTask[]>([]);
@@ -754,7 +760,9 @@ export default function CampaignPage() {
         withdrawalAmount: withdrawableAmount,
         dailyCampaignsCompleted: userInfo.campaignsCompleted || 0,
         totalEarnings: userInfo.totalEarnings || 0,
-        trialBalance: userInfo.trialBalance || 0
+        trialBalance: userInfo.trialBalance || 0,
+        requiredTask: userInfo.requiredTask || 30,
+        campaignSet: userInfo.campaignSet || []
       });
       
       // Auto-reset trial balance if user has exactly 30 tasks and trial balance > 0
@@ -1030,9 +1038,17 @@ export default function CampaignPage() {
     }
 
     // Check if user has reached the 30-task limit for new users (lock them until manual reset)
-    if (user.depositCount === 0 && userStats.campaignsCompleted >= 30) {
+    // Exclude VIP users in Set 3 who can complete 32 tasks
+    if (user.depositCount === 0 && userStats.campaignsCompleted >= 30 && !(userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3)) {
       setError('You have completed 30 tasks and are now locked. Please contact customer service to reset your account and continue.');
       toast.error('Account locked at 30 tasks. Contact customer service for reset.');
+      return;
+    }
+
+    // Check if VIP user in Set 3 has reached the 32-task limit
+    if (userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3 && userStats.campaignsCompleted >= 32) {
+      setError('You have completed all 32 tasks for VIP Set 3. Please contact customer service to reset your account and continue.');
+      toast.error('VIP Set 3 completed. Contact customer service for reset.');
       return;
     }
 
@@ -1279,7 +1295,9 @@ export default function CampaignPage() {
                 <div className="flex flex-row w-full items-end">
                   <div className="flex flex-col justify-end flex-1">
                     <div className="text-green-600 text-sm mb-1 font-medium">Campaigns Completed</div>
-                    <div className="text-xl font-semibold text-green-800">{userStats.campaignsCompleted}/{user?.depositCount > 0 ? 90 : 30}</div>
+                    <div className="text-xl font-semibold text-green-800">
+                      {userStats.campaignsCompleted}/{userStats.requiredTask || 30}
+                    </div>
                   </div>
                   <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
                     <TrendingUp className="w-5 h-5 text-white" />
@@ -1367,19 +1385,30 @@ export default function CampaignPage() {
         )}
 
 
-        {/* Reset Button */}
+        {/* Contact Support Alert Message */}
         <div className="flex justify-center gap-4 mb-4">
-          {/* Show reset button only if user has completed 30 tasks in current set */}
+          {/* Show alert message only if user has completed 30 tasks in current set */}
           {user && user.campaignsCompleted > 0 && (user.campaignsCompleted % 30) === 0 && (
-            <Button
-              onClick={handleTaskReset}
-              variant="default"
-              size="sm"
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Reset Tasks
-            </Button>
+            <div className="bg-red-100 border border-red-300 text-red-800 px-6 py-4 rounded-lg text-center w-full">
+              <h3 className="text-lg font-semibold mb-2">🚫 Task Limit Reached!</h3>
+              <p className="mb-3">You have completed all available tasks. To continue earning:</p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button
+                  onClick={() => window.open('https://wa.me/8801750577439', '_blank')}
+                  className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Contact Customer Support
+                </Button>
+                <Button
+                  onClick={() => window.open('/account', '_blank')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+                >
+                  <CreditCard className="w-4 h-4" />
+                  Make a Deposit
+                </Button>
+              </div>
+            </div>
           )}
         </div>
 
@@ -1418,7 +1447,7 @@ export default function CampaignPage() {
                 </Button>
               </div>
             </div>
-          ) : user && user.depositCount === 0 && userStats.campaignsCompleted >= 30 ? (
+          ) : user && user.depositCount === 0 && userStats.campaignsCompleted >= 30 && !(userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3) ? (
             <div className="bg-yellow-100 border border-yellow-300 text-yellow-800 px-6 py-4 rounded-lg text-center">
               <h3 className="text-lg font-semibold mb-2">🎯 Task Limit Reached!</h3>
               <p className="mb-3">You have completed the maximum 30 tasks. To continue earning:</p>
@@ -1440,16 +1469,30 @@ export default function CampaignPage() {
           ) : (
             <div 
               className={`relative h-16 rounded-full overflow-hidden flex items-center justify-center transition-colors duration-300 select-none ${
-                user && (user.campaignStatus === 'inactive' || (user.depositCount === 0 && userStats.campaignsCompleted >= 30))
+                user && (user.campaignStatus === 'inactive' || 
+                  (user.depositCount === 0 && userStats.campaignsCompleted >= 30 && !(userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3)) ||
+                  (userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3 && userStats.campaignsCompleted >= 32))
                   ? 'bg-gray-400 cursor-not-allowed' 
                   : 'bg-gradient-to-r from-red-500 to-pink-500'
               }`}
-              onTouchStart={user && (user.campaignStatus === 'inactive' || (user.depositCount === 0 && userStats.campaignsCompleted >= 30)) ? undefined : handleTouchStart}
-              onTouchMove={user && (user.campaignStatus === 'inactive' || (user.depositCount === 0 && userStats.campaignsCompleted >= 30)) ? undefined : handleTouchMove}
-              onTouchEnd={user && (user.campaignStatus === 'inactive' || (user.depositCount === 0 && userStats.campaignsCompleted >= 30)) ? undefined : handleTouchEnd}
-              onMouseDown={user && (user.campaignStatus === 'inactive' || (user.depositCount === 0 && userStats.campaignsCompleted >= 30)) ? undefined : handleMouseDown}
-              onMouseMove={user && (user.campaignStatus === 'inactive' || (user.depositCount === 0 && userStats.campaignsCompleted >= 30)) ? undefined : handleMouseMove}
-              onMouseUp={user && (user.campaignStatus === 'inactive' || (user.depositCount === 0 && userStats.campaignsCompleted >= 30)) ? undefined : handleMouseUp}
+              onTouchStart={user && (user.campaignStatus === 'inactive' || 
+                (user.depositCount === 0 && userStats.campaignsCompleted >= 30 && !(userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3)) ||
+                (userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3 && userStats.campaignsCompleted >= 32)) ? undefined : handleTouchStart}
+              onTouchMove={user && (user.campaignStatus === 'inactive' || 
+                (user.depositCount === 0 && userStats.campaignsCompleted >= 30 && !(userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3)) ||
+                (userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3 && userStats.campaignsCompleted >= 32)) ? undefined : handleTouchMove}
+              onTouchEnd={user && (user.campaignStatus === 'inactive' || 
+                (user.depositCount === 0 && userStats.campaignsCompleted >= 30 && !(userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3)) ||
+                (userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3 && userStats.campaignsCompleted >= 32)) ? undefined : handleTouchEnd}
+              onMouseDown={user && (user.campaignStatus === 'inactive' || 
+                (user.depositCount === 0 && userStats.campaignsCompleted >= 30 && !(userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3)) ||
+                (userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3 && userStats.campaignsCompleted >= 32)) ? undefined : handleMouseDown}
+              onMouseMove={user && (user.campaignStatus === 'inactive' || 
+                (user.depositCount === 0 && userStats.campaignsCompleted >= 30 && !(userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3)) ||
+                (userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3 && userStats.campaignsCompleted >= 32)) ? undefined : handleMouseMove}
+              onMouseUp={user && (user.campaignStatus === 'inactive' || 
+                (user.depositCount === 0 && userStats.campaignsCompleted >= 30 && !(userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3)) ||
+                (userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3 && userStats.campaignsCompleted >= 32)) ? undefined : handleMouseUp}
             onMouseLeave={resetSwipe}
             style={{ userSelect: 'none', touchAction: 'none' }}
           >
@@ -1669,6 +1712,7 @@ export default function CampaignPage() {
         onEggSelect={handleEggSelect}
         taskTitle={currentTask?.taskTitle || ''}
         commission={currentTask?.taskCommission || 0}
+        estimatedNegativeAmount={currentTask?.estimatedNegativeAmount || 0}
       />
       
       {/* Reward Modal - Shows after task completion */}

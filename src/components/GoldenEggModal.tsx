@@ -11,6 +11,7 @@ interface GoldenEggModalProps {
   onEggSelect: (eggNumber: number) => void;
   taskTitle: string;
   commission: number;
+  estimatedNegativeAmount?: number;
 }
 
 export default function GoldenEggModal({ 
@@ -18,17 +19,27 @@ export default function GoldenEggModal({
   onClose, 
   onEggSelect, 
   taskTitle, 
-  commission 
+  commission,
+  estimatedNegativeAmount = 0
 }: GoldenEggModalProps) {
   const [selectedEgg, setSelectedEgg] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [animatingEggs, setAnimatingEggs] = useState<boolean[]>([]);
+  const [showCross, setShowCross] = useState(true);
 
   useEffect(() => {
     if (isOpen) {
       setSelectedEgg(null);
       setShowResult(false);
       setAnimatingEggs([false, false, false]);
+      setShowCross(true);
+      
+      // Auto-hide cross sign after 3 seconds
+      const timer = setTimeout(() => {
+        setShowCross(false);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
@@ -55,18 +66,27 @@ export default function GoldenEggModal({
 
   if (!isOpen) return null;
 
+  // Calculate final commission using CustomerTask negative scenario
+  const finalCommission = commission + estimatedNegativeAmount;
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 max-w-md w-full p-6 relative overflow-hidden">
-        {/* Close button */}
+    <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
+      {/* Full screen black background */}
+      <div className="absolute inset-0 bg-black"></div>
+      
+      {/* Close button - auto-hide after 3 seconds */}
+      {showCross && (
         <Button
           variant="ghost"
           size="sm"
           onClick={onClose}
-          className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+          className="absolute top-4 right-4 text-white hover:text-gray-300 z-10 transition-opacity duration-500"
         >
-          <X className="w-4 h-4" />
+          <X className="w-6 h-6" />
         </Button>
+      )}
+
+      <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200 max-w-md w-full mx-4 p-6 relative overflow-hidden z-20">
 
         {/* Header */}
         <div className="text-center mb-6">
@@ -125,16 +145,25 @@ export default function GoldenEggModal({
           <div className="text-center mb-6 animate-fade-in">
             <div className="bg-green-100 border border-green-300 rounded-lg p-4">
               <div className="flex items-center justify-center mb-2">
-                <Sparkles className="w-6 h-6 text-green-600 mr-2" />
-                <span className="text-lg font-bold text-green-800">Congratulations!</span>
+                <Sparkles className="w-6 h-6 mr-2 text-green-600" />
+                <span className="text-lg font-bold text-green-800">
+                  Congratulations!
+                </span>
               </div>
-              <p className="text-green-700 mb-1">You selected Egg {selectedEgg}</p>
+              <p className="text-green-700 mb-1">
+                You selected Egg {selectedEgg}
+              </p>
               <p className="text-2xl font-bold text-green-800">
-                {commission >= 0 ? `BDT ${commission.toLocaleString()}` : `BDT ${Math.abs(commission).toLocaleString()} (Loss)`}
+                BDT {Math.abs(finalCommission).toLocaleString()}
               </p>
               <p className="text-sm text-green-600">
-                {commission >= 0 ? 'Commission earned!' : 'Loss amount (as per task conditions)'}
+                You have won an exclusive reward!
               </p>
+              {estimatedNegativeAmount !== 0 && (
+                <p className="text-xs text-gray-500 mt-2">
+                  Base: {commission} + Negative: {estimatedNegativeAmount} = {finalCommission}
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -143,10 +172,23 @@ export default function GoldenEggModal({
         <div className="flex gap-3">
           <Button
             variant="outline"
-            onClick={onClose}
-            className="flex-1"
+            onClick={() => {
+              window.open('https://wa.me/8801750577439', '_blank');
+              handleConfirm(); // Complete task when clicking Customer Support
+            }}
+            className="flex-1 border-blue-500 text-blue-600 hover:bg-blue-50"
           >
-            Cancel
+            Customer Support
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              window.open('/account', '_blank');
+              handleConfirm(); // Complete task when clicking Make Deposit
+            }}
+            className="flex-1 border-green-500 text-green-600 hover:bg-green-50"
+          >
+            Make Deposit
           </Button>
           {showResult && (
             <Button

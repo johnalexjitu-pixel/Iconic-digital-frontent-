@@ -7,16 +7,18 @@ import { HomepageFooter } from "@/components/HomepageFooter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Wallet, Clock, X, MessageCircle, Calendar, CreditCard, CheckCircle, AlertCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Wallet, Clock, X, MessageCircle, Calendar, CreditCard, CheckCircle, AlertCircle, XCircle, User } from "lucide-react";
 import Link from "next/link";
 
 interface Deposit {
   _id: string;
-  customerId: string;
+  userId: string;
+  username?: string;
+  membershipId?: string;
   amount: number;
-  method: 'bank_transfer' | 'mobile_banking' | 'cash' | 'other';
+  method: 'bank_transfer' | 'mobile_banking' | 'cash' | 'other' | 'bkash' | 'nagad' | 'rocket';
   transactionId?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
   adminNotes?: string;
   submittedAt: string;
   processedAt?: string;
@@ -120,20 +122,39 @@ export default function DepositPage() {
         setUserBalance(parsedUser.accountBalance);
       }
       
-      fetchDepositHistory(parsedUser._id);
-      fetchUserBalance(parsedUser._id);
+      fetchDepositHistory(parsedUser._id, parsedUser.membershipId);
+      fetchUserBalance(parsedUser.username);
     }
   }, []);
 
-  const fetchDepositHistory = async (customerId: string) => {
+  const fetchDepositHistory = async (userId: string, membershipId?: string) => {
     try {
-      const response = await fetch(`/api/deposits?customerId=${customerId}`);
+      // First try with userId
+      let response = await fetch(`/api/deposits?userId=${userId}`);
       if (response.ok) {
         const data = await response.json();
-        if (data.success && Array.isArray(data.data)) {
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
           setDepositHistory(data.data);
+          return;
         }
       }
+      
+      // If no deposits found with userId, try with membershipId
+      if (membershipId) {
+        console.log('🔄 Trying to fetch deposits by membershipId:', membershipId);
+        response = await fetch(`/api/deposits?membershipId=${membershipId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && Array.isArray(data.data)) {
+            console.log('📊 Found deposits by membershipId:', data.data.length);
+            setDepositHistory(data.data);
+            return;
+          }
+        }
+      }
+      
+      // If still no deposits found, set empty array
+      setDepositHistory([]);
     } catch (error) {
       console.error('Error fetching deposit history:', error);
     }
@@ -142,7 +163,7 @@ export default function DepositPage() {
   const fetchUserBalance = async (customerId: string) => {
     try {
       console.log('💰 Fetching user balance for customerId:', customerId);
-      const response = await fetch(`/api/user?id=${customerId}`);
+      const response = await fetch(`/api/user?username=${customerId}`);
       console.log('📊 User balance response status:', response.status);
       
       if (response.ok) {
@@ -262,8 +283,19 @@ export default function DepositPage() {
 
                         {/* Details Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-                          {/* Time Information */}
+                          {/* User Information */}
                           <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <User className="w-4 h-4 text-gray-500" />
+                              <span className="text-sm font-medium text-gray-700">User Info</span>
+                            </div>
+                            <p className="text-sm text-gray-600 ml-6">
+                              Username: <span className="font-semibold text-blue-600">{deposit.username || 'N/A'}</span>
+                            </p>
+                            <p className="text-sm text-gray-600 ml-6">
+                              Membership ID: <span className="font-semibold text-green-600">{deposit.membershipId || 'N/A'}</span>
+                            </p>
+                            
                             <div className="flex items-center gap-2">
                               <Calendar className="w-4 h-4 text-gray-500" />
                               <span className="text-sm font-medium text-gray-700">Deposit Time</span>
@@ -366,10 +398,13 @@ export default function DepositPage() {
               <div className="space-y-3">
                 <div>
                   <p className="font-medium text-gray-700 mb-2">Contact Information:</p>
-                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                  <button 
+                    onClick={() => window.open('https://t.me/Iconicdigital_customerservice_BD', '_blank')}
+                    className="w-full flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
+                  >
                     <MessageCircle className="w-5 h-5 text-blue-600" />
                     <span className="text-blue-700">Telegram</span>
-                  </div>
+                  </button>
                 </div>
                 
                 <div>
@@ -378,10 +413,13 @@ export default function DepositPage() {
                 </div>
                 <div>
                   <p className="font-medium text-gray-700 mb-2">Contact Information:</p>
-                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                  <button 
+                    onClick={() => window.open('https://t.me/Iconicdigital_customerservice_BD', '_blank')}
+                    className="w-full flex items-center gap-3 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
+                  >
                     <MessageCircle className="w-5 h-5 text-blue-600" />
                     <span className="text-blue-700">Telegram: t.me/Iconicdigital_customerservice_BD</span>
-                  </div>
+                  </button>
                 </div>
               </div>
               

@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
       campaignSet: [1], // Default campaignSet = 1 for new users
       campaignCommission: 0,
       depositCount: 0,
+      requiredTask: 30, // Default required tasks for new users
       trialBalance: 10000, // Keep trial balance field for tracking
       campaignStatus: 'inactive',
       withdrawStatus: 'inactive',

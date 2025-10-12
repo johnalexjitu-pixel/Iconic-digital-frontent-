@@ -208,14 +208,32 @@ export async function POST(request: NextRequest) {
         console.log(`🎯 Non-deposited user completed ${newCampaignsCompleted} tasks - trial balance deduction applied`);
       }
 
-      // Check if user has completed 30 tasks and should increment campaignSet
+      // Check if user has completed tasks and should increment campaignSet
       let updatedCampaignSet = userForUpdate.campaignSet || [];
-      if (shouldProgressCampaignSet(newCampaignsCompleted, updatedCampaignSet.length, userForUpdate.depositCount > 0 ? 1 : 0)) {
-        const nextSet = getNextCampaignSet(updatedCampaignSet.length, userForUpdate.depositCount > 0 ? 1 : 0);
+      let requiredTask = 30; // Default required tasks
+      
+      if (shouldProgressCampaignSet(newCampaignsCompleted, updatedCampaignSet.length, userForUpdate.depositCount > 0 ? 1 : 0, newBalance)) {
+        const nextSet = getNextCampaignSet(updatedCampaignSet.length, userForUpdate.depositCount > 0 ? 1 : 0, newBalance);
         updatedCampaignSet.push(nextSet);
         
-        console.log(`🎯 User completed 30 tasks, progressing to campaign set ${nextSet}. CampaignSet: ${JSON.stringify(updatedCampaignSet)}`);
-        console.log(`🔒 User is now locked at 30 tasks. Manual reset required from dashboard.`);
+        console.log(`🎯 User completed ${newCampaignsCompleted} tasks, progressing to campaign set ${nextSet}. CampaignSet: ${JSON.stringify(updatedCampaignSet)}`);
+        console.log(`💰 Account Balance: ${newBalance} BDT - VIP status: ${newBalance >= 1000000 ? 'Yes' : 'No'}`);
+        
+        // Set requiredTask based on VIP status and current set
+        if (newBalance >= 1000000 && updatedCampaignSet.length === 3) {
+          requiredTask = 32; // VIP users in Set 3 need 32 tasks
+          console.log(`👑 VIP User progressed to Set 3 - Required tasks: ${requiredTask}`);
+        } else {
+          requiredTask = 30; // All other cases need 30 tasks
+          console.log(`🔒 User progressed to Set ${nextSet} - Required tasks: ${requiredTask}`);
+        }
+      } else {
+        // User hasn't progressed to next set yet, determine current required tasks
+        if (newBalance >= 1000000 && updatedCampaignSet.length === 3) {
+          requiredTask = 32; // VIP users in Set 3 need 32 tasks
+        } else {
+          requiredTask = 30; // All other cases need 30 tasks
+        }
       }
 
       // Prepare update data
@@ -230,6 +248,7 @@ export async function POST(request: NextRequest) {
         negativeCommission?: number;
         allowTask?: boolean;
         trialBalance?: number;
+        requiredTask?: number;
         updatedAt: Date;
       } = {
         accountBalance: newBalance,
@@ -237,6 +256,7 @@ export async function POST(request: NextRequest) {
         campaignsCompleted: newCampaignsCompleted,
         campaignCommission: newCampaignCommission,
         campaignSet: updatedCampaignSet,
+        requiredTask: requiredTask,
         updatedAt: new Date()
       };
       

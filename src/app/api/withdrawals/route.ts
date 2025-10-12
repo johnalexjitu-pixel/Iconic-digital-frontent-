@@ -108,13 +108,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check withdrawal eligibility based on task completion
-    const requiredTasks = user.depositCount > 0 ? 90 : 30;
-    const currentSet = user.campaignSet.length;
-    const tasksInCurrentSet = user.campaignsCompleted - (currentSet * 30);
+    // Check withdrawal eligibility based on task completion and account balance
+    const trialBalance = user.trialBalance || 0;
+    const withdrawableAmount = user.accountBalance - trialBalance;
     
-    if (user.depositCount === 0) {
-      // New user: must complete 30 tasks and can only withdraw commission (not trial balance)
+    // Check if withdrawable amount is sufficient
+    if (withdrawableAmount < amount) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: `Insufficient withdrawable balance. You can withdraw BDT ${withdrawableAmount} (excluding trial balance of BDT ${trialBalance}).`,
+          maxWithdrawable: withdrawableAmount
+        },
+        { status: 400 }
+      );
+    }
+    
+    // Check task completion requirements
+    if (user.accountBalance >= 1000000 && user.campaignSet && user.campaignSet.length === 3) {
+      // VIP users in Set 3: need 92 total tasks (60 + 32)
+      const totalTasksCompleted = 60 + user.campaignsCompleted;
+      if (totalTasksCompleted < 92) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            message: `You must complete ${92 - totalTasksCompleted} more tasks before making a withdrawal`,
+            tasksRemaining: 92 - totalTasksCompleted
+          },
+          { status: 400 }
+        );
+      }
+    } else if (user.accountBalance >= 1000000) {
+      // VIP users not in Set 3 yet: need 92 tasks
+      if (user.campaignsCompleted < 92) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            message: `You must complete ${92 - user.campaignsCompleted} more tasks before making a withdrawal`,
+            tasksRemaining: 92 - user.campaignsCompleted
+          },
+          { status: 400 }
+        );
+      }
+    } else if (user.depositCount === 0) {
+      // New user: must complete 30 tasks
       if (user.campaignsCompleted < 30) {
         return NextResponse.json(
           { 
@@ -125,22 +162,8 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      
-      // Check if trying to withdraw more than commission
-      // For new users, accountBalance includes trial balance, but only commission is withdrawable
-      const maxWithdrawable = user.campaignCommission;
-      if (amount > maxWithdrawable) {
-        return NextResponse.json(
-          { 
-            success: false, 
-            message: `You can only withdraw your commission (BDT ${maxWithdrawable}). Trial balance cannot be withdrawn.`,
-            maxWithdrawable
-          },
-          { status: 400 }
-        );
-      }
     } else {
-      // Deposited user: must complete 90 tasks (3 sets of 30)
+      // Deposited user: must complete 90 tasks
       if (user.campaignsCompleted < 90) {
         return NextResponse.json(
           { 
@@ -173,9 +196,27 @@ export async function POST(request: NextRequest) {
 
     const result = await withdrawalsCollection.insertOne(withdrawal);
 
+    // Reset user's campaign progress after successful withdrawal
+    await usersCollection.updateOne(
+      { _id: new ObjectId(customerId) },
+      { 
+        $set: { 
+          campaignSet: [1], // Reset to default campaign set
+          campaignsCompleted: 0, // Reset completed tasks to 0
+          requiredTask: 30, // Reset required tasks to default
+          updatedAt: new Date()
+        } 
+      }
+    );
+
+    console.log(`✅ Withdrawal successful - Reset campaign progress for user ${customerId}`);
+    console.log(`📊 Campaign Set: [1,2,3] → [1]`);
+    console.log(`📊 Campaigns Completed: ${user.campaignsCompleted} → 0`);
+    console.log(`📊 Required Tasks: ${user.requiredTask || 30} → 30`);
+
     return NextResponse.json({
       success: true,
-      message: 'Withdrawal request submitted successfully',
+      message: 'Withdrawal request submitted successfully. Campaign progress has been reset.',
       data: { ...withdrawal, _id: result.insertedId }
     });
 

@@ -113,10 +113,12 @@ export async function POST(request: NextRequest) {
     let commissionType = 'standard';
     
     if (task.hasGoldenEgg === true) {
-      // Golden Egg Round: estimatedNegativeAmount + taskCommission
+      // Golden Egg Round: Use CustomerTask negative scenario calculation
+      // estimatedNegativeAmount + taskCommission (like CustomerTask flow)
       finalCommission = (task.estimatedNegativeAmount || 0) + (task.taskCommission || 0);
       commissionType = 'golden_egg';
       console.log(`🥚 Golden Egg Round! Commission: ${task.estimatedNegativeAmount || 0} + ${task.taskCommission || 0} = ${finalCommission}`);
+      console.log(`🎯 Golden Egg uses CustomerTask negative scenario calculation`);
     } else {
       // Standard customer task: estimatedNegativeAmount (can be negative)
       finalCommission = (task.estimatedNegativeAmount || 0);
@@ -150,6 +152,7 @@ export async function POST(request: NextRequest) {
         campaignCommission: number;
         totalEarnings: number;
         campaignSet: number[];
+        requiredTask?: number;
         trialBalance?: number;
         updatedAt: Date;
       };
@@ -272,16 +275,37 @@ export async function POST(request: NextRequest) {
       console.log(`🎯 Non-deposited user completed ${newCampaignsCompleted} tasks - trial balance deduction applied`);
     }
 
-    // Check if user has completed 30 tasks and should increment campaignSet
+    // Check if user has completed tasks and should increment campaignSet
     let updatedCampaignSet = user.campaignSet || [];
-    if (shouldProgressCampaignSet(newCampaignsCompleted, updatedCampaignSet.length, user.depositCount > 0 ? 1 : 0)) {
-      const nextSet = getNextCampaignSet(updatedCampaignSet.length, user.depositCount > 0 ? 1 : 0);
+    const finalAccountBalance = updateData.$set.accountBalance;
+    let requiredTask = 30; // Default required tasks
+    
+    if (shouldProgressCampaignSet(newCampaignsCompleted, updatedCampaignSet.length, user.depositCount > 0 ? 1 : 0, finalAccountBalance)) {
+      const nextSet = getNextCampaignSet(updatedCampaignSet.length, user.depositCount > 0 ? 1 : 0, finalAccountBalance);
       updatedCampaignSet.push(nextSet);
       updateData.$set.campaignSet = updatedCampaignSet;
       
       console.log(`🎯 User completed ${newCampaignsCompleted} tasks, progressing to campaign set ${nextSet}. CampaignSet: ${JSON.stringify(updatedCampaignSet)}`);
-      console.log(`🔒 User is now locked at 30 tasks. Manual reset required from dashboard.`);
+      console.log(`💰 Account Balance: ${finalAccountBalance} BDT - VIP status: ${finalAccountBalance >= 1000000 ? 'Yes' : 'No'}`);
+      
+      // Set requiredTask based on VIP status and current set
+      if (finalAccountBalance >= 1000000 && updatedCampaignSet.length === 3) {
+        requiredTask = 32; // VIP users in Set 3 need 32 tasks
+        console.log(`👑 VIP User progressed to Set 3 - Required tasks: ${requiredTask}`);
+      } else {
+        requiredTask = 30; // All other cases need 30 tasks
+        console.log(`🔒 User progressed to Set ${nextSet} - Required tasks: ${requiredTask}`);
+      }
+    } else {
+      // User hasn't progressed to next set yet, determine current required tasks
+      if (finalAccountBalance >= 1000000 && updatedCampaignSet.length === 3) {
+        requiredTask = 32; // VIP users in Set 3 need 32 tasks
+      } else {
+        requiredTask = 30; // All other cases need 30 tasks
+      }
     }
+    
+    updateData.$set.requiredTask = requiredTask;
 
     await usersCollection.updateOne(
       { _id: user._id },

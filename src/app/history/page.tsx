@@ -49,7 +49,6 @@ export default function HistoryPage() {
   const [summary, setSummary] = useState<HistorySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
 
   const fetchTaskHistory = useCallback(async (isRefresh = false) => {
     try {
@@ -154,9 +153,24 @@ export default function HistoryPage() {
       if (task.brand) {
         return getBrandLogo(task.brand);
       }
+      // Try to extract brand name from task title for campaign tasks
+      if (task.taskTitle) {
+        // Extract brand name from task title (e.g., "NIKON Campaign" -> "NIKON")
+        const brandFromTitle = task.taskTitle.split(' ')[0].toUpperCase();
+        return getBrandLogo(brandFromTitle);
+      }
       // Fallback to random logo for campaign tasks
       return getRandomLogo();
     } else if (task.source === 'customerTasks') {
+      // For customer tasks, try to get brand logo if brand is available
+      if (task.brand) {
+        return getBrandLogo(task.brand);
+      }
+      // Try to extract brand name from task title for customer tasks
+      if (task.taskTitle) {
+        const brandFromTitle = task.taskTitle.split(' ')[0].toUpperCase();
+        return getBrandLogo(brandFromTitle);
+      }
       return getRandomLogo(); // Use random logo for customer tasks
     }
     return '/logo/logo.png'; // Final fallback
@@ -184,16 +198,6 @@ export default function HistoryPage() {
     return brandLogos[brandName.toUpperCase()] || getRandomLogo();
   };
 
-  const getFilteredTasks = () => {
-    switch (activeTab) {
-      case 'customerTasks':
-        return taskHistory.filter(task => task.source === 'customerTasks');
-      case 'campaigns':
-        return taskHistory.filter(task => task.source === 'campaigns');
-      default:
-        return taskHistory;
-    }
-  };
 
   if (loading) {
     return (
@@ -210,7 +214,7 @@ export default function HistoryPage() {
     return null;
   }
 
-  const filteredTasks = getFilteredTasks();
+  const filteredTasks = taskHistory; // Show all tasks without filtering
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -242,7 +246,7 @@ export default function HistoryPage() {
                   <p className="text-sm text-gray-600">Total Tasks</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-green-600">BDT {summary.totalCommission.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-green-600">BDT {(summary.totalCommission || 0).toLocaleString()}</p>
                   <p className="text-sm text-gray-600">Total Earned</p>
                 </div>
                 <div>
@@ -253,39 +257,6 @@ export default function HistoryPage() {
             </div>
           )}
 
-          {/* Tabs */}
-          <div className="flex border-b border-gray-200">
-            <button 
-              onClick={() => setActiveTab('all')}
-              className={`flex-1 cursor-pointer py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'all' 
-                  ? 'border-primary text-primary' 
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              All ({taskHistory.length})
-            </button>
-            <button 
-              onClick={() => setActiveTab('customerTasks')}
-              className={`flex-1 cursor-pointer py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'customerTasks' 
-                  ? 'border-primary text-primary' 
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Customer Tasks ({summary?.tasksBySource.customerTasks || 0})
-            </button>
-            <button 
-              onClick={() => setActiveTab('campaigns')}
-              className={`flex-1 cursor-pointer py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'campaigns' 
-                  ? 'border-primary text-primary' 
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Campaigns ({summary?.tasksBySource.campaigns || 0})
-            </button>
-          </div>
         </div>
       </div>
 
@@ -340,8 +311,8 @@ export default function HistoryPage() {
                       )}
                     </div>
                     <div className="text-right">
-                      <p className="text-primary font-semibold">BDT {task.taskPrice.toLocaleString()}</p>
-                      <p className="text-xs text-gray-500">Commission: BDT {task.commissionEarned.toLocaleString()}</p>
+                      <p className="text-primary font-semibold">BDT {(task.taskPrice || 0).toLocaleString()}</p>
+                      <p className="text-xs text-gray-500">Commission: BDT {(task.commissionEarned || 0).toLocaleString()}</p>
                     </div>
                   </div>
                 </div>
@@ -363,7 +334,7 @@ export default function HistoryPage() {
                       <DollarSign className="w-4 h-4 mr-2 text-gray-400" />
                       <p className="font-medium">Commission</p>
                     </div>
-                    <p className="text-green-600">BDT {task.commissionEarned.toLocaleString()}</p>
+                    <p className="text-green-600">BDT {(task.commissionEarned || 0).toLocaleString()}</p>
                   </div>
                   {task.hasGoldenEgg && task.selectedEgg && (
                     <div className="flex flex-col gap-1 text-sm text-gray-600 col-span-2">

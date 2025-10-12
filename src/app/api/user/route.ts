@@ -4,6 +4,63 @@ import { config } from '@/lib/config';
 import { getCollection } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 
+export async function PUT(request: NextRequest) {
+  try {
+    const { username, campaignsCompleted } = await request.json();
+
+    if (!username) {
+      return NextResponse.json({
+        success: false,
+        message: 'Username is required'
+      }, { status: 400 });
+    }
+
+    const usersCollection = await getCollection('users');
+    const user = await usersCollection.findOne({ username });
+
+    if (!user) {
+      return NextResponse.json({
+        success: false,
+        message: 'User not found'
+      }, { status: 404 });
+    }
+
+    const previousCount = user.campaignsCompleted || 0;
+    const newCount = campaignsCompleted || 32;
+
+    await usersCollection.updateOne(
+      { username },
+      { 
+        $set: { 
+          campaignsCompleted: newCount,
+          updatedAt: new Date() 
+        } 
+      }
+    );
+
+    console.log(`✅ Campaigns completed updated for ${username}: ${previousCount} → ${newCount}`);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Campaigns completed count updated successfully',
+      data: {
+        username: username,
+        previousCount: previousCount,
+        newCount: newCount,
+        campaignSet: user.campaignSet,
+        accountBalance: user.accountBalance
+      }
+    });
+
+  } catch (error) {
+    console.error('Error updating campaigns completed:', error);
+    return NextResponse.json({
+      success: false,
+      message: 'Failed to update campaigns completed count'
+    }, { status: 500 });
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Get user data from database
@@ -40,6 +97,7 @@ export async function GET(request: NextRequest) {
           campaignSet: user.campaignSet || [],
           campaignCommission: user.campaignCommission || 0,
           depositCount: user.depositCount || 0,
+          requiredTask: user.requiredTask || 30,
           trialBalance: user.trialBalance || 0,
           negativeCommission: user.negativeCommission || 0, // Added for negative commission system
           holdAmount: user.holdAmount || 0, // Added for hold amount

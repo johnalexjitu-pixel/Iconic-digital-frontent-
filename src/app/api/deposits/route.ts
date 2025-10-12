@@ -202,10 +202,19 @@ export async function GET(request: NextRequest) {
     const depositsCollection = await getCollection('deposits');
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const membershipId = searchParams.get('membershipId');
 
     let query = {};
     if (userId) {
-      query = { userId };
+      // Try both string userId and ObjectId userId
+      query = { 
+        $or: [
+          { userId: userId },
+          { userId: new ObjectId(userId) }
+        ]
+      };
+    } else if (membershipId) {
+      query = { membershipId };
     }
 
     const deposits = await depositsCollection.find(query).sort({ createdAt: -1 }).toArray();

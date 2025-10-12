@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Upload, AlertCircle, CheckCircle, X, FileImage, DollarSign, Clock, History, Info, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { getCampaignSetRule, canUserWithdraw } from '@/lib/campaign-set-rules';
 import { apiClient } from '@/lib/api-client';
 import { useToastHelpers } from '@/components/ui/toast';
 
@@ -50,6 +51,8 @@ export default function WithdrawalInfoPage() {
     depositCount?: number;
     campaignCommission?: number;
     campaignSet?: number[];
+    holdAmount?: number;
+    trialBalance?: number;
   } | null>(null);
   const [formData, setFormData] = useState({
     withdrawalMethod: "bkash",
@@ -112,80 +115,88 @@ export default function WithdrawalInfoPage() {
       console.error('Error checking deposits:', error);
     }
 
-    const requiredTasks = hasActualDeposits ? 90 : 30;
     const tasksCompleted = user.campaignsCompleted || 0;
+    const accountBalance = user.accountBalance || 0;
     
-    if (tasksCompleted < requiredTasks) {
+    // Get campaign set rule based on deposit amount and account balance
+    const campaignRule = getCampaignSetRule(actualDepositCount, accountBalance);
+    
+    // Check if user has hold balance - if found, block withdrawal
+    if (user.holdAmount && user.holdAmount > 0) {
       return {
         eligible: false,
-        message: `You must complete ${requiredTasks - tasksCompleted} more tasks before making a withdrawal`,
-        tasksRemaining: requiredTasks - tasksCompleted
-      };
-    }
-    
-    // Additional check: Ensure user has completed at least 30 tasks
-    if (tasksCompleted < 30) {
-      return {
-        eligible: false,
-        message: `You must complete at least 30 tasks before making a withdrawal`,
-        tasksRemaining: 30 - tasksCompleted
+        message: `Withdrawal blocked due to hold balance of BDT ${user.holdAmount}. Please contact customer support.`,
+        errorType: 'hold_balance_blocked'
       };
     }
 
-    // Handle negative commission logic
-    if (user.campaignCommission && user.campaignCommission < 0 && !hasActualDeposits) {
-      // Negative commission, no deposit: can withdraw abs(negative) + previous balance
-      const previousBalance = (user.accountBalance || 0) - user.campaignCommission; // Previous balance before negative commission
-      const maxWithdrawable = Math.abs(user.campaignCommission) + previousBalance;
-      return {
-        eligible: true,
-        message: `You can withdraw up to BDT ${maxWithdrawable} (from negative commission + previous balance).`,
-        maxWithdrawable
-      };
-    }
-
-    if (!hasActualDeposits) {
-      // New user: allow withdrawal after completing 30 tasks
+    // Check if user can withdraw based on task completion only
+    let canWithdraw = false;
+    let tasksRemaining = 0;
+    
+    // VIP users (1M+ account balance) in Set 3 can withdraw after completing 32 tasks in Set 3
+    if (accountBalance >= 1000000 && user.campaignSet && user.campaignSet.length === 3) {
+      // For VIP users in Set 3, they need to complete 32 tasks in Set 3
+      // Since they're in Set 3, they've already completed 60 tasks (Set 1 + Set 2)
+      // If campaignsCompleted shows 32, it means they've completed 32 tasks in Set 3
+      // Total completed = 60 (Sets 1&2) + 32 (Set 3) = 92
+      const totalTasksCompleted = 60 + tasksCompleted; // 60 from Sets 1&2 + current set tasks
+      if (totalTasksCompleted >= 92) {
+        canWithdraw = true;
+      } else {
+        tasksRemaining = 92 - totalTasksCompleted;
+      }
+    } else if (accountBalance >= 1000000) {
+      // VIP users not in Set 3 yet - need to complete all sets
+      if (tasksCompleted >= 92) {
+        canWithdraw = true;
+      } else {
+        tasksRemaining = 92 - tasksCompleted;
+      }
+    } else if (!hasActualDeposits) {
+      // New user (no deposits): can withdraw after 30 tasks
       if (tasksCompleted >= 30) {
-        return {
-          eligible: true,
-          message: `You can withdraw your account balance of BDT ${user.accountBalance || 0}`,
-          maxWithdrawable: user.accountBalance || 0
-        };
+        canWithdraw = true;
       } else {
-        return {
-          eligible: false,
-          message: `You must complete 30 tasks before making a withdrawal. You have completed ${tasksCompleted} tasks.`,
-          errorType: 'new_user_insufficient_tasks',
-          tasksRemaining: 30 - tasksCompleted
-        };
+        tasksRemaining = 30 - tasksCompleted;
+      }
+    } else {
+      // Deposited user: can withdraw after completing all sets (90 tasks total)
+      if (tasksCompleted >= 90) {
+        canWithdraw = true;
+      } else {
+        tasksRemaining = 90 - tasksCompleted;
       }
     }
 
-    // Deposited user: check if has hold balance
-    if (hasActualDeposits) {
-      if (user.campaignCommission && user.campaignCommission > 0 && user.accountBalance === 0) {
-        // User has hold balance after deposit - can withdraw hold balance
+    // Calculate withdrawable amount (exclude trial balance)
+    const trialBalance = user.trialBalance || 0;
+    const totalAccountBalance = user.accountBalance || 0;
+    const withdrawableAmount = totalAccountBalance - trialBalance;
+
+    // Return withdrawal eligibility based on task completion only
+    if (canWithdraw) {
+      if (withdrawableAmount <= 0) {
+      return {
+        eligible: false,
+          message: `You can only withdraw your commission (BDT ${withdrawableAmount}). Trial balance cannot be withdrawn.`,
+          maxWithdrawable: withdrawableAmount,
+          errorType: 'trial_balance_excluded'
+      };
+    }
+
         return {
           eligible: true,
-          message: `You can withdraw your hold balance of BDT ${user.campaignCommission}`,
-          maxWithdrawable: user.campaignCommission
-        };
-      } else if (user.campaignCommission && user.campaignCommission > 0 && user.accountBalance && user.accountBalance > 0) {
-        // User completed new task after deposit - hold balance released, no withdrawal
-        return {
-          eligible: false,
-          message: 'Hold balance has been released to your wallet. No withdrawal available.',
-          errorType: 'hold_balance_released'
+        message: `You can withdraw BDT ${withdrawableAmount} (excluding trial balance of BDT ${trialBalance})`,
+        maxWithdrawable: withdrawableAmount
         };
       } else {
-        // Normal deposited user logic - no withdrawal allowed (no commission scenario)
         return {
           eligible: false,
-          message: 'No withdrawal amount available. Withdrawal only works with negative commission scenario.',
-          errorType: 'no_withdrawal_amount'
+        message: `You must complete ${tasksRemaining} more tasks before making a withdrawal. You have completed ${tasksCompleted} tasks.`,
+        errorType: 'insufficient_tasks',
+        tasksRemaining: tasksRemaining
         };
-      }
     }
   };
 
@@ -226,7 +237,9 @@ export default function WithdrawalInfoPage() {
             campaignsCompleted: freshUserData.campaignsCompleted,
             campaignCommission: freshUserData.campaignCommission,
             depositCount: freshUserData.depositCount,
-            campaignSet: prevUser?.campaignSet
+             campaignSet: prevUser?.campaignSet,
+             holdAmount: freshUserData.holdAmount,
+             trialBalance: freshUserData.trialBalance
           }));
           
           // Update localStorage with fresh data
@@ -235,7 +248,9 @@ export default function WithdrawalInfoPage() {
             accountBalance: freshUserData.accountBalance,
             campaignsCompleted: freshUserData.campaignsCompleted,
             campaignCommission: freshUserData.campaignCommission,
-            depositCount: freshUserData.depositCount
+            depositCount: freshUserData.depositCount,
+            holdAmount: freshUserData.holdAmount,
+            trialBalance: freshUserData.trialBalance
           };
           localStorage.setItem('user', JSON.stringify(updatedUser));
           console.log('✅ User data updated successfully');
@@ -689,12 +704,21 @@ export default function WithdrawalInfoPage() {
           response = await directResponse.json();
           console.log('✅ Direct withdrawal API response:', response);
         } else {
+          let errorMessage = `HTTP ${directResponse.status}: ${directResponse.statusText}`;
+          try {
           const errorData = await directResponse.json();
           console.error('❌ Direct withdrawal API error:', errorData);
-          throw new Error(errorData.message || `HTTP ${directResponse.status}: ${directResponse.statusText}`);
+            errorMessage = errorData.message || errorMessage;
+          } catch (jsonError) {
+            console.error('❌ Failed to parse error response as JSON:', jsonError);
+            console.error('❌ Raw response status:', directResponse.status);
+            console.error('❌ Raw response text:', await directResponse.text());
+          }
+          throw new Error(errorMessage);
         }
       } catch (directError) {
-        console.log('Direct fetch failed, trying apiClient:', directError);
+        console.error('❌ Direct fetch failed:', directError);
+        console.log('🔄 Trying apiClient fallback...');
         
         // Fallback to apiClient
         try {
@@ -707,8 +731,13 @@ export default function WithdrawalInfoPage() {
           });
           console.log('✅ API Client withdrawal response:', response);
         } catch (apiClientError) {
-          console.error('Both methods failed:', apiClientError);
-          throw new Error('Failed to create withdrawal request. Please try again or contact support.');
+          console.error('❌ Both withdrawal methods failed:');
+          console.error('❌ Direct fetch error:', directError);
+          console.error('❌ API Client error:', apiClientError);
+          
+          // Provide more specific error message
+          const errorMsg = (directError as Error)?.message || (apiClientError as Error)?.message || 'Unknown error occurred';
+          throw new Error(`Failed to create withdrawal request: ${errorMsg}. Please try again or contact support.`);
         }
       }
 
@@ -772,25 +801,25 @@ export default function WithdrawalInfoPage() {
 
             {/* Withdrawal Tab */}
             <TabsContent value="withdrawal" className="space-y-6">
-              {/* Wallet Balance */}
+              {/* Account Balance */}
               <Card className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 text-teal-600" />
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <DollarSign className="w-5 h-5 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">Wallet Balance</p>
+                      <p className="text-sm text-gray-600">Account Balance</p>
                       <p className={`text-lg font-semibold ${
-                        (user?.campaignCommission && user.campaignCommission < 0 && user?.depositCount === 0) ? 'text-red-600' : 
-                        (user?.accountBalance && user.accountBalance < 0) ? 'text-red-600' : 'text-gray-900'
+                        (user?.accountBalance && user.accountBalance < 0) ? 'text-red-600' : 'text-green-600'
                       }`}>
-                        BDT {
-                          (user?.campaignCommission && user.campaignCommission < 0 && user?.depositCount === 0) ? 
-                            user.campaignCommission.toLocaleString() : 
-                            (user?.accountBalance?.toLocaleString() || '0')
-                        }
+                        BDT {((user?.accountBalance || 0) - (user?.trialBalance || 0)).toLocaleString() || '0'}
                       </p>
+                      {(user?.trialBalance || 0) > 0 && (
+                        <p className="text-xs text-gray-500">
+                          (Excludes trial balance: BDT {(user?.trialBalance || 0).toLocaleString()})
+                        </p>
+                      )}
                     </div>
                   </div>
                   <Button
@@ -803,20 +832,32 @@ export default function WithdrawalInfoPage() {
                     Refresh
                   </Button>
                 </div>
+                
+                {/* Balance Status */}
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      Available for withdrawal
+                    </div>
+                    <div className="text-sm font-medium text-green-600">
+                      ✓ Ready
+                    </div>
+                  </div>
+                </div>
               </Card>
 
-              {/* Negative Balance Warning */}
-              {user?.accountBalance && user.accountBalance < 0 && (
+              {/* Insufficient Balance Warning */}
+              {user?.accountBalance && (user.accountBalance - (user.trialBalance || 0)) <= 0 && (
                 <Card className="p-4 bg-red-50 border-red-200">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
                       <AlertCircle className="w-4 h-4 text-red-600" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-red-800 mb-1">Negative Balance Detected!</h4>
+                      <h4 className="font-semibold text-red-800 mb-1">Insufficient Balance!</h4>
                       <p className="text-sm text-red-700 mb-3">
-                        Your account balance is negative (BDT {user.accountBalance.toLocaleString()}). 
-                        You cannot make withdrawals until your balance is positive.
+                        Your withdrawable balance is {(user.accountBalance - (user.trialBalance || 0)).toLocaleString()} BDT. 
+                        You cannot make withdrawals until you have a positive balance.
                       </p>
                       <div className="flex gap-2">
                         <Link href="/contact-support">
@@ -943,10 +984,10 @@ export default function WithdrawalInfoPage() {
                         <Button 
                           className="flex-1 h-12 bg-teal-500 hover:bg-teal-600 text-white disabled:bg-gray-300"
                           onClick={handleWithdrawal}
-                          disabled={loading || !!(user?.accountBalance && user.accountBalance < 0)}
+                          disabled={loading || !!(user?.accountBalance && (user.accountBalance - (user.trialBalance || 0)) <= 0)}
                         >
                           {loading ? 'Processing...' : 
-                           (user?.accountBalance && user.accountBalance < 0) ? 'Negative Balance - Cannot Withdraw' : 'Withdraw'}
+                           (user?.accountBalance && (user.accountBalance - (user.trialBalance || 0)) <= 0) ? 'Insufficient Balance - Cannot Withdraw' : 'Withdraw'}
                         </Button>
                         <Button variant="outline" className="h-12 px-6">
                           Contact Support

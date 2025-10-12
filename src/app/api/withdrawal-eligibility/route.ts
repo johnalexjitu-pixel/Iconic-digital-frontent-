@@ -34,11 +34,11 @@ export async function GET(request: NextRequest) {
     
     const totalDepositAmount = deposits.reduce((sum, deposit) => sum + deposit.amount, 0);
     
-    // Get campaign set rule based on deposit amount
-    const campaignRule = getCampaignSetRule(totalDepositAmount);
+    // Get campaign set rule based on deposit amount and account balance
+    const campaignRule = getCampaignSetRule(totalDepositAmount, user.accountBalance);
     
     // Check if user can withdraw
-    const canWithdraw = canUserWithdraw(user.campaignsCompleted || 0, totalDepositAmount);
+    const canWithdraw = canUserWithdraw(user.campaignsCompleted || 0, totalDepositAmount, user.accountBalance);
     
     // Calculate progress
     const progressPercentage = Math.min(

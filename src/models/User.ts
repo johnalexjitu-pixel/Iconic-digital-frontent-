@@ -18,6 +18,7 @@ export interface IUser {
   campaignSet: number[];
   campaignCommission: number;
   depositCount: number;
+  requiredTask: number; // Required tasks for current set (30 for most, 32 for VIP Set 3)
   trialBalance: number;
   campaignStatus: 'active' | 'inactive';
   withdrawStatus: 'active' | 'inactive';
