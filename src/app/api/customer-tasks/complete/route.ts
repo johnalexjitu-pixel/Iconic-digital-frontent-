@@ -256,6 +256,14 @@ export async function POST(request: NextRequest) {
       };
     }
 
+    // Reset trial balance to 0 when completing 30 tasks (trial balance disappears)
+    if (newCampaignsCompleted > 0 && newCampaignsCompleted % 30 === 0) {
+      const currentTrialBalance = user.trialBalance || 0;
+      updateData.$set.trialBalance = 0; // Reset trial balance to 0
+      console.log(`💰 Trial balance reset: ${currentTrialBalance} BDT trial balance removed`);
+      console.log(`📊 Account balance remains: ${updateData.$set.accountBalance} BDT`);
+    }
+
     // Check if user has completed 30 tasks and should increment campaignSet
     let updatedCampaignSet = user.campaignSet || [];
     if (shouldProgressCampaignSet(newCampaignsCompleted, updatedCampaignSet.length, user.depositCount > 0 ? 1 : 0)) {
@@ -263,15 +271,7 @@ export async function POST(request: NextRequest) {
       updatedCampaignSet.push(nextSet);
       updateData.$set.campaignSet = updatedCampaignSet;
       
-      // Reset trial balance to 0 when completing 30 tasks (trial balance disappears)
-      const currentTrialBalance = user.trialBalance || 0;
-      
-      // Simply reset trial balance to 0 (don't add to account balance)
-      updateData.$set.trialBalance = 0; // Reset trial balance to 0
-      
       console.log(`🎯 User completed ${newCampaignsCompleted} tasks, progressing to campaign set ${nextSet}. CampaignSet: ${JSON.stringify(updatedCampaignSet)}`);
-      console.log(`💰 Trial balance reset: ${currentTrialBalance} BDT trial balance removed`);
-      console.log(`📊 Account balance remains: ${updateData.$set.accountBalance} BDT`);
       console.log(`🔒 User is now locked at 30 tasks. Manual reset required from dashboard.`);
     }
 
