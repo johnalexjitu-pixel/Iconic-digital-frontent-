@@ -182,7 +182,18 @@ export async function POST(request: NextRequest) {
       }
 
       // Prepare update data
-      const updateData: any = {
+      const updateData: {
+        accountBalance: number;
+        totalEarnings: number;
+        campaignsCompleted: number;
+        campaignCommission: number;
+        campaignSet: number[];
+        holdAmount?: number;
+        withdrawalBalance?: number;
+        negativeCommission?: number;
+        allowTask?: boolean;
+        updatedAt: Date;
+      } = {
         accountBalance: newBalance,
         totalEarnings: newTotalEarnings,
         campaignsCompleted: newCampaignsCompleted,

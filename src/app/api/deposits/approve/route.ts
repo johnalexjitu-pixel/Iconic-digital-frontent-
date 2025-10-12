@@ -96,7 +96,17 @@ export async function POST(request: NextRequest) {
             console.log(`Hold Amount: ${holdAmount}`);
             
             // Update user with cleared negative commission and kept hold amount
-            const updateData: any = {
+            const updateData: {
+              $inc: { depositCount: number };
+              $set: {
+                accountBalance: number;
+                negativeCommission: number;
+                holdAmount: number;
+                withdrawalBalance: number;
+                allowTask: boolean;
+                updatedAt: Date;
+              };
+            } = {
               $inc: { depositCount: 1 },
               $set: { 
                 accountBalance: leftoverAmount, // Leftover after covering loss (0 if equal)

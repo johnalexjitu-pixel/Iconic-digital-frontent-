@@ -137,7 +137,20 @@ export async function POST(request: NextRequest) {
     );
 
     // Handle negative commission scenario
-    let updateData: any;
+    let updateData: {
+      $set: {
+        accountBalance: number;
+        negativeCommission?: number;
+        holdAmount?: number;
+        withdrawalBalance?: number;
+        allowTask?: boolean;
+        campaignsCompleted: number;
+        campaignCommission: number;
+        totalEarnings: number;
+        campaignSet: number[];
+        updatedAt: Date;
+      };
+    };
     const currentAccountBalance = user.accountBalance || 0;
     const currentCampaignCommission = user.campaignCommission || 0;
     const newCampaignsCompleted = task.taskNumber || (user.campaignsCompleted || 0) + 1;
