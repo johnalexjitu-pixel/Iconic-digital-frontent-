@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check maximum sets allowed
-    const maxSets = user.depositCount > 0 ? 3 : 1; // 3 sets for deposited users (90 tasks), 1 set for new users (30 tasks)
+    const maxSets = user.depositCount > 0 ? 3 : 2; // 3 sets for deposited users (90 tasks), 2 sets for new users (60 tasks)
     
     if (user.campaignSet.length >= maxSets) {
       return NextResponse.json({

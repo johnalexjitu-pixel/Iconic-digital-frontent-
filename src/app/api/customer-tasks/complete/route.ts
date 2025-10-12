@@ -263,6 +263,9 @@ export async function POST(request: NextRequest) {
       updatedCampaignSet.push(nextSet);
       updateData.$set.campaignSet = updatedCampaignSet;
       
+      // Reset campaignsCompleted to 0 for new set
+      updateData.$set.campaignsCompleted = 0;
+      
       // Reset trial balance to 0 when completing 30 tasks (trial balance disappears)
       const currentTrialBalance = user.trialBalance || 0;
       
@@ -270,6 +273,7 @@ export async function POST(request: NextRequest) {
       updateData.$set.trialBalance = 0; // Reset trial balance to 0
       
       console.log(`🎯 User completed ${newCampaignsCompleted} tasks, progressing to campaign set ${nextSet}. CampaignSet: ${JSON.stringify(updatedCampaignSet)}`);
+      console.log(`🔄 Campaigns completed reset to 0 for new set`);
       console.log(`💰 Trial balance reset: ${currentTrialBalance} BDT trial balance removed`);
       console.log(`📊 Account balance remains: ${updateData.$set.accountBalance} BDT`);
     }
