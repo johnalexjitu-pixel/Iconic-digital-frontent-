@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
         totalEarnings: newTotalEarnings,
         campaignsCompleted: newCampaignsCompleted,
         campaignCommission: newCampaignCommission,
-        campaignSet: userForUpdate.campaignSet || [],
+        campaignSet: updatedCampaignSet,
         updatedAt: new Date()
       };
       

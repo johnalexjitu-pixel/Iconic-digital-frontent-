@@ -11,7 +11,7 @@ export interface ICampaignSetRule {
 export const CAMPAIGN_SET_RULES: ICampaignSetRule[] = [
   {
     depositAmount: 0,
-    maxCampaignSet: 1,
+    maxCampaignSet: 2,
     totalTasksRequired: 30,
     tasksPerSet: [30],
     description: "New User (No Deposit)"
