@@ -607,7 +607,32 @@ export default function CampaignPage() {
       const userData = await userResponse.json();
       if (!userData.success || !userData.data) return;
       
-      const userInfo = userData.data;
+      let userInfo = userData.data;
+      
+      // Check if 24 hours have passed since last commission reset
+      const lastReset = userInfo.lastCommissionReset ? new Date(userInfo.lastCommissionReset) : null;
+      const now = new Date();
+      const hoursSinceReset = lastReset ? (now.getTime() - lastReset.getTime()) / (1000 * 60 * 60) : 999;
+      
+      if (hoursSinceReset >= 24) {
+        // 24 hours passed - reset campaignCommission to 0
+        console.log(`🔄 24 hours passed since last reset. Resetting campaignCommission...`);
+        
+        const resetResponse = await fetch('/api/user/reset-commission', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user._id })
+        });
+        
+        if (resetResponse.ok) {
+          const resetData = await resetResponse.json();
+          if (resetData.success) {
+            // Update userInfo with reset commission
+            userInfo = { ...userInfo, campaignCommission: 0, lastCommissionReset: new Date() };
+            console.log(`✅ Today commission reset to 0`);
+          }
+        }
+      }
       
       // Check actual deposits from deposits collection
       const depositsResponse = await fetch('/api/deposits/check', {
@@ -1190,7 +1215,7 @@ export default function CampaignPage() {
               <div className="flex flex-row items-end justify-between w-full">
                 <div className="flex flex-row w-full items-end">
                   <div className="flex flex-col justify-end flex-1">
-                    <div className="text-purple-600 text-sm mb-1 font-medium">Total Commission</div>
+                    <div className="text-purple-600 text-sm mb-1 font-medium">Today Commission</div>
                 <div className="flex items-center gap-1">
                       <span className="text-xl font-semibold text-purple-800">BDT {userStats.campaignCommission > 0 ? userStats.campaignCommission.toLocaleString() : '0'}</span>
                     </div>

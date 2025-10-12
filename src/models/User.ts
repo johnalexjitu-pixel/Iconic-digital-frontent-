@@ -32,6 +32,7 @@ export interface IUser {
   negativeCommission: number; // Stores the loss amount (always positive)
   holdAmount: number; // Previous balance + loss amount
   withdrawalBalance: number; // Amount shown in UI for withdrawal
+  lastCommissionReset?: Date; // Last time campaignCommission was reset (for daily reset)
   lastLogin?: Date;
   withdrawalInfo?: {
     accountNumber?: string;

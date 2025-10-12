@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
           negativeCommission: user.negativeCommission || 0, // Added for negative commission system
           holdAmount: user.holdAmount || 0, // Added for hold amount
           withdrawalBalance: user.withdrawalBalance || 0, // Added for withdrawal balance
+          lastCommissionReset: user.lastCommissionReset || null, // Last time commission was reset
           campaignStatus: user.campaignStatus || 'inactive',
           withdrawStatus: user.withdrawStatus || 'inactive',
           accountStatus: user.accountStatus || 'inactive',
