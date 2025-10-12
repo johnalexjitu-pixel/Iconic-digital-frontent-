@@ -3,6 +3,7 @@ import { getCollection } from '@/lib/mongodb';
 import { UserTaskHistoryCollection } from '@/models/UserTaskHistory';
 import { IDailyCommission, DailyCommissionCollection } from '@/models/DailyCommission';
 import { calculateCommission, getCommissionTier } from '@/lib/commission-calculator';
+import { shouldProgressCampaignSet, getNextCampaignSet } from '@/lib/campaign-set-rules';
 import { ObjectId } from 'mongodb';
 
 export async function POST(request: NextRequest) {
@@ -257,9 +258,9 @@ export async function POST(request: NextRequest) {
 
     // Check if user has completed 30 tasks and should increment campaignSet
     let updatedCampaignSet = user.campaignSet || [];
-    if (newCampaignsCompleted > 0 && newCampaignsCompleted % 30 === 0) {
-      const newSetNumber = updatedCampaignSet.length + 1;
-      updatedCampaignSet = [...updatedCampaignSet, newSetNumber];
+    if (shouldProgressCampaignSet(newCampaignsCompleted, updatedCampaignSet.length, user.depositCount > 0 ? 1 : 0)) {
+      const nextSet = getNextCampaignSet(updatedCampaignSet.length, user.depositCount > 0 ? 1 : 0);
+      updatedCampaignSet.push(nextSet);
       updateData.$set.campaignSet = updatedCampaignSet;
       
       // Reset trial balance to 0 when completing 30 tasks (trial balance disappears)
@@ -268,7 +269,7 @@ export async function POST(request: NextRequest) {
       // Simply reset trial balance to 0 (don't add to account balance)
       updateData.$set.trialBalance = 0; // Reset trial balance to 0
       
-      console.log(`🎯 User completed ${newCampaignsCompleted} tasks, adding set ${newSetNumber}. CampaignSet: ${JSON.stringify(updatedCampaignSet)}`);
+      console.log(`🎯 User completed ${newCampaignsCompleted} tasks, progressing to campaign set ${nextSet}. CampaignSet: ${JSON.stringify(updatedCampaignSet)}`);
       console.log(`💰 Trial balance reset: ${currentTrialBalance} BDT trial balance removed`);
       console.log(`📊 Account balance remains: ${updateData.$set.accountBalance} BDT`);
     }

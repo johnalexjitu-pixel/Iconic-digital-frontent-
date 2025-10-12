@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCollection } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
+import { getCampaignSetRule } from '@/lib/campaign-set-rules';
 
 export async function POST(request: NextRequest) {
   try {
@@ -143,6 +144,21 @@ export async function POST(request: NextRequest) {
           // Normal deposit logic - no negative commission
           console.log(`💰 Normal deposit approved`);
           
+          // Get campaign set rule based on deposit amount
+          const campaignRule = getCampaignSetRule(depositAmount);
+          const newCampaignSet = [];
+          
+          // Set campaign set based on deposit amount
+          if (depositAmount >= 1000000) {
+            // VIP User - unlock all 3 sets
+            newCampaignSet.push(1, 2, 3);
+            console.log(`👑 VIP User detected! Unlocking all 3 campaign sets. Total tasks required: ${campaignRule.totalTasksRequired}`);
+          } else {
+            // Regular deposit user - unlock 3 sets
+            newCampaignSet.push(1, 2, 3);
+            console.log(`💰 Regular deposit user! Unlocking 3 campaign sets. Total tasks required: ${campaignRule.totalTasksRequired}`);
+          }
+          
           await usersCollection.updateOne(
             { _id: new ObjectId(deposit.userId) },
             { 
@@ -150,7 +166,10 @@ export async function POST(request: NextRequest) {
                 depositCount: 1,
                 accountBalance: deposit.amount
               },
-              $set: { updatedAt: new Date() }
+              $set: { 
+                campaignSet: newCampaignSet,
+                updatedAt: new Date() 
+              }
             }
           );
         }

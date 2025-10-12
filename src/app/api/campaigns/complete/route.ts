@@ -4,6 +4,7 @@ import { ICampaignClaim, CampaignClaimCollection } from '@/models/CampaignClaim'
 import { UserTaskHistoryCollection } from '@/models/UserTaskHistory';
 import { IDailyCommission, DailyCommissionCollection } from '@/models/DailyCommission';
 import { calculateCommission, getCommissionTier } from '@/lib/commission-calculator';
+import { shouldProgressCampaignSet, getNextCampaignSet } from '@/lib/campaign-set-rules';
 import { ObjectId } from 'mongodb';
 
 // GET - Fetch completed campaigns for a customer
@@ -194,14 +195,14 @@ export async function POST(request: NextRequest) {
 
       // Check if user has completed 30 tasks and should increment campaignSet
       let updatedCampaignSet = userForUpdate.campaignSet || [];
-      if (newCampaignsCompleted > 0 && newCampaignsCompleted % 30 === 0) {
-        const newSetNumber = updatedCampaignSet.length + 1;
-        updatedCampaignSet = [...updatedCampaignSet, newSetNumber];
+      if (shouldProgressCampaignSet(newCampaignsCompleted, updatedCampaignSet.length, userForUpdate.depositCount > 0 ? 1 : 0)) {
+        const nextSet = getNextCampaignSet(updatedCampaignSet.length, userForUpdate.depositCount > 0 ? 1 : 0);
+        updatedCampaignSet.push(nextSet);
         
         // Reset trial balance to 0 when completing 30 tasks (trial balance disappears)
         const currentTrialBalance = userForUpdate.trialBalance || 0;
         
-        console.log(`🎯 User completed ${newCampaignsCompleted} tasks, adding set ${newSetNumber}. CampaignSet: ${JSON.stringify(updatedCampaignSet)}`);
+        console.log(`🎯 User completed ${newCampaignsCompleted} tasks, progressing to campaign set ${nextSet}. CampaignSet: ${JSON.stringify(updatedCampaignSet)}`);
         console.log(`💰 Trial balance reset: ${currentTrialBalance} BDT trial balance removed`);
         console.log(`📊 Account balance remains: ${newBalance} BDT`);
       }
