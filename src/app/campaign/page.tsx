@@ -439,6 +439,7 @@ export default function CampaignPage() {
     dailyCampaignsCompleted: 0,
     totalEarnings: 0
   });
+  const [todayCommission, setTodayCommission] = useState<number>(0);
   const [tasks, setTasks] = useState<CustomerTask[]>([]);
   const [currentTask, setCurrentTask] = useState<CustomerTask | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -466,6 +467,27 @@ export default function CampaignPage() {
   const [showPlatformSelection, setShowPlatformSelection] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [showLoading, setShowLoading] = useState(false);
+
+  // Fetch today's commission
+  const fetchTodayCommission = useCallback(async () => {
+    if (!user?._id) return;
+    
+    try {
+      const response = await fetch(`/api/daily-commission?userId=${user._id}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setTodayCommission(data.data.totalCommission);
+        console.log(`📊 Today's commission loaded: ${data.data.totalCommission} BDT`);
+      } else {
+        console.error('Failed to fetch today\'s commission:', data.message);
+        setTodayCommission(0);
+      }
+    } catch (error) {
+      console.error('Error fetching today\'s commission:', error);
+      setTodayCommission(0);
+    }
+  }, [user?._id]);
 
   // Handle swipe gestures - improved version
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -1083,6 +1105,9 @@ export default function CampaignPage() {
           // Get next task from database
           await fetchTasks();
           
+          // Refresh today's commission
+          await fetchTodayCommission();
+          
         } else {
           console.error(`❌ Task completion failed: ${completionData.message}`);
           setError(completionData.error || 'Failed to save task completion');
@@ -1120,10 +1145,11 @@ export default function CampaignPage() {
       const initializeData = async () => {
         await fetchUserStats();
         await fetchTasks();
+        await fetchTodayCommission();
       };
       initializeData();
     }
-  }, [user?.membershipId, loading]); // Only depend on essential values
+  }, [user?.membershipId, loading, fetchUserStats, fetchTasks, fetchTodayCommission]); // Only depend on essential values
 
   if (loading) {
   return (
@@ -1217,7 +1243,7 @@ export default function CampaignPage() {
                   <div className="flex flex-col justify-end flex-1">
                     <div className="text-purple-600 text-sm mb-1 font-medium">Today Commission</div>
                 <div className="flex items-center gap-1">
-                      <span className="text-xl font-semibold text-purple-800">BDT {userStats.campaignCommission > 0 ? userStats.campaignCommission.toLocaleString() : '0'}</span>
+                      <span className="text-xl font-semibold text-purple-800">BDT {todayCommission.toLocaleString()}</span>
                     </div>
                   </div>
                   <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center animate-pulse">

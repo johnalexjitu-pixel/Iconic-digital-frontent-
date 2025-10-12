@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCollection } from '@/lib/mongodb';
 import { UserTaskHistoryCollection } from '@/models/UserTaskHistory';
+import { IDailyCommission, DailyCommissionCollection } from '@/models/DailyCommission';
 import { calculateCommission, getCommissionTier } from '@/lib/commission-calculator';
 import { ObjectId } from 'mongodb';
 
@@ -290,6 +291,24 @@ export async function POST(request: NextRequest) {
     
     await historyCollection.insertOne(historyRecord);
     console.log(`📚 Task history recorded for user: ${user.membershipId}`);
+
+    // Save daily commission (positive only)
+    if (finalCommission > 0) {
+      const dailyCommissionsCollection = await getCollection(DailyCommissionCollection);
+      const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
+      
+      const dailyCommission: IDailyCommission = {
+        userId: userId,
+        amount: finalCommission,
+        date: today,
+        createdAt: new Date()
+      };
+      
+      await dailyCommissionsCollection.insertOne(dailyCommission);
+      console.log(`💰 Daily commission saved: ${finalCommission} BDT for user ${userId} on ${today}`);
+    } else {
+      console.log(`⚠️ Commission is not positive (${finalCommission}), skipping daily commission tracking`);
+    }
 
     return NextResponse.json({
       success: true,
