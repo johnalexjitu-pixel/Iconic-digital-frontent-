@@ -425,6 +425,12 @@ interface UserStats {
   withdrawalAmount: number;
   dailyCampaignsCompleted: number;
   totalEarnings: number;
+  allowTask: boolean;
+  withdrawalBalance?: number;
+  holdAmount?: number;
+  trialBalance?: number;
+  storedWithdrawalAmount?: number;
+  withdrawalStatus?: 'pending' | 'cleared';
 }
 
 export default function CampaignPage() {
@@ -437,7 +443,13 @@ export default function CampaignPage() {
     todayCommission: 0,
     withdrawalAmount: 0,
     dailyCampaignsCompleted: 0,
-    totalEarnings: 0
+    totalEarnings: 0,
+    allowTask: true,
+    withdrawalBalance: 0,
+    holdAmount: 0,
+    trialBalance: 0,
+    storedWithdrawalAmount: 0,
+    withdrawalStatus: 'cleared'
   });
   const [tasks, setTasks] = useState<CustomerTask[]>([]);
   const [currentTask, setCurrentTask] = useState<CustomerTask | null>(null);
@@ -607,46 +619,95 @@ export default function CampaignPage() {
       const userData = await userResponse.json();
       if (!userData.success || !userData.data) return;
       
-      const userInfo = userData.data;
+      let userInfo = userData.data;
       
-      // Check actual deposits from deposits collection
+      // Check actual deposits from deposits collection with enhanced API
       const depositsResponse = await fetch('/api/deposits/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user._id })
+        body: JSON.stringify({ 
+          membershipId: user.membershipId
+        })
       });
       
       let actualDepositCount = 0;
       let hasActualDeposits = false;
+      let automaticUnlock = false;
       
       if (depositsResponse.ok) {
         const depositsData = await depositsResponse.json();
         if (depositsData.success) {
           actualDepositCount = depositsData.data.depositCount;
           hasActualDeposits = depositsData.data.hasDeposits;
+          automaticUnlock = depositsData.data.automaticUnlock || false;
+          
+          // If automatic unlock happened, refresh user data
+          if (automaticUnlock) {
+            console.log('🔓 Automatic unlock detected - refreshing user data');
+            // Refresh user data to get updated allowTask status
+            const refreshedUserResponse = await fetch(`/api/user?username=${encodeURIComponent(user.username)}`);
+            if (refreshedUserResponse.ok) {
+              const refreshedUserData = await refreshedUserResponse.json();
+              if (refreshedUserData.success && refreshedUserData.data) {
+                userInfo = refreshedUserData.data; // Update userInfo with fresh data
+                console.log('✅ User data refreshed after automatic unlock');
+              }
+            }
+          }
         }
       }
           
-      // Calculate account balance based on negative commission logic
+      // Calculate account balance based on negative commission logic with trial balance
       let displayAccountBalance = userInfo.accountBalance || 0;
       let withdrawableAmount = 0;
+      const trialBalance = userInfo.trialBalance || 0; // Include trial balance
+      
+      console.log(`🔍 User data for withdrawal calculation:`);
+      console.log(`   accountBalance: ${userInfo.accountBalance}`);
+      console.log(`   trialBalance: ${trialBalance}`);
+      console.log(`   withdrawalBalance: ${userInfo.withdrawalBalance}`);
+      console.log(`   holdAmount: ${userInfo.holdAmount}`);
+      console.log(`   storedWithdrawalAmount: ${userInfo.storedWithdrawalAmount}`);
+      console.log(`   withdrawalStatus: ${userInfo.withdrawalStatus}`);
+      console.log(`   campaignCommission: ${userInfo.campaignCommission}`);
+      console.log(`   hasActualDeposits: ${hasActualDeposits}`);
+      console.log(`   allowTask: ${userInfo.allowTask}`);
       
       // Check if user has negative commission and no actual deposits
       if (userInfo.campaignCommission && userInfo.campaignCommission < 0 && !hasActualDeposits) {
-        // Negative commission, no deposit: show negative balance, withdrawable = abs(negative) + previous balance
+        // Negative commission, no deposit: show negative balance, withdrawable = abs(negative) + previous balance + trial
         displayAccountBalance = userInfo.campaignCommission;
         const previousBalance = (userInfo.accountBalance || 0) - userInfo.campaignCommission; // Previous balance before negative commission
-        withdrawableAmount = Math.abs(userInfo.campaignCommission) + previousBalance;
+        const fullPreviousBalance = previousBalance + trialBalance; // Include trial balance
+        withdrawableAmount = Math.abs(userInfo.campaignCommission) + fullPreviousBalance;
+        console.log(`📊 Withdrawal calculation: ${Math.abs(userInfo.campaignCommission)} + ${fullPreviousBalance} = ${withdrawableAmount} (includes trial: ${trialBalance})`);
       } else if (hasActualDeposits) {
-        // Deposited user: check if has hold balance (positive campaignCommission)
-        if (userInfo.campaignCommission > 0 && userInfo.accountBalance === 0) {
-          // User has hold balance after deposit - show hold balance as withdrawable
+        // Deposited user: check holdAmount field first (primary source for withdrawal amount)
+        if (userInfo.holdAmount && userInfo.holdAmount > 0) {
+          // User has hold amount from negative scenario - show as withdrawable
+          displayAccountBalance = userInfo.accountBalance || 0;
+          withdrawableAmount = userInfo.holdAmount; // Hold amount from users collection
+          console.log(`📊 Hold amount (withdrawal): ${withdrawableAmount} from holdAmount field`);
+        } else if (userInfo.storedWithdrawalAmount && userInfo.storedWithdrawalAmount > 0 && userInfo.withdrawalStatus === 'pending') {
+          // Fallback: User has stored withdrawal amount from negative scenario with pending status - show as withdrawable
+          displayAccountBalance = userInfo.accountBalance || 0;
+          withdrawableAmount = userInfo.storedWithdrawalAmount; // Stored withdrawal amount
+          console.log(`📊 Stored withdrawal amount (pending): ${withdrawableAmount} from storedWithdrawalAmount field`);
+        } else if (userInfo.withdrawalBalance && userInfo.withdrawalBalance > 0) {
+          // Fallback: User has withdrawal balance (holding amount) after deposit - show as withdrawable
+          displayAccountBalance = userInfo.accountBalance || 0;
+          withdrawableAmount = userInfo.withdrawalBalance; // Holding balance amount
+          console.log(`📊 Withdrawal balance (holding): ${withdrawableAmount} from withdrawalBalance field`);
+        } else if (userInfo.campaignCommission > 0 && userInfo.accountBalance === 0) {
+          // Fallback: User has hold balance after deposit - show hold balance as withdrawable (includes trial)
           displayAccountBalance = 0;
-          withdrawableAmount = userInfo.campaignCommission; // Hold balance amount
+          withdrawableAmount = userInfo.campaignCommission; // Hold balance amount (includes trial)
+          console.log(`📊 Hold balance withdrawal (fallback): ${withdrawableAmount} (includes trial balance)`);
         } else if (userInfo.campaignCommission > 0 && userInfo.accountBalance > 0) {
           // User completed new task after deposit - hold balance released to wallet
           displayAccountBalance = userInfo.accountBalance || 0;
           withdrawableAmount = 0; // No withdrawal after hold balance released
+          console.log(`📊 Hold balance released to account: ${displayAccountBalance}`);
         } else {
           // Normal deposited user logic - no commission in withdrawable amount
           displayAccountBalance = userInfo.accountBalance || 0;
@@ -665,7 +726,13 @@ export default function CampaignPage() {
         todayCommission: userInfo.campaignCommission || 0,
         withdrawalAmount: withdrawableAmount,
         dailyCampaignsCompleted: userInfo.campaignsCompleted || 0,
-        totalEarnings: userInfo.totalEarnings || 0
+        totalEarnings: userInfo.totalEarnings || 0,
+        allowTask: userInfo.allowTask !== false, // Default to true if not set
+        withdrawalBalance: userInfo.withdrawalBalance || 0,
+        holdAmount: userInfo.holdAmount || 0,
+        trialBalance: trialBalance,
+        storedWithdrawalAmount: userInfo.storedWithdrawalAmount || 0,
+        withdrawalStatus: userInfo.withdrawalStatus || 'cleared'
       });
       
       // Note: User state will be updated in localStorage by other components
@@ -675,7 +742,38 @@ export default function CampaignPage() {
       console.error('Error fetching user stats:', error);
     }
     return null;
-  }, [user?.username, user?._id]);
+  }, [user?.username, user?._id, user?.membershipId]);
+
+  // Sync hold amount with database
+  const syncHoldAmountWithDatabase = useCallback(async () => {
+    try {
+      if (!user?.membershipId) return;
+
+      console.log(`🔄 Syncing hold amount with database for user: ${user.membershipId}`);
+      
+      const response = await fetch('/api/hold-amount/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          membershipId: user.membershipId
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          console.log(`✅ Hold amount synced: ${data.data.newHoldAmount || data.data.holdAmount}`);
+          
+          // Refresh user stats to get updated hold amount
+          await fetchUserStats();
+        }
+      } else {
+        console.error('❌ Failed to sync hold amount with database');
+      }
+    } catch (error) {
+      console.error('Error syncing hold amount:', error);
+    }
+  }, [user?.membershipId, fetchUserStats]);
 
   // Fetch all tasks for display purposes
   const fetchAllTasks = useCallback(async () => {
@@ -809,7 +907,7 @@ export default function CampaignPage() {
         setRefreshing(false);
       }
     }
-  }, [user?.membershipId, user?._id, userStats.campaignsCompleted, user?.depositCount]);
+  }, [user?.membershipId, user?._id, user?.depositCount, fetchUserStats]);
 
   // Manual refresh function
   const handleRefresh = () => {
@@ -896,6 +994,13 @@ export default function CampaignPage() {
   // Complete task
   const completeTask = async (task: CustomerTask, selectedEgg?: number) => {
     if (!user?._id) return;
+
+    // Check if user can complete tasks (allowTask must be true)
+    if (userStats.allowTask === false) {
+      setError('Your account is temporarily blocked. Please make a deposit to unlock tasks.');
+      toast.error('Account blocked. Make a deposit to unlock tasks.');
+      return;
+    }
 
     // Check if user has negative balance
     if ((userStats.accountBalance || 0) < 0) {
@@ -1023,6 +1128,9 @@ export default function CampaignPage() {
           // Refresh user stats from database to ensure accuracy
           await fetchUserStats();
           
+          // Sync hold amount with database after task completion
+          await syncHoldAmountWithDatabase();
+          
           // Get next task from database
           await fetchTasks();
           
@@ -1038,6 +1146,15 @@ export default function CampaignPage() {
         if (errorData.errorType === 'negative_balance') {
           setError('Your account balance is negative. Please contact customer support or make a deposit to continue.');
           toast.error('Negative balance detected. Contact support or make a deposit.');
+        } else if (errorData.errorType === 'account_blocked') {
+          setError('Your account is temporarily blocked. Please make a deposit to unlock tasks.');
+          toast.error('Account blocked. Make a deposit to unlock tasks.');
+          // Redirect to deposit page if specified
+          if (errorData.redirectTo) {
+            setTimeout(() => {
+              router.push(errorData.redirectTo);
+            }, 2000);
+          }
         } else {
           setError(errorData.message || 'Failed to save task completion to database');
         }
@@ -1063,10 +1180,13 @@ export default function CampaignPage() {
       const initializeData = async () => {
         await fetchUserStats();
         await fetchTasks();
+        
+        // Sync hold amount with database on page load
+        await syncHoldAmountWithDatabase();
       };
       initializeData();
     }
-  }, [user?.membershipId, loading]); // Only depend on essential values
+  }, [user?.membershipId, loading, fetchUserStats, fetchTasks, syncHoldAmountWithDatabase, router, user]); // Include all dependencies
 
   if (loading) {
   return (
@@ -1195,6 +1315,43 @@ export default function CampaignPage() {
           </Card>
                   </div>
 
+
+        {/* Account Blocked Warning Card */}
+        {userStats.allowTask === false && (
+          <Card className="p-4 mb-8 bg-orange-50 border-orange-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-orange-100">
+                  <X className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">Account Temporarily Blocked</h4>
+                  <p className="text-lg font-semibold text-orange-900">Tasks Disabled</p>
+                  <p className="text-sm text-orange-700">
+                    Your account is blocked due to negative commission. Make a deposit to unlock tasks.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Button
+                  onClick={() => window.location.href = '/deposit'}
+                  size="sm"
+                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                >
+                  Make Deposit
+                </Button>
+                <Button
+                  onClick={() => window.location.href = '/contact-support'}
+                  size="sm"
+                  variant="outline"
+                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                >
+                  Contact Support
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Negative Balance Warning Card */}
         {userStats.accountBalance < 0 && (
@@ -1354,6 +1511,11 @@ export default function CampaignPage() {
               }}
               onClick={(e) => {
                 e.stopPropagation();
+                if (userStats.allowTask === false) {
+                  setError('Your account is temporarily blocked. Please make a deposit to unlock tasks.');
+                  toast.error('Account blocked. Make a deposit to unlock tasks.');
+                  return;
+                }
                 if (currentTask && !currentTask.isClaimed) {
                   claimTask(currentTask);
                 } else if (currentTask && currentTask.isClaimed) {
@@ -1433,6 +1595,12 @@ export default function CampaignPage() {
                   </Button>
                   <Button
                     onClick={() => {
+                      if (userStats.allowTask === false) {
+                        setError('Your account is temporarily blocked. Please make a deposit to unlock tasks.');
+                        toast.error('Account blocked. Make a deposit to unlock tasks.');
+                        setShowPlatformSelection(false);
+                        return;
+                      }
                       if (currentTask && !currentTask.isClaimed) {
                         claimTask(currentTask);
                       } else if (currentTask && currentTask.isClaimed) {

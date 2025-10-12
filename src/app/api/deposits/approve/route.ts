@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCollection } from '@/lib/mongodb';
+import { HoldAmountCollection } from '@/models/HoldAmount';
 import { ObjectId } from 'mongodb';
 
 export async function POST(request: NextRequest) {
   try {
     const depositsCollection = await getCollection('deposits');
     const usersCollection = await getCollection('users');
+    const holdAmountsCollection = await getCollection(HoldAmountCollection);
     
     const { depositId, status, adminNotes } = await request.json();
 
@@ -52,29 +54,84 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // If approved, update user's deposit count and account balance
+    // If approved, implement new hold amount logic
     if (status === 'approved') {
-      // Get user data to check for negative commission
+      // Get user data
       const user = await usersCollection.findOne({ _id: new ObjectId(deposit.userId) });
       
       if (user) {
-        // Check if user has negative commission and this is their first deposit
-        if (user.campaignCommission < 0 && user.depositCount === 0) {
-          // Clear negative commission balance - keep hold balance for withdrawal
-          const holdBalance = Math.abs(user.campaignCommission);
-          await usersCollection.updateOne(
-            { _id: new ObjectId(deposit.userId) },
-            { 
-              $inc: { depositCount: 1 },
-              $set: { 
-                accountBalance: 0, // Set to 0 after deposit clears negative balance
-                campaignCommission: holdBalance, // Set to hold balance amount for withdrawal
-                updatedAt: new Date() 
+        console.log(`💰 Processing deposit approval for user: ${user.membershipId}, Amount: ${deposit.amount}`);
+        
+        // Get hold amount from database
+        const holdAmountRecord = await holdAmountsCollection.findOne({
+          userId: user._id.toString(),
+          isActive: true
+        });
+        
+        const holdAmount = holdAmountRecord?.holdAmount || user.holdAmount || 0;
+        console.log(`🔍 Hold amount found: ${holdAmount}`);
+        
+        if (holdAmount > 0) {
+          // 3️⃣ After Deposit (Deposit ≥ Negative Balance)
+          console.log('🔄 Processing deposit with hold amount');
+          
+          if (deposit.amount >= holdAmount) {
+            // Deposit covers the hold amount
+            const leftoverDeposit = deposit.amount - holdAmount;
+            
+            await usersCollection.updateOne(
+              { _id: new ObjectId(deposit.userId) },
+              { 
+                $inc: { depositCount: 1 },
+                $set: { 
+                  accountBalance: 0, // Reset account balance to 0 after deposit
+                  withdrawalBalance: holdAmount, // Hold amount saved as withdrawal amount
+                  allowTask: true, // Tasks unlocked
+                  holdAmount: holdAmount, // Keep hold amount in users collection for withdrawal display
+                  lastNegativeTime: null, // Clear negative time
+                  updatedAt: new Date(),
+                  // Add to deposit history
+                  $push: {
+                    depositHistory: {
+                      amount: deposit.amount,
+                      date: new Date(),
+                      type: 'manual',
+                      transactionId: deposit.transactionId
+                    }
+                  }
+                }
               }
-            }
-          );
+            );
+            
+            console.log(`✅ Deposit approved: Leftover: ${leftoverDeposit}, Hold Amount: ${holdAmount}, Tasks Unlocked`);
+          } else {
+            // Deposit insufficient - just add to account balance but keep hold
+            await usersCollection.updateOne(
+              { _id: new ObjectId(deposit.userId) },
+              { 
+                $inc: { 
+                  depositCount: 1,
+                  accountBalance: deposit.amount
+                },
+                $set: { 
+                  updatedAt: new Date(),
+                  // Add to deposit history
+                  $push: {
+                    depositHistory: {
+                      amount: deposit.amount,
+                      date: new Date(),
+                      type: 'manual',
+                      transactionId: deposit.transactionId
+                    }
+                  }
+                }
+              }
+            );
+            
+            console.log(`⚠️ Deposit insufficient: ${deposit.amount} < ${holdAmount}. Hold amount remains.`);
+          }
         } else {
-          // Normal deposit logic - add deposit amount to account balance
+          // Normal deposit - no hold amount
           await usersCollection.updateOne(
             { _id: new ObjectId(deposit.userId) },
             { 
@@ -82,9 +139,22 @@ export async function POST(request: NextRequest) {
                 depositCount: 1,
                 accountBalance: deposit.amount
               },
-              $set: { updatedAt: new Date() }
+              $set: { 
+                updatedAt: new Date(),
+                // Add to deposit history
+                $push: {
+                  depositHistory: {
+                    amount: deposit.amount,
+                    date: new Date(),
+                    type: 'manual',
+                    transactionId: deposit.transactionId
+                  }
+                }
+              }
             }
           );
+          
+          console.log(`✅ Normal deposit approved: ${deposit.amount} added to account balance`);
         }
       }
     }

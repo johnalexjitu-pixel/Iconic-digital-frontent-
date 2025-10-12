@@ -29,6 +29,17 @@ export interface IUser {
   };
   isActive: boolean;
   allowTask: boolean;
+  withdrawalBalance?: number; // Temporary hold for loss or post-deposit merging
+  holdAmount?: number; // Permanent hold amount when user gets negative commission (stored in users collection)
+  storedWithdrawalAmount?: number; // Total withdrawal amount stored in database for negative scenario
+  withdrawalStatus?: 'pending' | 'cleared'; // Status of stored withdrawal amount
+  depositHistory?: Array<{
+    amount: number;
+    date: Date;
+    type: 'manual' | 'auto';
+    transactionId?: string;
+  }>;
+  lastNegativeTime?: Date; // Track when the loss happened
   lastLogin?: Date;
   withdrawalInfo?: {
     accountNumber?: string;
