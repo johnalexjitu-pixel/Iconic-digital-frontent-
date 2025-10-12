@@ -145,12 +145,21 @@ export default function WithdrawalInfoPage() {
     }
 
     if (!hasActualDeposits) {
-      // New user with positive commission: no withdrawal allowed
-      return {
-        eligible: false,
-        message: 'New users cannot withdraw until they receive negative commission or make a deposit.',
-        errorType: 'new_user_no_withdrawal'
-      };
+      // New user: allow withdrawal after completing 30 tasks
+      if (tasksCompleted >= 30) {
+        return {
+          eligible: true,
+          message: `You can withdraw your account balance of BDT ${user.accountBalance || 0}`,
+          maxWithdrawable: user.accountBalance || 0
+        };
+      } else {
+        return {
+          eligible: false,
+          message: `You must complete 30 tasks before making a withdrawal. You have completed ${tasksCompleted} tasks.`,
+          errorType: 'new_user_insufficient_tasks',
+          tasksRemaining: 30 - tasksCompleted
+        };
+      }
     }
 
     // Deposited user: check if has hold balance

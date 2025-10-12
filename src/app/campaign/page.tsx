@@ -425,6 +425,7 @@ interface UserStats {
   withdrawalAmount: number;
   dailyCampaignsCompleted: number;
   totalEarnings: number;
+  trialBalance: number;
 }
 
 export default function CampaignPage() {
@@ -437,7 +438,8 @@ export default function CampaignPage() {
     todayCommission: 0,
     withdrawalAmount: 0,
     dailyCampaignsCompleted: 0,
-    totalEarnings: 0
+    totalEarnings: 0,
+    trialBalance: 0
   });
   const [todayCommission, setTodayCommission] = useState<number>(0);
   const [tasks, setTasks] = useState<CustomerTask[]>([]);
@@ -751,8 +753,38 @@ export default function CampaignPage() {
         todayCommission: userInfo.campaignCommission || 0,
         withdrawalAmount: withdrawableAmount,
         dailyCampaignsCompleted: userInfo.campaignsCompleted || 0,
-        totalEarnings: userInfo.totalEarnings || 0
+        totalEarnings: userInfo.totalEarnings || 0,
+        trialBalance: userInfo.trialBalance || 0
       });
+      
+      // Auto-reset trial balance if user has exactly 30 tasks and trial balance > 0
+      // Only for users with NO deposits (depositCount === 0)
+      if (userInfo.campaignsCompleted === 30 && userInfo.trialBalance > 0 && user?.depositCount === 0) {
+        console.log(`🔄 Auto-resetting trial balance for user at exactly 30 tasks`);
+        try {
+          const resetResponse = await fetch('/api/manual-trial-reset', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: user._id })
+          });
+          
+          if (resetResponse.ok) {
+            const resetData = await resetResponse.json();
+            if (resetData.success) {
+              console.log(`✅ Trial balance auto-reset: ${resetData.data.previousTrialBalance} → 0`);
+              console.log(`📊 Account balance deducted: ${resetData.data.previousAccountBalance} → ${resetData.data.newAccountBalance} BDT`);
+              // Update the userStats to reflect both trial balance reset and account balance deduction
+              setUserStats(prev => ({
+                ...prev,
+                trialBalance: 0,
+                accountBalance: resetData.data.newAccountBalance
+              }));
+            }
+          }
+        } catch (error) {
+          console.error('Auto-reset trial balance failed:', error);
+        }
+      }
       
       // Note: User state will be updated in localStorage by other components
       
@@ -1219,6 +1251,27 @@ export default function CampaignPage() {
                   </div>
             </div>
           </Card>
+          
+          {/* Trial Balance Card - Only show if trial balance > 0 */}
+          {userStats.trialBalance > 0 && (
+            <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+              <div className="flex items-start justify-between">
+                <div className="flex flex-row items-end justify-between w-full">
+                  <div className="flex flex-row w-full items-end">
+                    <div className="flex flex-col justify-end flex-1">
+                      <div className="text-yellow-600 text-sm mb-1 font-medium">Trial Balance</div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-xl font-semibold text-yellow-800">BDT {userStats.trialBalance.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center animate-pulse">
+                      <Star className="w-5 h-5 text-white" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
           
           <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
             <div className="flex items-start justify-between">

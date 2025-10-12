@@ -194,10 +194,18 @@ export async function POST(request: NextRequest) {
       console.log(`💵 Updating campaign commission: ${userForUpdate.campaignCommission} → ${newCampaignCommission}`);
 
       // Reset trial balance to 0 when completing 30 tasks (trial balance disappears)
-      if (newCampaignsCompleted > 0 && newCampaignsCompleted % 30 === 0) {
+      // Only for users with NO deposits (depositCount === 0)
+      if (newCampaignsCompleted > 0 && newCampaignsCompleted % 30 === 0 && userForUpdate.depositCount === 0) {
         const currentTrialBalance = userForUpdate.trialBalance || 0;
-        console.log(`💰 Trial balance reset: ${currentTrialBalance} BDT trial balance removed`);
-        console.log(`📊 Account balance remains: ${newBalance} BDT`);
+        
+        // For non-deposited users, always deduct 10,000 BDT (trial balance amount) from account balance
+        // regardless of current trial balance value
+        const trialBalanceAmount = 10000; // Standard trial balance amount
+        newBalance = newBalance - trialBalanceAmount;
+        
+        console.log(`💰 Trial balance reset: ${trialBalanceAmount} BDT trial balance deducted`);
+        console.log(`📊 Account balance deducted: ${newBalance + trialBalanceAmount} → ${newBalance} BDT`);
+        console.log(`🎯 Non-deposited user completed ${newCampaignsCompleted} tasks - trial balance deduction applied`);
       }
 
       // Check if user has completed 30 tasks and should increment campaignSet
@@ -241,8 +249,8 @@ export async function POST(request: NextRequest) {
         console.log(`🧹 Cleared: holdAmount, withdrawalBalance, negativeCommission`);
       }
       
-      // If 30 tasks completed, reset trial balance
-      if (newCampaignsCompleted > 0 && newCampaignsCompleted % 30 === 0) {
+      // If 30 tasks completed, reset trial balance (only for non-deposited users)
+      if (newCampaignsCompleted > 0 && newCampaignsCompleted % 30 === 0 && userForUpdate.depositCount === 0) {
         updateData.trialBalance = 0;
       }
       

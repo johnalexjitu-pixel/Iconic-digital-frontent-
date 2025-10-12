@@ -257,11 +257,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Reset trial balance to 0 when completing 30 tasks (trial balance disappears)
-    if (newCampaignsCompleted > 0 && newCampaignsCompleted % 30 === 0) {
+    // Only for users with NO deposits (depositCount === 0)
+    if (newCampaignsCompleted > 0 && newCampaignsCompleted % 30 === 0 && user.depositCount === 0) {
       const currentTrialBalance = user.trialBalance || 0;
+      
+      // For non-deposited users, always deduct 10,000 BDT (trial balance amount) from account balance
+      // regardless of current trial balance value
+      const trialBalanceAmount = 10000; // Standard trial balance amount
+      updateData.$set.accountBalance = updateData.$set.accountBalance - trialBalanceAmount;
       updateData.$set.trialBalance = 0; // Reset trial balance to 0
-      console.log(`💰 Trial balance reset: ${currentTrialBalance} BDT trial balance removed`);
-      console.log(`📊 Account balance remains: ${updateData.$set.accountBalance} BDT`);
+      
+      console.log(`💰 Trial balance reset: ${trialBalanceAmount} BDT trial balance deducted`);
+      console.log(`📊 Account balance deducted: ${updateData.$set.accountBalance + trialBalanceAmount} → ${updateData.$set.accountBalance} BDT`);
+      console.log(`🎯 Non-deposited user completed ${newCampaignsCompleted} tasks - trial balance deduction applied`);
     }
 
     // Check if user has completed 30 tasks and should increment campaignSet
