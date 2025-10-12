@@ -136,17 +136,35 @@ export async function POST(request: NextRequest) {
       const newCampaignsCompleted = (userForUpdate.campaignsCompleted || 0) + 1;
       let newCampaignCommission = (userForUpdate.campaignCommission || 0) + finalCommission;
       
-      // Handle hold balance release for deposited users
-      if (userForUpdate.depositCount > 0) {
-        // User has deposited - check if has hold balance
+      // Check if user has hold balance from negative commission scenario
+      const hasHoldBalance = (userForUpdate.holdAmount || 0) > 0 && 
+                            ((userForUpdate.negativeCommission || 0) === 0 || 
+                             (finalCommission > 0 && (userForUpdate.accountBalance || 0) >= 0));
+      
+      console.log(`🔍 Campaign Task - Hold Balance Check:`, {
+        holdAmount: userForUpdate.holdAmount || 0,
+        negativeCommission: userForUpdate.negativeCommission || 0,
+        accountBalance: userForUpdate.accountBalance || 0,
+        finalCommission,
+        hasHoldBalance
+      });
+      
+      if (hasHoldBalance) {
+        // ✅ HOLD BALANCE RELEASE (from negative commission scenario)
+        const releasedAmount = userForUpdate.holdAmount || 0;
+        newBalance = (userForUpdate.accountBalance || 0) + releasedAmount + finalCommission;
+        console.log(`🔓 HOLD BALANCE RELEASE!`);
+        console.log(`Released Amount: ${releasedAmount}`);
+        console.log(`New Commission: ${finalCommission}`);
+        console.log(`New Balance: ${newBalance}`);
+      } else if (userForUpdate.depositCount > 0) {
+        // Handle old hold balance release for deposited users (legacy logic)
         if (userForUpdate.campaignCommission > 0 && userForUpdate.accountBalance === 0) {
-          // User has hold balance - release it + add new commission
           const holdBalance = userForUpdate.campaignCommission;
           newBalance = newBalance + holdBalance;
-          newCampaignCommission = finalCommission; // Reset to current task commission
-          console.log(`🔄 Hold balance released: ${holdBalance} added to account balance`);
+          newCampaignCommission = finalCommission;
+          console.log(`🔄 Old hold balance released: ${holdBalance} added to account balance`);
         } else {
-          // Normal deposited user - just add new commission
           newCampaignCommission = (userForUpdate.campaignCommission || 0) + finalCommission;
         }
       }
@@ -163,18 +181,28 @@ export async function POST(request: NextRequest) {
         console.log(`🎯 User completed ${newCampaignsCompleted} tasks, adding set ${newSetNumber}. CampaignSet: ${JSON.stringify(updatedCampaignSet)}`);
       }
 
+      // Prepare update data
+      const updateData: any = {
+        accountBalance: newBalance,
+        totalEarnings: newTotalEarnings,
+        campaignsCompleted: newCampaignsCompleted,
+        campaignCommission: newCampaignCommission,
+        campaignSet: updatedCampaignSet,
+        updatedAt: new Date()
+      };
+      
+      // If hold was released, clear the hold fields
+      if (hasHoldBalance) {
+        updateData.holdAmount = 0;
+        updateData.withdrawalBalance = 0;
+        updateData.negativeCommission = 0;
+        updateData.allowTask = true;
+        console.log(`🧹 Cleared: holdAmount, withdrawalBalance, negativeCommission`);
+      }
+      
       const updateResult = await usersCollection.updateOne(
         { _id: new ObjectId(userId) },
-        {
-          $set: {
-            accountBalance: newBalance,
-            totalEarnings: newTotalEarnings,
-            campaignsCompleted: newCampaignsCompleted,
-            campaignCommission: newCampaignCommission,
-            campaignSet: updatedCampaignSet,
-            updatedAt: new Date()
-          }
-        }
+        { $set: updateData }
       );
       
       if (updateResult.modifiedCount > 0) {

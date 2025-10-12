@@ -29,6 +29,9 @@ export interface IUser {
   };
   isActive: boolean;
   allowTask: boolean;
+  negativeCommission: number; // Stores the loss amount (always positive)
+  holdAmount: number; // Previous balance + loss amount
+  withdrawalBalance: number; // Amount shown in UI for withdrawal
   lastLogin?: Date;
   withdrawalInfo?: {
     accountNumber?: string;

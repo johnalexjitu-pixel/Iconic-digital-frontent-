@@ -627,35 +627,74 @@ export default function CampaignPage() {
         }
       }
           
-      // Calculate account balance based on negative commission logic
+      // Calculate account balance and withdrawal amount based on new negative commission system
       let displayAccountBalance = userInfo.accountBalance || 0;
-      let withdrawableAmount = 0;
+      let withdrawableAmount = 0; // Always 0 unless negative commission scenario
       
-      // Check if user has negative commission and no actual deposits
-      if (userInfo.campaignCommission && userInfo.campaignCommission < 0 && !hasActualDeposits) {
-        // Negative commission, no deposit: show negative balance, withdrawable = abs(negative) + previous balance
-        displayAccountBalance = userInfo.campaignCommission;
-        const previousBalance = (userInfo.accountBalance || 0) - userInfo.campaignCommission; // Previous balance before negative commission
-        withdrawableAmount = Math.abs(userInfo.campaignCommission) + previousBalance;
-      } else if (hasActualDeposits) {
-        // Deposited user: check if has hold balance (positive campaignCommission)
-        if (userInfo.campaignCommission > 0 && userInfo.accountBalance === 0) {
-          // User has hold balance after deposit - show hold balance as withdrawable
-          displayAccountBalance = 0;
-          withdrawableAmount = userInfo.campaignCommission; // Hold balance amount
-        } else if (userInfo.campaignCommission > 0 && userInfo.accountBalance > 0) {
-          // User completed new task after deposit - hold balance released to wallet
-          displayAccountBalance = userInfo.accountBalance || 0;
-          withdrawableAmount = 0; // No withdrawal after hold balance released
+      // Check if user has negative commission (new system)
+      const negativeCommission = userInfo.negativeCommission || 0;
+      const holdAmount = userInfo.holdAmount || 0;
+      const withdrawalBalance = userInfo.withdrawalBalance || 0;
+      
+      console.log(`📊 User Balance Info:`, {
+        accountBalance: userInfo.accountBalance,
+        negativeCommission,
+        holdAmount,
+        withdrawalBalance,
+        trialBalance: userInfo.trialBalance
+      });
+      
+      // Check if user has negative balance but missing negativeCommission field (old data)
+      const hasNegativeBalance = (userInfo.accountBalance || 0) < 0;
+      const actualNegativeCommission = negativeCommission > 0 ? negativeCommission : (hasNegativeBalance ? Math.abs(userInfo.accountBalance) : 0);
+      const hasHoldOrWithdrawal = holdAmount > 0 || withdrawalBalance > 0;
+      
+      if (actualNegativeCommission > 0 || hasNegativeBalance || hasHoldOrWithdrawal) {
+        // ⚠️ User has negative commission - show negative balance and withdrawal amount (hold amount)
+        displayAccountBalance = userInfo.accountBalance; // Already negative in DB
+        
+        // If withdrawalBalance is not set (old data), calculate it from hold amount
+        if (withdrawalBalance === 0 && holdAmount > 0) {
+          withdrawableAmount = holdAmount;
+          console.log(`⚠️ Using holdAmount as withdrawableAmount: ${holdAmount}`);
+        } else if (withdrawalBalance > 0) {
+          withdrawableAmount = withdrawalBalance;
+          console.log(`⚠️ Using withdrawalBalance: ${withdrawalBalance}`);
         } else {
-          // Normal deposited user logic - no commission in withdrawable amount
-          displayAccountBalance = userInfo.accountBalance || 0;
-          withdrawableAmount = 0; // No commission added to withdrawal amount
+          // Fallback: calculate from trial balance and loss
+          const trialBalance = userInfo.trialBalance || 0;
+          const lossAmount = Math.abs(userInfo.accountBalance || 0);
+          const calculatedHold = trialBalance + lossAmount;
+          withdrawableAmount = calculatedHold;
+          console.log(`⚠️ OLD DATA DETECTED - Calculated from trial balance: ${trialBalance} + ${lossAmount} = ${calculatedHold}`);
+          
+          // Auto-fix the user data in background
+          if (user?._id) {
+            fetch('/api/fix-negative-balance', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: user._id })
+            }).then(r => r.json()).then(data => {
+              console.log(`✅ Auto-fix result:`, data);
+              // Refresh user stats after fix
+              setTimeout(() => fetchUserStats(), 1000);
+            }).catch(err => console.error('Auto-fix error:', err));
+          }
         }
-      } else {
-        // New user with positive commission: no withdrawal allowed
+        
+        console.log(`⚠️ Negative Commission Detected: ${actualNegativeCommission}`);
+        console.log(`Display Balance: ${displayAccountBalance}`);
+        console.log(`Withdrawable Amount (Hold): ${withdrawableAmount}`);
+      } else if (withdrawalBalance > 0 && hasActualDeposits) {
+        // ✅ User deposited and cleared negative - show hold balance as withdrawable
         displayAccountBalance = userInfo.accountBalance || 0;
-        withdrawableAmount = 0; // No withdrawal for new users without negative commission
+        withdrawableAmount = withdrawalBalance; // Show hold amount until next task
+        console.log(`✅ Hold Balance Available: ${withdrawableAmount}`);
+      } else {
+        // Normal user - withdrawal amount is always 0
+        displayAccountBalance = userInfo.accountBalance || 0;
+        withdrawableAmount = 0; // Always 0 for normal users
+        console.log(`✅ Normal User - Withdrawal Amount: 0`);
       }
           
       setUserStats({
@@ -1007,15 +1046,8 @@ export default function CampaignPage() {
             newCampaignsCompleted = userStats.campaignsCompleted + 1;
           }
           
-          setUserStats(prevStats => ({
-            ...prevStats,
-            accountBalance: newBalance,
-            campaignsCompleted: newCampaignsCompleted,
-            campaignCommission: prevStats.campaignCommission + earnedCommission,
-            todayCommission: prevStats.todayCommission + earnedCommission,
-            withdrawalAmount: user?.depositCount === 0 ? (prevStats.campaignCommission + earnedCommission) : newBalance,
-            totalEarnings: prevStats.totalEarnings + earnedCommission
-          }));
+          // Don't update stats here - let fetchUserStats handle it to get accurate data
+          // setUserStats will be called by fetchUserStats below
           
           // Add a small delay to ensure database is updated
           await new Promise(resolve => setTimeout(resolve, 500));
@@ -1179,10 +1211,7 @@ export default function CampaignPage() {
                     <div className="text-orange-600 text-sm mb-1 font-medium">Withdrawable Amount</div>
                 <div className="flex items-center gap-1">
                       <span className="text-xl font-semibold text-orange-800">
-                        BDT {user?.depositCount === 0 
-                          ? Math.abs(userStats.withdrawalAmount || 0).toLocaleString()
-                          : Math.abs(userStats.accountBalance || 0).toLocaleString()
-                        }
+                        BDT {Math.abs(userStats.withdrawalAmount || 0).toLocaleString()}
                       </span>
                     </div>
                   </div>

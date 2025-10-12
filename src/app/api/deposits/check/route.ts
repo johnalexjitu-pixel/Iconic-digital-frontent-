@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
     }
 
     const depositsCollection = await getCollection('deposits');
+    const usersCollection = await getCollection('users');
     
     // Check if user has any completed deposits
     // Search for both ObjectId and string formats since deposits collection has mixed data types
@@ -34,12 +35,26 @@ export async function POST(request: NextRequest) {
     const totalDepositAmount = deposits.reduce((sum, deposit) => sum + (deposit.amount || 0), 0);
     const depositCount = deposits.length;
 
+    // Get user data to check negative commission
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+    
+    let requiresDeposit = false;
+    let minimumDepositRequired = 0;
+    
+    if (user && (user.negativeCommission || 0) > 0) {
+      // User has negative commission - requires deposit
+      requiresDeposit = true;
+      minimumDepositRequired = user.negativeCommission;
+    }
+
     return NextResponse.json({
       success: true,
       data: {
         hasDeposits,
         depositCount,
         totalDepositAmount,
+        requiresDeposit,
+        minimumDepositRequired,
         deposits: deposits.map(deposit => ({
           _id: deposit._id,
           amount: deposit.amount,

@@ -73,17 +73,17 @@ export async function POST(request: NextRequest) {
       console.log(`Expected: ${user.membershipId}, Found: ${task.customerCode}`);
     }
 
-    // Check if user has negative balance
-    if ((user.accountBalance || 0) < 0) {
+    // Check if user can complete tasks (allowTask must be true)
+    if (user.allowTask === false) {
       return NextResponse.json({
         success: false,
-        error: 'Your account balance is negative. Please contact customer support or make a deposit to continue.',
-        errorType: 'negative_balance',
-        redirectTo: '/contact-support'
+        error: 'Your account is locked due to negative balance. Please make a deposit to continue.',
+        errorType: 'task_locked',
+        redirectTo: '/deposit'
       }, { status: 403 });
     }
 
-    // Check if user can complete tasks (campaignStatus must be active)
+    // Check if user's campaign status is inactive
     if (user.campaignStatus !== 'active') {
       return NextResponse.json({
         success: false,
@@ -104,7 +104,9 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Calculate commission based on Golden Egg logic for customerTasks
+    // Calculate commission for CUSTOMER TASKS (can be negative)
+    // estimatedNegativeAmount is the commission (can be negative)
+    // taskCommission is always 0 for customer tasks in negative scenario
     let finalCommission;
     let commissionType = 'standard';
     
@@ -114,10 +116,10 @@ export async function POST(request: NextRequest) {
       commissionType = 'golden_egg';
       console.log(`🥚 Golden Egg Round! Commission: ${task.estimatedNegativeAmount || 0} + ${task.taskCommission || 0} = ${finalCommission}`);
     } else {
-      // Standard customer task: estimatedNegativeAmount + taskCommission (same as Golden Egg)
-      finalCommission = (task.estimatedNegativeAmount || 0) + (task.taskCommission || 0);
+      // Standard customer task: estimatedNegativeAmount (can be negative)
+      finalCommission = (task.estimatedNegativeAmount || 0);
       commissionType = 'customer_task';
-      console.log(`📋 Standard Customer Task. Commission: ${task.estimatedNegativeAmount || 0} + ${task.taskCommission || 0} = ${finalCommission}`);
+      console.log(`📋 Customer Task. Commission: ${finalCommission}`);
     }
     
     console.log(`💰 Commission Type: ${commissionType}, Final Commission: ${finalCommission}`);
@@ -134,38 +136,108 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // Update user stats with hold balance release logic
-    let newBalance = (user.accountBalance || 0) + finalCommission;
-    const newTotalEarnings = (user.totalEarnings || 0) + finalCommission;
-    
-    // For customer tasks, update campaignsCompleted to match the taskNumber
+    // Handle negative commission scenario
+    let updateData: any;
+    const currentAccountBalance = user.accountBalance || 0;
+    const currentCampaignCommission = user.campaignCommission || 0;
     const newCampaignsCompleted = task.taskNumber || (user.campaignsCompleted || 0) + 1;
-    let newCampaignCommission = (user.campaignCommission || 0) + finalCommission;
-    
-    // Handle hold balance release for deposited users
-    if (user.depositCount > 0) {
-      // User has deposited - check if has hold balance
-      if (user.campaignCommission > 0 && user.accountBalance === 0) {
-        // User has hold balance - release it + add new commission
-        const holdBalance = user.campaignCommission;
-        newBalance = newBalance + holdBalance;
-        newCampaignCommission = finalCommission; // Reset to current task commission
-        console.log(`🔄 Hold balance released: ${holdBalance} added to account balance`);
-      } else {
-        // Normal deposited user - just add new commission
-        newCampaignCommission = (user.campaignCommission || 0) + finalCommission;
-      }
-    }
+    const newTotalEarnings = (user.totalEarnings || 0) + finalCommission;
 
-    console.log(`💰 Updating user balance: ${user.accountBalance} → ${newBalance} (+${finalCommission})`);
-    console.log(`📊 Updating campaigns completed: ${user.campaignsCompleted} → ${newCampaignsCompleted} (based on taskNumber: ${task.taskNumber})`);
-    console.log(`💵 Updating campaign commission: ${user.campaignCommission} → ${newCampaignCommission}`);
-    
-    // Log commission calculation details
-    if (task.hasGoldenEgg === true) {
-      console.log(`🥚 Golden Egg Round! Commission: ${task.estimatedNegativeAmount || 0} + ${task.taskCommission || 0} = ${finalCommission}`);
+    // Check if user has hold balance (from previous negative scenario, now deposited)
+    // Release hold if: holdAmount > 0 AND (negativeCommission is 0 OR accountBalance > 0 after positive task)
+    const hasHoldBalance = (user.holdAmount || 0) > 0 && 
+                          ((user.negativeCommission || 0) === 0 || 
+                           (finalCommission > 0 && currentAccountBalance >= 0));
+
+    console.log(`🔍 Hold Balance Check:`, {
+      holdAmount: user.holdAmount || 0,
+      negativeCommission: user.negativeCommission || 0,
+      currentAccountBalance,
+      finalCommission,
+      hasHoldBalance
+    });
+
+    if (finalCommission < 0) {
+      // ⚙️ NEGATIVE COMMISSION SCENARIO
+      const lossAmount = Math.abs(finalCommission);
+      const trialBalance = user.trialBalance || 0;
+      
+      // Hold amount calculation:
+      // The accountBalance already includes trial balance, so we just use it directly
+      // Hold = current account balance + loss amount
+      // This protects the user's current balance (which already includes trial if any)
+      const holdAmount = currentAccountBalance + lossAmount;
+      
+      console.log(`⚠️ NEGATIVE COMMISSION DETECTED!`);
+      console.log(`Loss Amount: ${lossAmount}`);
+      console.log(`Current Account Balance: ${currentAccountBalance}`);
+      console.log(`Trial Balance (reference): ${trialBalance}`);
+      console.log(`Hold Amount (Balance + Loss): ${currentAccountBalance} + ${lossAmount} = ${holdAmount}`);
+
+      updateData = {
+        $set: {
+          accountBalance: -lossAmount, // Show negative in UI
+          negativeCommission: lossAmount, // Store loss amount (positive)
+          holdAmount: holdAmount, // Total previous balance + loss
+          withdrawalBalance: holdAmount, // Show in withdrawal UI
+          allowTask: false, // Block new tasks
+          campaignsCompleted: newCampaignsCompleted,
+          campaignCommission: currentCampaignCommission + finalCommission,
+          totalEarnings: newTotalEarnings,
+          campaignSet: user.campaignSet || [],
+          updatedAt: new Date()
+        }
+      };
+
+      console.log(`🔒 Account locked. User must deposit ${lossAmount} BDT to continue.`);
+      console.log(`💰 Withdrawal Amount (Hold): ${holdAmount} BDT`);
+      
+    } else if (hasHoldBalance) {
+      // ✅ HOLD BALANCE RELEASE SCENARIO (after deposit, completing next task)
+      const releasedAmount = user.holdAmount || 0;
+      const newBalance = currentAccountBalance + releasedAmount + finalCommission;
+      
+      console.log(`🔓 HOLD BALANCE RELEASE!`);
+      console.log(`Released Amount: ${releasedAmount}`);
+      console.log(`New Commission: ${finalCommission}`);
+      console.log(`New Balance: ${newBalance}`);
+
+      updateData = {
+        $set: {
+          accountBalance: newBalance, // Add hold + new commission to account
+          holdAmount: 0, // Clear hold
+          withdrawalBalance: 0, // Clear withdrawal balance
+          negativeCommission: 0, // Clear negative commission (if not already cleared)
+          allowTask: true, // Ensure tasks are allowed
+          campaignsCompleted: newCampaignsCompleted,
+          campaignCommission: currentCampaignCommission + finalCommission,
+          totalEarnings: newTotalEarnings,
+          campaignSet: user.campaignSet || [],
+          updatedAt: new Date()
+        }
+      };
+
+      console.log(`✅ Hold balance released to account. Normal flow resumed.`);
+      console.log(`🧹 Cleared: holdAmount, withdrawalBalance, negativeCommission`);
+      
     } else {
-      console.log(`📋 Standard Customer Task. Commission: ${task.estimatedNegativeAmount || 0} + ${task.taskCommission || 0} = ${finalCommission}`);
+      // ✅ NORMAL POSITIVE COMMISSION SCENARIO
+      const newBalance = currentAccountBalance + finalCommission;
+      
+      console.log(`✅ POSITIVE COMMISSION`);
+      console.log(`Commission: ${finalCommission}`);
+      console.log(`New Balance: ${newBalance}`);
+
+      updateData = {
+        $set: {
+          accountBalance: newBalance,
+          campaignsCompleted: newCampaignsCompleted,
+          campaignCommission: currentCampaignCommission + finalCommission,
+          totalEarnings: newTotalEarnings,
+          campaignSet: user.campaignSet || [],
+          updatedAt: new Date()
+        }
+      };
     }
 
     // Check if user has completed 30 tasks and should increment campaignSet
@@ -173,19 +245,9 @@ export async function POST(request: NextRequest) {
     if (newCampaignsCompleted > 0 && newCampaignsCompleted % 30 === 0) {
       const newSetNumber = updatedCampaignSet.length + 1;
       updatedCampaignSet = [...updatedCampaignSet, newSetNumber];
+      updateData.$set.campaignSet = updatedCampaignSet;
       console.log(`🎯 User completed ${newCampaignsCompleted} tasks, adding set ${newSetNumber}. CampaignSet: ${JSON.stringify(updatedCampaignSet)}`);
     }
-
-    const updateData = {
-      $set: {
-        campaignsCompleted: newCampaignsCompleted,
-        campaignCommission: newCampaignCommission,
-        totalEarnings: newTotalEarnings,
-        accountBalance: newBalance,
-        campaignSet: updatedCampaignSet,
-        updatedAt: new Date()
-      }
-    };
 
     await usersCollection.updateOne(
       { _id: user._id },
@@ -227,8 +289,8 @@ export async function POST(request: NextRequest) {
         taskNumber: task.taskNumber,
         hasGoldenEgg: task.hasGoldenEgg,
         tasksCompleted: newCampaignsCompleted,
-        accountBalance: newBalance,
-        newBalance: newBalance
+        accountBalance: updateData.$set.accountBalance,
+        newBalance: updateData.$set.accountBalance
       }
     });
 
