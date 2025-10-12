@@ -209,6 +209,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Check if user has completed tasks and should increment campaignSet
+      // eslint-disable-next-line prefer-const
       let updatedCampaignSet = userForUpdate.campaignSet || [];
       let requiredTask = 30; // Default required tasks
       

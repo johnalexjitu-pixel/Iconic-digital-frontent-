@@ -801,7 +801,7 @@ export default function CampaignPage() {
       console.error('Error fetching user stats:', error);
     }
     return null;
-  }, [user?.username, user?._id]);
+  }, [user?.username, user?._id, user?.depositCount]);
 
   // Fetch all tasks for display purposes
   const fetchAllTasks = useCallback(async () => {
@@ -935,7 +935,7 @@ export default function CampaignPage() {
         setRefreshing(false);
       }
     }
-  }, [user?.membershipId, user?._id, userStats.campaignsCompleted, user?.depositCount]);
+  }, [user?.membershipId, user?._id, user?.depositCount, fetchUserStats]);
 
   // Manual refresh function
   const handleRefresh = () => {
@@ -1197,7 +1197,7 @@ export default function CampaignPage() {
       };
       initializeData();
     }
-  }, [user?.membershipId, loading, fetchUserStats, fetchTasks, fetchTodayCommission]); // Only depend on essential values
+  }, [user?.membershipId, loading, fetchUserStats, fetchTasks, fetchTodayCommission, router, user]); // Only depend on essential values
 
   if (loading) {
   return (
