@@ -198,18 +198,12 @@ export async function POST(request: NextRequest) {
         const newSetNumber = updatedCampaignSet.length + 1;
         updatedCampaignSet = [...updatedCampaignSet, newSetNumber];
         
-        // Reset trial balance to user's account balance when completing 30 tasks
+        // Reset trial balance to 0 when completing 30 tasks (trial balance disappears)
         const currentTrialBalance = userForUpdate.trialBalance || 0;
-        const currentAccountBalance = newBalance;
-        
-        // Move trial balance to account balance (add trial balance to current account balance)
-        newBalance = currentAccountBalance + currentTrialBalance;
         
         console.log(`🎯 User completed ${newCampaignsCompleted} tasks, adding set ${newSetNumber}. CampaignSet: ${JSON.stringify(updatedCampaignSet)}`);
-        console.log(`💰 Trial balance reset: ${currentTrialBalance} BDT moved to account balance`);
-        console.log(`📊 New account balance: ${currentAccountBalance} + ${currentTrialBalance} = ${newBalance}`);
-        
-        // Trial balance will be reset in updateData below
+        console.log(`💰 Trial balance reset: ${currentTrialBalance} BDT trial balance removed`);
+        console.log(`📊 Account balance remains: ${newBalance} BDT`);
       }
 
       // Prepare update data
