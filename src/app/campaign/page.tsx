@@ -9,7 +9,7 @@ import { HomepageFooter } from '@/components/HomepageFooter';
 import { HomepageHeader } from '@/components/HomepageHeader';
 import { AccountStatusChecker } from '@/components/AccountStatusChecker';
 import { toast } from 'sonner';
-import { getCommissionTier, getMinCommission, getMaxCommission } from '@/lib/commission-calculator';
+import { calculateCommission, getCommissionTier, getMinCommission, getMaxCommission } from '@/lib/commission-calculator';
 import { 
   DollarSign, 
   Calendar, 
@@ -891,15 +891,9 @@ export default function CampaignPage() {
           const randomIndex = Math.floor(Math.random() * campaignsData.data.length);
           const campaign = campaignsData.data[randomIndex];
           
-          // Calculate commission based on user type
-          let taskCommission;
-          if (user.depositCount === 0) {
-            // New user: random commission between 20-50 BDT (part of 1000 BDT total)
-            taskCommission = Math.floor(Math.random() * 31) + 20; // 20-50 BDT
-          } else {
-            // Deposited user: use campaign limits
-            taskCommission = Math.floor(Math.random() * (campaign.maxCommission - campaign.minCommission + 1)) + campaign.minCommission;
-          }
+          // Calculate commission based on user's account balance using tiered system
+          const balanceBasedCommission = calculateCommission(user.accountBalance || 0);
+          const taskCommission = balanceBasedCommission;
           
           const nextTaskNumber = campaignsCompleted + 1;
           
@@ -935,7 +929,7 @@ export default function CampaignPage() {
         setRefreshing(false);
       }
     }
-  }, [user?.membershipId, user?._id, user?.depositCount, fetchUserStats]);
+  }, [user?.membershipId, user?._id, user?.depositCount, user?.accountBalance, fetchUserStats]);
 
   // Manual refresh function
   const handleRefresh = () => {

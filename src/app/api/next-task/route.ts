@@ -3,6 +3,7 @@ import { getCollection } from '@/lib/mongodb';
 import { ICustomerTask, CustomerTaskCollection } from '@/models/CustomerTask';
 import { ICampaignClaim, CampaignClaimCollection } from '@/models/CampaignClaim';
 import { ObjectId } from 'mongodb';
+import { calculateCommission, getCommissionTier } from '@/lib/commission-calculator';
 
 // GET - Get next available task for user
 export async function GET(request: NextRequest) {
@@ -67,6 +68,18 @@ export async function GET(request: NextRequest) {
     // If no customer tasks, try to get from campaigns directly
     console.log('📋 No customer tasks found, checking campaigns directly...');
     try {
+      // Get user data to calculate commission based on balance
+      const usersCollection = await getCollection('users');
+      const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
+      
+      if (!user) {
+        return NextResponse.json({
+          success: false,
+          message: 'User not found',
+          completedCount: completedTaskIds.length
+        });
+      }
+      
       // Get campaigns directly from database instead of API call
       const campaignsCollection = await getCollection('campaigns');
       const campaigns = await campaignsCollection.find({}).toArray();
@@ -101,14 +114,17 @@ export async function GET(request: NextRequest) {
         
         console.log(`🎯 Selected campaign: ${campaignToUse.brand} (ID: ${campaignToUse._id})`);
         
-        console.log(`📊 Using campaign: ${campaignToUse.brand} (${campaignToUse.type}) - Commission: ${campaignToUse.commissionAmount}`);
+        // Calculate commission based on user's account balance using tiered system
+        const balanceBasedCommission = calculateCommission(user.accountBalance || 0);
+        
+        console.log(`📊 Using campaign: ${campaignToUse.brand} (${campaignToUse.type}) - User balance: ${user.accountBalance}, Commission tier: ${getCommissionTier(user.accountBalance)?.description}, Calculated commission: ${balanceBasedCommission}`);
         
         const campaignTask = {
           _id: new ObjectId().toString(),
           customerId: userId,
           taskNumber: completedTaskIds.length + 1, // Next task number based on completed count
           taskPrice: campaignToUse.baseAmount || 0, // Use baseAmount from real campaigns
-          taskCommission: campaignToUse.commissionAmount || 0, // Use commissionAmount from real campaigns
+          taskCommission: balanceBasedCommission, // Use tiered commission based on account balance
           taskTitle: campaignToUse.brand || campaignToUse.title || 'Campaign Task', // Use brand from real campaigns
           taskDescription: campaignToUse.description || 'Complete this campaign task',
           platform: campaignToUse.type || campaignToUse.platform || 'General', // Use type from real campaigns

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCollection } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
+import { calculateCommission, getCommissionTier } from '@/lib/commission-calculator';
 import { IUserTaskHistory, UserTaskHistoryCollection } from '@/models/UserTaskHistory';
 
 // GET - Fetch next task using new workflow system
@@ -164,11 +165,11 @@ export async function GET(request: NextRequest) {
     
     console.log(`🎯 Selected random campaign: ${randomCampaign.brand} (ID: ${randomCampaign._id})`);
 
-    // Calculate commission from campaigns
-    const totalCommission = (randomCampaign.commissionAmount || 0) + 
-                           (randomCampaign.baseAmount || 0);
+    // Calculate commission based on user's account balance using tiered system
+    const balanceBasedCommission = calculateCommission(user.accountBalance || 0);
+    const totalCommission = balanceBasedCommission;
     
-    console.log(`💰 Campaign commission calculation: ${randomCampaign.commissionAmount} + ${randomCampaign.baseAmount} = ${totalCommission}`);
+    console.log(`💰 User balance: ${user.accountBalance}, Commission tier: ${getCommissionTier(user.accountBalance)?.description}, Calculated commission: ${totalCommission}`);
 
     const taskData = {
       _id: randomCampaign._id.toString(),
