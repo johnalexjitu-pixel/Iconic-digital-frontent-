@@ -8,13 +8,13 @@ import { Button } from '@/components/ui/button';
 import { HomepageFooter } from '@/components/HomepageFooter';
 import { HomepageHeader } from '@/components/HomepageHeader';
 import { AccountStatusChecker } from '@/components/AccountStatusChecker';
+import { ProfessionalLoadingScreen } from '@/components/ProfessionalLoadingScreen';
 import { toast } from 'sonner';
 import { calculateCommission, getCommissionTier, getMinCommission, getMaxCommission } from '@/lib/commission-calculator';
 import { 
   DollarSign, 
   Calendar, 
   TrendingUp, 
-  ArrowRight,
   CheckCircle,
   Users,
   RefreshCw,
@@ -24,7 +24,8 @@ import {
   Crown,
   Loader2,
   MessageCircle,
-  CreditCard
+  CreditCard,
+  ArrowRight
 } from 'lucide-react';
 
 // Professional Loading Animation Component
@@ -222,7 +223,7 @@ const ProfessionalLoadingAnimation = ({
   );
 };
 
-// Reward Modal Component - Shows after task completion
+// Professional Reward Modal Component - Conditional Design
 const RewardModal = ({ 
   isOpen, 
   onClose, 
@@ -241,128 +242,237 @@ const RewardModal = ({
 }) => {
   if (!isOpen || !rewardData) return null;
 
+  const isNegativeCommission = rewardData.commission < 0;
+  const taskId = Math.floor(Math.random() * 900000) + 100000;
+
+  // Show SocialTrend-style design only for negative commission from customer tasks
+  if (isNegativeCommission) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
-      <div className="w-full h-full max-w-4xl max-h-[90vh] bg-gradient-to-br from-white via-gray-50 to-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm p-4">
+        <div className="w-full max-w-sm bg-gradient-to-b from-yellow-50 to-pink-50 rounded-3xl shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-300 relative">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute inset-0" style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='0.1'%3E%3Cpath d='M10 0h10v10H10V0zM0 10h10v10H0V10z'/%3E%3C/g%3E%3C/svg%3E")`,
+              backgroundSize: '20px 20px'
+            }}></div>
+          </div>
+
+          <div className="relative z-10 p-6">
+            {/* Header Section */}
+            <div className="text-center mb-6">
+              {/* Company Logo */}
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">⚡</span>
+                </div>
+                <span className="text-gray-800 font-bold text-lg">ICONIC DIGITAL</span>
+              </div>
+              
+              {/* Main Message */}
+              <h2 className="text-2xl font-bold mb-2 text-amber-700">
+                Congratulations!
+              </h2>
+              
+              <p className="text-gray-600 text-sm">
+                You got a special campaign
+              </p>
+            </div>
+
+            {/* Campaign Details */}
+            <div className="bg-white rounded-2xl p-4 mb-4 shadow-lg">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-gray-600 text-sm">Campaign #{taskId}</span>
+                <div className="flex items-center gap-1 bg-yellow-100 rounded-full px-2 py-1">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <span className="text-xs text-yellow-700">Completed</span>
+                </div>
+              </div>
+
+              {/* Brand Section */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-orange-500 rounded-lg flex items-center justify-center">
+                  {rewardData.logo ? (
+                    <img 
+                      src={rewardData.logo} 
+                      alt={rewardData.brand || rewardData.taskTitle}
+                      className="w-8 h-8 object-contain"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <span className="text-white font-bold text-lg">$</span>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-gray-800 text-lg">
+                    {rewardData.brand || rewardData.taskTitle}
+                  </h3>
+                  <p className="text-gray-600 text-sm">Company Profit</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xl font-bold text-red-600">
+                    BDT {Math.abs(rewardData.companyProfit).toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500">Revenue</p>
+                </div>
+              </div>
+
+
+              {/* Platform Section */}
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">f</span>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-800">Facebook</p>
+                  <p className="text-xs text-gray-600">Social Campaign</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Button 
+                onClick={onClose}
+                variant="outline" 
+                className="flex-1 h-10 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg font-medium"
+              >
+                Close
+              </Button>
+              <Button 
+                onClick={() => window.open('https://wa.me/8801750577439', '_blank')}
+                className="flex-1 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium"
+              >
+                Contact Support
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Original professional design for positive commissions
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-300">
         {/* Header with Gradient Background */}
-        <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 p-6 text-white relative overflow-hidden">
-          <div className="absolute inset-0 bg-black opacity-10"></div>
-          <div className="relative z-10">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-xl font-bold">#{Math.floor(Math.random() * 900000) + 100000}</h3>
+        <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 p-4 text-white relative">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-bold">#{Math.floor(Math.random() * 900000) + 100000}</h3>
+              <p className="text-blue-100 text-sm">Task completed successfully!</p>
+            </div>
               <div className="flex items-center gap-2 bg-white bg-opacity-20 rounded-full px-3 py-1">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 <span className="text-sm font-medium">Completed</span>
               </div>
             </div>
-            <p className="text-blue-100 text-sm">Task completed successfully!</p>
-          </div>
-          {/* Decorative elements */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -translate-y-16 translate-x-16"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-5 rounded-full translate-y-12 -translate-x-12"></div>
         </div>
 
-        <div className="p-6 space-y-4 flex-1 overflow-y-auto">
-          {/* Your Commission Section - Only show if commission is non-negative */}
+        <div className="p-5 space-y-3">
+          {/* Your Commission Section - Compact */}
           {rewardData.commission >= 0 && (
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-5 border border-green-100 shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-500 rounded-lg flex items-center justify-center">
                     {rewardData.logo ? (
                       <img 
                         src={rewardData.logo} 
                         alt={rewardData.brand || rewardData.taskTitle}
-                        className="w-8 h-8 object-contain"
+                        className="w-6 h-6 object-contain"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
                         }}
                       />
                     ) : (
-                      <Crown className="w-6 h-6 text-white" />
+                      <Crown className="w-5 h-5 text-white" />
                     )}
                   </div>
                   <div>
-                    <h4 className="font-bold text-gray-800 text-lg">{rewardData.brand || rewardData.taskTitle}</h4>
-                    <p className="text-sm text-gray-600 flex items-center gap-1">
-                      <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                    <h4 className="font-semibold text-gray-800">{rewardData.brand || rewardData.taskTitle}</h4>
+                    <p className="text-xs text-gray-600 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
                       Your Commission
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                  <p className="text-2xl font-bold text-green-600">
                     BDT {rewardData.commission.toLocaleString()}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">Earned</p>
+                  <p className="text-xs text-gray-500">Earned</p>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Company Profit Section - Enhanced */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-100 shadow-sm hover:shadow-md transition-all duration-300">
+          {/* Company Profit Section - Compact */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <span className="text-white font-bold text-lg">$</span>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold">$</span>
                 </div>
                 <div>
-                  <h4 className="font-bold text-gray-800 text-lg">Company Profit</h4>
-                  <p className="text-sm text-gray-600 flex items-center gap-1">
-                    <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                  <h4 className="font-semibold text-gray-800">Company Profit</h4>
+                  <p className="text-xs text-gray-600 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
                     Base Amount
                   </p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                <p className="text-2xl font-bold text-blue-600">
                   BDT {rewardData.companyProfit.toLocaleString()}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Revenue</p>
+                <p className="text-xs text-gray-500">Revenue</p>
               </div>
             </div>
           </div>
 
-          {/* Platform Section - Enhanced */}
-          <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl p-5 border border-gray-100 shadow-sm">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-lg">f</span>
+          {/* Platform Section - Compact */}
+          <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-4 border border-gray-100">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold">f</span>
               </div>
               <div className="flex-1">
-                <h4 className="font-bold text-gray-800 text-lg">Facebook</h4>
-                <p className="text-sm text-gray-600">Social Campaign</p>
+                <h4 className="font-semibold text-gray-800">Facebook</h4>
+                <p className="text-xs text-gray-600">Social Campaign</p>
               </div>
-              <div className="flex items-center gap-2 bg-green-100 rounded-full px-3 py-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <div className="flex items-center gap-1.5 bg-green-100 rounded-full px-2 py-1">
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
                 <span className="text-xs font-medium text-green-700">Active</span>
               </div>
             </div>
           </div>
 
-          {/* Commission Status Message */}
+          {/* Commission Status Message - Compact */}
           {rewardData.commission === 0 && (
-            <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-2xl p-4 shadow-sm">
-              <p className="text-yellow-800 text-sm text-center flex items-center justify-center gap-2">
-                <span className="text-lg">⚠️</span>
+            <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-xl p-3">
+              <p className="text-yellow-800 text-xs text-center flex items-center justify-center gap-2">
+                <span className="text-sm">⚠️</span>
                 This task has no commission. You completed it but earned no reward.
               </p>
             </div>
           )}
 
-          {/* Action Buttons - Enhanced */}
-          <div className="flex gap-4 pt-2">
+          {/* Action Buttons - Compact */}
+          <div className="flex gap-3 pt-1">
             <Button 
               onClick={onClose}
               variant="outline" 
-              className="flex-1 h-12 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 rounded-xl font-medium transition-all duration-200"
+              className="flex-1 h-10 border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg font-medium transition-all duration-200"
             >
               Close
             </Button>
             <Button 
               onClick={onClose}
-              className="flex-1 h-12 bg-gradient-to-r from-red-500 via-pink-500 to-red-600 hover:from-red-600 hover:via-pink-600 hover:to-red-700 text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              className="flex-1 h-10 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
             >
               {rewardData.commission > 0 ? 'Launch Campaign' : 'Continue'}
             </Button>
@@ -475,6 +585,7 @@ export default function CampaignPage() {
   const [showPlatformSelection, setShowPlatformSelection] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [showLoading, setShowLoading] = useState(false);
+  const [holdTimer, setHoldTimer] = useState<NodeJS.Timeout | null>(null);
 
   // Fetch today's commission
   const fetchTodayCommission = useCallback(async () => {
@@ -497,35 +608,77 @@ export default function CampaignPage() {
     }
   }, [user?._id]);
 
-  // Handle swipe gestures - improved version
+  // Enhanced swipe gesture handling with better error handling
   const handleTouchStart = (e: React.TouchEvent) => {
+    try {
     e.preventDefault();
+      e.stopPropagation();
+      
+      if (!e.touches || e.touches.length === 0) {
+        console.warn('No touch data available');
+        return;
+      }
+      
     const touch = e.touches[0];
+      if (!touch || typeof touch.clientX !== 'number') {
+        console.warn('Invalid touch data');
+        return;
+      }
+      
     setTouchStart(touch.clientX);
     setTouchEnd(touch.clientX);
     setIsDragging(true);
     setDragProgress(0);
+      
+      console.log('Touch start:', touch.clientX);
+      
+      // Start hold timer - if user holds for 1 second, auto-complete
+      const timer = setTimeout(() => {
+        console.log('Hold timer triggered - auto-completing swipe');
+        setShowPlatformSelection(true);
+        resetSwipe();
+      }, 1000);
+      setHoldTimer(timer);
+    } catch (error) {
+      console.error('Error in handleTouchStart:', error);
+      resetSwipe();
+    }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    try {
     e.preventDefault();
-    if (!touchStart) return;
+      e.stopPropagation();
+      
+      if (!touchStart || !e.touches || e.touches.length === 0) {
+        return;
+      }
     
     const touch = e.touches[0];
+      if (!touch || typeof touch.clientX !== 'number') {
+        return;
+      }
+      
     const distance = touch.clientX - touchStart;
     
     // Only allow right swipe (positive distance)
     if (distance < 0) return;
     
-    // Calculate progress (0 to 1)
-    const maxDistance = 200;
+      // Calculate progress (0 to 1) - Allow full width swiping
+      const maxDistance = typeof window !== 'undefined' ? window.innerWidth * 0.8 : 300; // Use 80% of screen width for full swipe
     const progress = Math.min(distance / maxDistance, 1);
     setDragProgress(progress);
     setTouchEnd(touch.clientX);
+    } catch (error) {
+      console.error('Error in handleTouchMove:', error);
+      resetSwipe();
+    }
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    try {
     e.preventDefault();
+      e.stopPropagation();
     
     if (!touchStart || touchEnd === null) {
       resetSwipe();
@@ -533,22 +686,45 @@ export default function CampaignPage() {
     }
     
     const distance = touchEnd - touchStart;
-    const minSwipeDistance = 150; // Reduced for easier swipe
+      const minSwipeDistance = typeof window !== 'undefined' ? window.innerWidth * 0.15 : 50; // Reduced to 15% for easier swipe
     
+      console.log('Touch end - distance:', distance, 'min required:', minSwipeDistance);
     
     if (distance >= minSwipeDistance) {
       // Swipe successful - show platform selection
+        console.log('Swipe successful, showing platform selection');
       setShowPlatformSelection(true);
+      } else if (distance > 20) { // If user moved at least 20px, auto-complete after a short delay
+        console.log('Partial swipe detected, auto-completing...');
+        setTimeout(() => {
+          setShowPlatformSelection(true);
+        }, 200); // 200ms delay for auto-completion
+      } else {
+        console.log('Swipe not far enough');
     }
     
     resetSwipe();
+    } catch (error) {
+      console.error('Error in handleTouchEnd:', error);
+      resetSwipe();
+    }
   };
 
   const resetSwipe = () => {
+    try {
     setIsDragging(false);
     setDragProgress(0);
     setTouchStart(null);
     setTouchEnd(null);
+      
+      // Clear hold timer if it exists
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        setHoldTimer(null);
+      }
+    } catch (error) {
+      console.error('Error in resetSwipe:', error);
+    }
   };
 
   // Platform selection
@@ -591,6 +767,14 @@ export default function CampaignPage() {
     setTouchEnd(e.clientX);
     setIsDragging(true);
     setDragProgress(0);
+    
+    // Start hold timer - if user holds for 1 second, auto-complete
+    const timer = setTimeout(() => {
+      console.log('Hold timer triggered - auto-completing mouse swipe');
+      setShowPlatformSelection(true);
+      resetSwipe();
+    }, 1000);
+    setHoldTimer(timer);
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -600,7 +784,7 @@ export default function CampaignPage() {
     const distance = e.clientX - touchStart;
     if (distance < 0) return;
     
-    const maxDistance = 200;
+    const maxDistance = typeof window !== 'undefined' ? window.innerWidth * 0.8 : 300; // Use 80% of screen width for full swipe
     const progress = Math.min(distance / maxDistance, 1);
     setDragProgress(progress);
     setTouchEnd(e.clientX);
@@ -615,11 +799,16 @@ export default function CampaignPage() {
     }
     
     const distance = touchEnd - touchStart;
-    const minSwipeDistance = 150; // Reduced for easier swipe
+    const minSwipeDistance = typeof window !== 'undefined' ? window.innerWidth * 0.15 : 50; // Reduced to 15% for easier swipe
     
     if (distance >= minSwipeDistance) {
       // Swipe successful - show platform selection
       setShowPlatformSelection(true);
+    } else if (distance > 20) { // If user moved at least 20px, auto-complete after a short delay
+      console.log('Partial mouse swipe detected, auto-completing...');
+      setTimeout(() => {
+        setShowPlatformSelection(true);
+      }, 200); // 200ms delay for auto-completion
     }
     
     resetSwipe();
@@ -990,6 +1179,7 @@ export default function CampaignPage() {
       console.error('Error claiming task:', error);
       setError('Failed to claim task');
     } finally {
+      setShowLoading(false);
       setIsCompleting(false);
     }
   };
@@ -1049,8 +1239,8 @@ export default function CampaignPage() {
     setIsCompleting(true);
     setError(null);
     
-    // Start connection animation during task completion
-    setLoadingState('connecting');
+    // Start professional loading screen during task completion
+    setShowLoading(true);
     setLoadingProgress(20);
     
     try {
@@ -1105,11 +1295,10 @@ export default function CampaignPage() {
           
           // Complete loading animation
           setLoadingProgress(100);
-          setLoadingState('connected');
           
           // Show reward modal after a short delay
           setTimeout(() => {
-            setLoadingState('idle');
+            setShowLoading(false);
             setRewardData({
               commission: completionData.data.commission || task.taskCommission,
               taskTitle: task.taskTitle,
@@ -1119,7 +1308,7 @@ export default function CampaignPage() {
               companyProfit: task.taskPrice
             });
             setShowRewardModal(true);
-          }, 1500);
+          }, 1000);
           
           // Update user stats immediately with API response data
           const earnedCommission = completionData.data.commission || task.taskCommission;
@@ -1171,6 +1360,7 @@ export default function CampaignPage() {
       console.error('Error completing task:', error);
       setError('Failed to complete task');
     } finally {
+      setShowLoading(false);
       setIsCompleting(false);
     }
   };
@@ -1319,8 +1509,8 @@ export default function CampaignPage() {
                     </div>
           </Card>
           
-          <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <div className="flex items-start justify-between">
+          <Card className="p-4 rounded-lg ring-1 ring-primary ring-opacity-5 shadow-sm hover:shadow-lg transition-all duration-300 hover:scale-105 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 col-span-2 flex justify-center">
+            <div className="flex items-start justify-between w-full max-w-xs">
               <div className="flex flex-row items-end justify-between w-full">
                 <div className="flex flex-row w-full items-end">
                   <div className="flex flex-col justify-end flex-1">
@@ -1350,8 +1540,8 @@ export default function CampaignPage() {
                   <X className="w-5 h-5 text-red-600" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-gray-500">Account Balance Issue</h4>
-                  <p className="text-lg font-semibold text-red-900">Negative Balance Detected</p>
+                  <h4 className="text-sm font-medium text-gray-500">Exclusive Campaign</h4>
+                  <p className="text-lg font-semibold text-red-900">You got an exclusive campaign</p>
                   <p className="text-sm text-red-700">
                     Current Balance: BDT {userStats.accountBalance.toLocaleString()}
                   </p>
@@ -1408,27 +1598,7 @@ export default function CampaignPage() {
 
         {/* Launch Campaign Button with Swipe Gesture */}
         <div className="pt-4 relative">
-          {/* Check if user has negative balance */}
-          {userStats.accountBalance < 0 ? (
-            <div className="bg-red-100 border border-red-300 text-red-800 px-6 py-4 rounded-lg text-center">
-              <h3 className="text-lg font-semibold mb-2">⚠️ Negative Balance Detected!</h3>
-              <p className="mb-3">Your account balance is negative (BDT {userStats.accountBalance.toLocaleString()}). Please contact customer support or make a deposit to continue.</p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button
-                  onClick={() => window.location.href = '/contact-support'}
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                >
-                  Contact Customer Support
-                </Button>
-                <Button
-                  onClick={() => window.location.href = '/deposit'}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  Make Deposit
-                </Button>
-              </div>
-            </div>
-          ) : user && user.campaignStatus === 'inactive' ? (
+          {user && user.campaignStatus === 'inactive' ? (
             <div className="bg-red-100 border border-red-300 text-red-800 px-6 py-4 rounded-lg text-center">
               <h3 className="text-lg font-semibold mb-2">🚫 Campaign Status Inactive!</h3>
               <p className="mb-3">Your campaign status is currently inactive. Please contact customer service to start tasks.</p>
@@ -1519,7 +1689,7 @@ export default function CampaignPage() {
             <div 
               className="absolute left-0 top-0 h-full w-16 bg-white rounded-full shadow-lg flex items-center justify-center cursor-grab active:cursor-grabbing transition-all duration-300 z-20 hover:shadow-xl"
               style={{ 
-                transform: `translateX(${dragProgress * 200}px) scale(${isDragging ? 1.1 : 1})`,
+                transform: `translateX(${dragProgress * (typeof window !== 'undefined' ? window.innerWidth * 0.8 - 64 : 236)}px) scale(${isDragging ? 1.1 : 1})`,
                 transition: isDragging ? 'none' : 'transform 0.3s ease-out'
               }}
               onClick={(e) => {
@@ -1531,20 +1701,9 @@ export default function CampaignPage() {
                 }
               }}
             >
-              <ArrowRight className={`w-8 h-8 transition-all duration-300 text-red-500 ${isDragging ? 'scale-110' : 'scale-100'}`} />
-              </div>
+              <ArrowRight className="w-6 h-6 text-gray-600" />
+            </div>
           
-          {/* Swipe indicator arrows */}
-          <div className="flex justify-center mt-2 space-x-1">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <ArrowRight 
-                key={i}
-                className={`w-4 h-4 transition-all duration-300 ${
-                  dragProgress > (i * 0.2) ? 'text-red-500 scale-125 animate-pulse' : 'text-gray-300 scale-100'
-                }`}
-              />
-            ))}
-                </div>
           </div>
           )}
             </div>
@@ -1620,81 +1779,16 @@ export default function CampaignPage() {
               </div>
         )}
 
-        {/* Enhanced Loading Screen */}
-        {showLoading && (
-          <div className="fixed inset-0 bg-black bg-opacity-95 backdrop-blur-md flex items-center justify-center z-50 animate-in fade-in duration-500">
-            <div className="text-center">
-              {/* Enhanced Loading Animation Container */}
-              <div className="mb-8 flex justify-center">
-                <div className="relative">
-                  {/* Outer glow effect */}
-                  <div className="absolute -inset-6 rounded-full bg-gradient-to-r from-red-400 to-red-600 opacity-20 animate-pulse"></div>
-                  {/* Outer pulse ring */}
-                  <div className="absolute inset-0 rounded-full bg-red-500 animate-ping opacity-30"></div>
-                  {/* Inner pulse ring */}
-                  <div className="absolute inset-2 rounded-full bg-red-400 animate-pulse opacity-40"></div>
-                  {/* Main loading icon */}
-                  <div className="relative w-16 h-16 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center shadow-2xl">
-                    <Loader2 className="w-8 h-8 text-white animate-spin" />
-                  </div>
-                  {/* Floating particles */}
-                  <div className="absolute -top-2 -right-2 w-3 h-3 bg-white rounded-full animate-ping opacity-60"></div>
-                  <div className="absolute -bottom-2 -left-2 w-2 h-2 bg-white rounded-full animate-ping opacity-40 delay-300"></div>
-                </div>
-              </div>
-
-              {/* Enhanced Loading Bar */}
-              <div className="w-96 h-6 bg-gray-800 rounded-full mx-auto mb-6 overflow-hidden shadow-inner border border-gray-600">
-                <div 
-                  className="h-full bg-gradient-to-r from-red-400 via-red-500 to-red-600 rounded-full transition-all duration-3000 ease-out relative animate-pulse"
-                  style={{ width: '45%' }}
-                >
-                  {/* Shimmer effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-40 animate-pulse"></div>
-                  {/* Glow effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-red-600 opacity-30 blur-sm"></div>
-                </div>
-                {/* Progress percentage overlay */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xs font-bold text-white bg-black bg-opacity-50 px-2 py-1 rounded-full">
-                    45%
-                  </span>
-                </div>
-              </div>
-
-              {/* Enhanced Loading Text with Typing Effect */}
-              <div className="space-y-4">
-                <h3 className="text-2xl font-bold text-white animate-pulse">
-                  Connecting to server...
-                </h3>
-                
-                {/* Professional Status Messages */}
-                <div className="space-y-3 text-sm text-gray-300">
-                  <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-500 delay-100">
-                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-4 shadow-lg"></div>
-                    <span className="font-medium">Establishing secure connection</span>
-                  </div>
-                  <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-500 delay-200">
-                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-4 shadow-lg"></div>
-                    <span className="font-medium">Authenticating user credentials</span>
-                  </div>
-                  <div className="flex items-center justify-center animate-in slide-in-from-left-2 duration-500 delay-300">
-                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse mr-4 shadow-lg"></div>
-                    <span className="font-medium">Synchronizing campaign data</span>
-                  </div>
-                </div>
-
-                {/* Connection Status */}
-                <div className="mt-6 flex items-center justify-center">
-                  <div className="w-3 h-3 rounded-full bg-yellow-500 animate-pulse mr-2"></div>
-                  <span className="text-xs text-gray-400 font-medium">
-                    Connecting...
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Professional Loading Screen */}
+        <ProfessionalLoadingScreen 
+          isVisible={showLoading}
+          progress={loadingProgress}
+          message="Connecting to server..."
+          onComplete={() => {
+            setShowLoading(false);
+            setLoadingProgress(0);
+          }}
+        />
 
 
       </div>

@@ -47,65 +47,19 @@ export default function HomePage() {
     <div className="min-h-screen bg-white">
         <HomepageHeader user={user} />
 
-        {/* Hero Video Section */}
-        <div className="relative bg-gray-800 py-16">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Video 1 - Always visible */}
-              <div className="relative rounded-2xl overflow-hidden bg-black aspect-[9/16]">
-                <video
-                  autoPlay
-                  muted
-                  loop
-                  className="w-full h-full object-cover"
-                >
-                  <source src="/homepage/herovideo.mp4" type="video/mp4" />
-                </video>
-                <div className="absolute top-4 left-4">
-                  <span className="text-white font-bold text-lg font-lexend">GBNI</span>
-                </div>
-                <div className="absolute bottom-4 left-4 right-4">
-                  <span className="text-white text-sm font-lexend">doing everything</span>
-                </div>
-              </div>
-
-              {/* Video 2 - Hidden on mobile, visible on desktop */}
-              <div className="hidden md:block relative rounded-2xl overflow-hidden bg-black aspect-[9/16]">
-                <video
-                  autoPlay
-                  muted
-                  loop
-                  className="w-full h-full object-cover"
-                >
-                  <source src="/homepage/herovideo.mp4" type="video/mp4" />
-                </video>
-                <div className="absolute top-4 left-4">
-                  <span className="text-white font-bold text-lg font-lexend">TYLE</span>
-                </div>
-                <div className="absolute bottom-4 left-4 right-4">
-                  <span className="text-white text-sm font-lexend">Train, workout, same, same</span>
-                </div>
-              </div>
-
-              {/* Video 3 - Hidden on mobile, visible on desktop */}
-              <div className="hidden md:block relative rounded-2xl overflow-hidden bg-black aspect-[9/16]">
-                <video
-                  autoPlay
-                  muted
-                  loop
-                  className="w-full h-full object-cover"
-                >
-                  <source src="/homepage/herovideo.mp4" type="video/mp4" />
-                </video>
-                <div className="absolute top-4 left-4">
-                  <span className="text-white font-bold text-lg font-lexend">MEDAL</span>
-                </div>
-                <div className="absolute bottom-4 left-4 right-4">
-                  <span className="text-white text-sm font-lexend">to get that medal and it just becomes</span>
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Hero Video Section - Mobile Fitted, Desktop Full Screen */}
+        <div className="w-full relative h-64 sm:h-80 md:h-96 lg:h-screen">
+          <video 
+            src="/homepage/herovideo.mp4" 
+            className="w-full h-full object-cover rounded-xl sm:rounded-xl md:rounded-xl lg:rounded-none shadow-lg lg:shadow-none" 
+            autoPlay 
+            loop
+            playsInline
+            muted
+            style={{ objectFit: 'cover' }}
+          />
+          {/* Optional overlay for better text readability on desktop */}
+          <div className="absolute inset-0 bg-black/20 lg:block hidden"></div>
         </div>
 
         {/* Brands Section */}
