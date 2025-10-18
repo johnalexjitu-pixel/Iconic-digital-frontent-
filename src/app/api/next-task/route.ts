@@ -118,6 +118,12 @@ export async function GET(request: NextRequest) {
         const balanceBasedCommission = calculateCommission(user.accountBalance || 0);
         
         console.log(`📊 Using campaign: ${campaignToUse.brand} (${campaignToUse.type}) - User balance: ${user.accountBalance}, Commission tier: ${getCommissionTier(user.accountBalance)?.description}, Calculated commission: ${balanceBasedCommission}`);
+        console.log(`🔍 Debug - User data:`, {
+          userId: user._id,
+          accountBalance: user.accountBalance,
+          campaignsCompleted: user.campaignsCompleted,
+          totalEarnings: user.totalEarnings
+        });
         
         const campaignTask = {
           _id: new ObjectId().toString(),

@@ -170,6 +170,12 @@ export async function GET(request: NextRequest) {
     const totalCommission = balanceBasedCommission;
     
     console.log(`💰 User balance: ${user.accountBalance}, Commission tier: ${getCommissionTier(user.accountBalance)?.description}, Calculated commission: ${totalCommission}`);
+    console.log(`🔍 Debug - User data:`, {
+      membershipId: user.membershipId,
+      accountBalance: user.accountBalance,
+      campaignsCompleted: user.campaignsCompleted,
+      totalEarnings: user.totalEarnings
+    });
 
     const taskData = {
       _id: randomCampaign._id.toString(),

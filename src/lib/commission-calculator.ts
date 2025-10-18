@@ -8,6 +8,7 @@ export interface CommissionTier {
   maxBalance: number;
   minCommission: number;
   maxCommission: number;
+  maxTotalCommission: number; // Maximum total commission per day
   description: string;
 }
 
@@ -17,13 +18,15 @@ export const COMMISSION_TIERS: CommissionTier[] = [
     maxBalance: 10000,
     minCommission: 20,
     maxCommission: 50,
+    maxTotalCommission: 1000,
     description: "Basic Tier (0-10K)"
   },
   {
     minBalance: 10001,
     maxBalance: 20000,
-    minCommission: 50,
-    maxCommission: 100,
+    minCommission: 25,
+    maxCommission: 55,
+    maxTotalCommission: 1000,
     description: "Bronze Tier (10K-20K)"
   },
   {
@@ -31,6 +34,7 @@ export const COMMISSION_TIERS: CommissionTier[] = [
     maxBalance: 30000,
     minCommission: 100,
     maxCommission: 200,
+    maxTotalCommission: 3000,
     description: "Silver Tier (20K-30K)"
   },
   {
@@ -38,6 +42,7 @@ export const COMMISSION_TIERS: CommissionTier[] = [
     maxBalance: 50000,
     minCommission: 200,
     maxCommission: 400,
+    maxTotalCommission: 4000,
     description: "Gold Tier (30K-50K)"
   },
   {
@@ -45,6 +50,7 @@ export const COMMISSION_TIERS: CommissionTier[] = [
     maxBalance: 100000,
     minCommission: 400,
     maxCommission: 800,
+    maxTotalCommission: 5000,
     description: "Platinum Tier (50K-100K)"
   },
   {
@@ -52,6 +58,7 @@ export const COMMISSION_TIERS: CommissionTier[] = [
     maxBalance: 200000,
     minCommission: 800,
     maxCommission: 1500,
+    maxTotalCommission: 6000,
     description: "Diamond Tier (100K-200K)"
   },
   {
@@ -59,6 +66,7 @@ export const COMMISSION_TIERS: CommissionTier[] = [
     maxBalance: 500000,
     minCommission: 1500,
     maxCommission: 3000,
+    maxTotalCommission: 7000,
     description: "Master Tier (200K-500K)"
   },
   {
@@ -66,6 +74,7 @@ export const COMMISSION_TIERS: CommissionTier[] = [
     maxBalance: 1000000,
     minCommission: 3000,
     maxCommission: 6000,
+    maxTotalCommission: 8000,
     description: "Elite Tier (500K-1M)"
   },
   {
@@ -73,6 +82,7 @@ export const COMMISSION_TIERS: CommissionTier[] = [
     maxBalance: Infinity,
     minCommission: 6000,
     maxCommission: 10000,
+    maxTotalCommission: 9000,
     description: "Legendary Tier (1M+)"
   }
 ];
@@ -130,4 +140,14 @@ export function getMaxCommission(accountBalance: number): number {
 export function getMinCommission(accountBalance: number): number {
   const tier = getCommissionTier(accountBalance);
   return tier ? tier.minCommission : 20;
+}
+
+/**
+ * Get maximum total commission per day for a given balance
+ * @param accountBalance - User's current account balance
+ * @returns Maximum total commission amount per day
+ */
+export function getMaxTotalCommission(accountBalance: number): number {
+  const tier = getCommissionTier(accountBalance);
+  return tier ? tier.maxTotalCommission : 1000;
 }
