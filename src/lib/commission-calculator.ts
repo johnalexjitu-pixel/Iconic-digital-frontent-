@@ -17,7 +17,7 @@ export const COMMISSION_TIERS: CommissionTier[] = [
     minBalance: 0,
     maxBalance: 10000,
     minCommission: 20,
-    maxCommission: 50,
+    maxCommission: 38,
     maxTotalCommission: 1000,
     description: "Basic Tier (0-10K)"
   },
@@ -25,7 +25,7 @@ export const COMMISSION_TIERS: CommissionTier[] = [
     minBalance: 10001,
     maxBalance: 20000,
     minCommission: 25,
-    maxCommission: 55,
+    maxCommission: 35,
     maxTotalCommission: 1000,
     description: "Bronze Tier (10K-20K)"
   },

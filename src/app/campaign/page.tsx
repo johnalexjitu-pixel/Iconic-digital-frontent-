@@ -748,7 +748,8 @@ export default function CampaignPage() {
     // Simulate loading/connecting to server
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    setShowLoading(false);
+    // DON'T close loading screen here - let completeTask handle it
+    // setShowLoading(false); // REMOVED - this was causing the issue
     
     // Complete task regardless of commission (new workflow handles all tasks)
     if (currentTask) {
@@ -764,6 +765,8 @@ export default function CampaignPage() {
     } else {
       console.log('❌ No current task available, cannot complete');
       toast.error('No task available to complete. Please try again.');
+      // Only close loading screen if no task available
+      setShowLoading(false);
     }
   };
 
@@ -1347,9 +1350,8 @@ export default function CampaignPage() {
           // Complete loading animation
           setLoadingProgress(100);
           
-          // Show reward modal after a short delay
+          // Show reward modal after a short delay - keep loading screen open
           setTimeout(() => {
-            setShowLoading(false);
             setRewardData({
               commission: completionData.data.commission || task.taskCommission,
               taskTitle: task.taskTitle,
@@ -1359,6 +1361,7 @@ export default function CampaignPage() {
               companyProfit: task.taskPrice
             });
             setShowRewardModal(true);
+            // Keep loading screen open until reward modal is closed
           }, 1000);
           
           // Update user stats immediately with API response data
@@ -1393,6 +1396,9 @@ export default function CampaignPage() {
         } else {
           console.error(`❌ Task completion failed: ${completionData.message}`);
           setError(completionData.error || 'Failed to save task completion');
+          // Close loading screen on task completion failure
+          setShowLoading(false);
+          setIsCompleting(false);
         }
       } else {
         const errorData = await completionResponse.json();
@@ -1405,15 +1411,19 @@ export default function CampaignPage() {
         } else {
           setError(errorData.message || 'Failed to save task completion to database');
         }
+        // Close loading screen on API error
+        setShowLoading(false);
+        setIsCompleting(false);
       }
       
     } catch (error) {
       console.error('Error completing task:', error);
       setError('Failed to complete task');
-    } finally {
+      // Only close loading screen on error
       setShowLoading(false);
       setIsCompleting(false);
     }
+    // Note: Loading screen will be closed when reward modal is closed
   };
 
 
@@ -1827,6 +1837,10 @@ export default function CampaignPage() {
                   </Button>
                   <Button
                     onClick={async () => {
+                      // Start loading screen
+                      setShowLoading(true);
+                      setLoadingProgress(20);
+                      
                       // Fetch tasks first
                       console.log('🎯 Complete Any Platform clicked, fetching tasks...');
                       await fetchTasks();
@@ -1841,6 +1855,8 @@ export default function CampaignPage() {
                       } else {
                         console.log('❌ No current task available, cannot complete');
                         toast.error('No task available to complete. Please try again.');
+                        // Close loading screen if no task available
+                        setShowLoading(false);
                       }
                       setShowPlatformSelection(false);
                     }}
@@ -1884,6 +1900,9 @@ export default function CampaignPage() {
         onClose={() => {
           setShowRewardModal(false);
           setRewardData(null);
+          // Close loading screen when reward modal is closed
+          setShowLoading(false);
+          setIsCompleting(false);
           // Refresh tasks after closing reward modal
           fetchTasks();
         }}
