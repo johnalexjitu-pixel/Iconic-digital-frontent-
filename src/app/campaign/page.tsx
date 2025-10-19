@@ -741,13 +741,18 @@ export default function CampaignPage() {
     setShowPlatformSelection(false);
     setShowLoading(true);
     
+    // Fetch tasks after platform selection
+    console.log('🎯 Platform selected, fetching tasks...');
+    await fetchTasks();
+    
     // Simulate loading/connecting to server
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     setShowLoading(false);
     
     // Complete task regardless of commission (new workflow handles all tasks)
     if (currentTask) {
+      console.log('✅ Current task available, proceeding with completion');
       
       // Check if this is a golden egg task
       if (currentTask.hasGoldenEgg) {
@@ -757,6 +762,8 @@ export default function CampaignPage() {
         completeTask(currentTask);
       }
     } else {
+      console.log('❌ No current task available, cannot complete');
+      toast.error('No task available to complete. Please try again.');
     }
   };
 
@@ -1065,9 +1072,12 @@ export default function CampaignPage() {
           });
           
           customerTaskFound = true;
+          console.log('✅ Customer task found and set as current task:', task.taskNumber);
       } else {
+          console.log('❌ No customer task found for task number:', nextTaskNumber);
         }
       } else {
+        console.log('❌ No customer tasks available');
       }
       
       // Only call campaign API if no customer task was found
@@ -1105,7 +1115,9 @@ export default function CampaignPage() {
           };
           
           setCurrentTask(newTask);
+          console.log('✅ Campaign task found and set as current task:', newTask.taskNumber);
         } else {
+          console.log('❌ No campaigns available');
         setCurrentTask(null);
         }
       }
@@ -1373,10 +1385,9 @@ export default function CampaignPage() {
     }
     
     if (user?.membershipId) {
-      // Initialize data only once when component mounts
+      // Initialize data only once when component mounts (without fetching tasks)
       const initializeData = async () => {
         await fetchUserStats();
-        await fetchTasks();
         await fetchTodayCommission();
       };
       initializeData();
@@ -1397,7 +1408,7 @@ export default function CampaignPage() {
 
   return (
     <AccountStatusChecker>
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-32 sm:pb-24">
       <HomepageHeader user={user} />
       
       {/* Professional Loading Animation */}
@@ -1597,7 +1608,7 @@ export default function CampaignPage() {
         </div>
 
         {/* Launch Campaign Button with Swipe Gesture */}
-        <div className="pt-4 relative">
+        <div className="pt-4 pb-6 relative">
           {user && user.campaignStatus === 'inactive' ? (
             <div className="bg-red-100 border border-red-300 text-red-800 px-6 py-4 rounded-lg text-center">
               <h3 className="text-lg font-semibold mb-2">🚫 Campaign Status Inactive!</h3>
@@ -1632,7 +1643,7 @@ export default function CampaignPage() {
             </div>
           ) : (
             <div 
-              className={`relative h-16 rounded-full overflow-hidden flex items-center justify-center transition-colors duration-300 select-none ${
+              className={`relative h-14 sm:h-16 rounded-full overflow-hidden flex items-center justify-center transition-colors duration-300 select-none ${
                 user && (user.campaignStatus === 'inactive' || 
                   (user.depositCount === 0 && userStats.campaignsCompleted >= 30 && !(userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3)) ||
                   (userStats.accountBalance >= 1000000 && userStats.campaignSet && userStats.campaignSet.length === 3 && userStats.campaignsCompleted >= 32))
@@ -1680,29 +1691,36 @@ export default function CampaignPage() {
             
             {/* Main content */}
             <div className="absolute inset-0 flex items-center justify-center w-full h-full z-10">
-              <span className={`text-white font-bold text-lg transition-all duration-300 ${isDragging ? 'scale-110' : 'scale-100'}`}>
+              <span className={`text-white font-bold text-base sm:text-lg transition-all duration-300 ${isDragging ? 'scale-110' : 'scale-100'}`}>
                 {isDragging ? 'Swipe to Launch' : 'Launch Campaign'}
               </span>
             </div>
             
             {/* Drag handle */}
             <div 
-              className="absolute left-0 top-0 h-full w-16 bg-white rounded-full shadow-lg flex items-center justify-center cursor-grab active:cursor-grabbing transition-all duration-300 z-20 hover:shadow-xl"
+              className="absolute left-0 top-0 h-full w-14 sm:w-16 bg-white rounded-full shadow-lg flex items-center justify-center cursor-grab active:cursor-grabbing transition-all duration-300 z-20 hover:shadow-xl"
               style={{ 
-                transform: `translateX(${dragProgress * (typeof window !== 'undefined' ? window.innerWidth * 0.8 - 64 : 236)}px) scale(${isDragging ? 1.1 : 1})`,
+                transform: `translateX(${dragProgress * (typeof window !== 'undefined' ? window.innerWidth * 0.8 - (window.innerWidth < 640 ? 56 : 64) : 236)}px) scale(${isDragging ? 1.1 : 1})`,
                 transition: isDragging ? 'none' : 'transform 0.3s ease-out'
               }}
-              onClick={(e) => {
+              onClick={async (e) => {
                 e.stopPropagation();
-                if (currentTask && !currentTask.isClaimed) {
-                  claimTask(currentTask);
-                } else if (currentTask && currentTask.isClaimed) {
-                  completeTask(currentTask);
+                if (currentTask) {
+                  console.log('✅ Current task available, proceeding with completion');
+                  if (!currentTask.isClaimed) {
+                    claimTask(currentTask);
+                  } else {
+                    completeTask(currentTask);
+                  }
+                } else {
+                  console.log('❌ No current task available, fetching tasks first...');
+                  await fetchTasks();
+                  toast.info('Tasks fetched. Please try again.');
                 }
               }}
             >
               <ArrowRight className="w-6 h-6 text-gray-600" />
-            </div>
+              </div>
           
           </div>
           )}
@@ -1761,11 +1779,21 @@ export default function CampaignPage() {
                     Cancel
                   </Button>
                   <Button
-                    onClick={() => {
-                      if (currentTask && !currentTask.isClaimed) {
-                        claimTask(currentTask);
-                      } else if (currentTask && currentTask.isClaimed) {
-                        completeTask(currentTask);
+                    onClick={async () => {
+                      // Fetch tasks first
+                      console.log('🎯 Complete Any Platform clicked, fetching tasks...');
+                      await fetchTasks();
+                      
+                      if (currentTask) {
+                        console.log('✅ Current task available, proceeding with completion');
+                        if (!currentTask.isClaimed) {
+                          claimTask(currentTask);
+                        } else {
+                          completeTask(currentTask);
+                        }
+                      } else {
+                        console.log('❌ No current task available, cannot complete');
+                        toast.error('No task available to complete. Please try again.');
                       }
                       setShowPlatformSelection(false);
                     }}
