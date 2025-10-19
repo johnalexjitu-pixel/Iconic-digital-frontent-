@@ -1080,8 +1080,9 @@ export default function CampaignPage() {
         console.log('❌ No customer tasks available');
       }
       
-      // Only call campaign API if no customer task was found
+      // Always try to get a campaign task if no customer task was found
       if (!customerTaskFound) {
+        console.log('🔄 No customer task found, fetching campaign task...');
         const campaignsResponse = await fetch('/api/campaigns');
         const campaignsData = await campaignsResponse.json();
         
@@ -1118,7 +1119,26 @@ export default function CampaignPage() {
           console.log('✅ Campaign task found and set as current task:', newTask.taskNumber);
         } else {
           console.log('❌ No campaigns available');
-        setCurrentTask(null);
+          // Create a fallback task to ensure user can always complete something
+          const fallbackTask = {
+            _id: 'fallback-' + Date.now(),
+            customerId: user._id,
+            taskNumber: campaignsCompleted + 1,
+            taskPrice: 0,
+            taskCommission: calculateCommission(user.accountBalance || 0),
+            taskTitle: 'General Task',
+            taskDescription: 'Complete this general task to earn commission',
+            platform: 'general',
+            status: 'pending' as const,
+            isClaimed: false,
+            hasGoldenEgg: false,
+            campaignId: 'fallback',
+            source: 'fallback' as const,
+            logo: '',
+            brand: 'General'
+          };
+          setCurrentTask(fallbackTask);
+          console.log('✅ Fallback task created and set as current task');
         }
       }
       
@@ -1273,6 +1293,25 @@ export default function CampaignPage() {
             userId: user._id
           }),
         });
+      } else if (task.source === 'fallback') {
+        // Complete fallback task using task-workflow API
+        const requestData = {
+          membershipId: user.membershipId,
+          taskId: task._id,
+          taskTitle: task.taskTitle,
+          platform: task.platform,
+          commission: task.taskCommission,
+          taskNumber: task.taskNumber,
+          source: 'fallback'
+        };
+        
+        completionResponse = await fetch('/api/task-workflow', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
+        });
       } else {
         // Complete campaign task directly
         const requestData = {
@@ -1389,6 +1428,14 @@ export default function CampaignPage() {
       const initializeData = async () => {
         await fetchUserStats();
         await fetchTodayCommission();
+        
+        // If no current task after initialization, fetch one
+        setTimeout(() => {
+          if (!currentTask) {
+            console.log('🔄 No current task after initialization, fetching tasks...');
+            fetchTasks();
+          }
+        }, 1000);
       };
       initializeData();
     }
@@ -1736,12 +1783,12 @@ export default function CampaignPage() {
           </Card>
         )}
 
-        {/* No Tasks Available */}
-        {!currentTask && tasks.length === 0 && (
+        {/* Loading Tasks */}
+        {!currentTask && (
           <Card className="p-6 text-center">
-            <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-gray-800 mb-2">No Tasks Available</h3>
-            <p className="text-gray-600">Contact admin to get your tasks assigned.</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Loading Tasks...</h3>
+            <p className="text-gray-600">Please wait while we prepare your next task.</p>
           </Card>
         )}
 
