@@ -174,31 +174,72 @@ export default function WithdrawalInfoPage() {
     const totalAccountBalance = user.accountBalance || 0;
     const withdrawableAmount = totalAccountBalance - trialBalance;
 
-    // Return withdrawal eligibility based on task completion only
-    if (canWithdraw) {
-      if (withdrawableAmount <= 0) {
+   // ✅ Return withdrawal eligibility based on admin rejection and balance safety
+
+// Prevent withdrawal if only trial balance exists
+if (withdrawableAmount <= 0) {
+  return {
+    eligible: false,
+    message: `You can only withdraw your commission (BDT ${withdrawableAmount}). Trial balance cannot be withdrawn.`,
+    maxWithdrawable: withdrawableAmount,
+    errorType: 'trial_balance_excluded'
+  };
+}
+
+console.log("🔍 Checking last withdrawal status for reapply eligibility...");
+
+let canReapply = false;
+
+try {
+  if (withdrawals && withdrawals.length > 0) {
+    // Assume the most recent withdrawal is first in the array
+    const last = withdrawals[0];
+    console.log("🧾 Last withdrawal status:", last.status);
+
+    if (last.status === "rejected") {
+      // ✅ Admin rejected — user can reapply
+      canReapply = true;
+      console.log("✅ User can reapply because last withdrawal was rejected.");
+    } else if (last.status === "pending" || last.status === "processing") {
+      // 🚫 Block if previous withdrawal still in process
+      console.log("🚫 Withdrawal blocked because last one is still pending or processing.");
       return {
         eligible: false,
-          message: `You can only withdraw your commission (BDT ${withdrawableAmount}). Trial balance cannot be withdrawn.`,
-          maxWithdrawable: withdrawableAmount,
-          errorType: 'trial_balance_excluded'
+        message: `Your previous withdrawal is still ${last.status}. Please wait for admin review before submitting a new request.`,
+        errorType: "withdrawal_pending"
       };
+    } else if (last.status === "completed") {
+      // ✅ Completed — user can make a new withdrawal
+      canReapply = true;
+      console.log("✅ User can withdraw again after completed withdrawal.");
     }
+  } else {
+    // ✅ No previous withdrawals — allow normally
+    canReapply = true;
+    console.log("✅ No previous withdrawals found. Allowing first withdrawal.");
+  }
+} catch (err) {
+  console.error("❌ Error checking last withdrawal:", err);
+  // Fallback to safe default
+  canReapply = true;
+}
 
-        return {
-          eligible: true,
-        message: `You can withdraw BDT ${withdrawableAmount} (excluding trial balance of BDT ${trialBalance})`,
-        maxWithdrawable: withdrawableAmount
-        };
-      } else {
-        return {
-          eligible: false,
-        message: `You must complete ${tasksRemaining} more tasks before making a withdrawal. You have completed ${tasksCompleted} tasks.`,
-        errorType: 'insufficient_tasks',
-        tasksRemaining: tasksRemaining
-        };
-    }
+if (canReapply) {
+  console.log("💰 Eligible for withdrawal. Returning success response.");
+  return {
+    eligible: true,
+    message: `You can withdraw BDT ${withdrawableAmount} (excluding trial balance of BDT ${trialBalance}).`,
+    maxWithdrawable: withdrawableAmount
   };
+} else {
+  console.log("🚫 Not eligible to withdraw right now.");
+  return {
+    eligible: false,
+    message: "You are not eligible to withdraw at this time. Please wait for admin review or contact support.",
+    errorType: "not_eligible"
+  };
+}
+
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
