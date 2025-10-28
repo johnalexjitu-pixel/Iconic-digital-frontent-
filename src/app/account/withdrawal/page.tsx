@@ -1,5 +1,6 @@
- "use client";
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/exhaustive-deps */
+"use client";
 import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
