@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -28,7 +30,7 @@ export default function WithdrawalPage() {
 
   const fetchWithdrawalInfo = async () => {
     try {
-      console.log("📡 Fetching withdrawal info for user:", user?._id);
+      console.log("🔄 Fetching withdrawal info for user:", user?._id);
       const res = await apiClient.post("/api/frontend/withdrawal-info", {
         customerId: user._id,
       });
@@ -37,81 +39,85 @@ export default function WithdrawalPage() {
         console.log("✅ Withdrawal data received:", res.data);
         setWithdrawalInfo(res.data);
       } else {
-        console.warn("⚠️ No data received from backend.");
-        setError("No data received from backend");
+        console.warn("⚠️ No withdrawal data found for user");
       }
     } catch (err: any) {
       console.error("❌ Error fetching withdrawal info:", err);
-      setError("Failed to load withdrawal info");
+      setError("Failed to fetch withdrawal data. Please try again later.");
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ Eligibility logic fix
+  function checkWithdrawalEligibility(
+    canWithdraw: boolean,
+    withdrawableAmount: number,
+    trialBalance: number,
+    tasksRemaining: number,
+    tasksCompleted: number
+  ) {
+    if (withdrawableAmount <= 0) {
+      return {
+        eligible: false,
+        message: `You can only withdraw your commission (BDT ${withdrawableAmount}). Trial balance cannot be withdrawn.`,
+        maxWithdrawable: withdrawableAmount,
+        errorType: "trial_balance_excluded"
+      };
+    }
+
+    if (canWithdraw) {
+      return {
+        eligible: true,
+        message: `You can withdraw BDT ${withdrawableAmount} (excluding trial balance of BDT ${trialBalance})`,
+        maxWithdrawable: withdrawableAmount
+      };
+    } else {
+      return {
+        eligible: false,
+        message: `You must complete ${tasksRemaining} more tasks before making a withdrawal. You have completed ${tasksCompleted} tasks.`,
+        errorType: "insufficient_tasks",
+        tasksRemaining: tasksRemaining
+      };
+    }
+  }
+
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <p className="text-gray-600">Loading withdrawal information...</p>
-      </div>
-    );
+    return <p className="p-6 text-center">Loading withdrawal data...</p>;
   }
 
   if (error) {
     return (
-      <Card className="p-6 text-center border-red-500">
-        <AlertCircle className="mx-auto text-red-500 w-8 h-8 mb-2" />
-        <p className="text-red-600 font-semibold">{error}</p>
-      </Card>
+      <div className="p-6 text-center text-red-600">
+        <AlertCircle className="inline-block mr-2" />
+        {error}
+      </div>
     );
   }
 
   if (!withdrawalInfo) {
-    return (
-      <Card className="p-6 text-center">
-        <Wallet className="mx-auto text-gray-500 w-8 h-8 mb-2" />
-        <p className="text-gray-700">No withdrawal data available.</p>
-      </Card>
-    );
+    return <p className="p-6 text-center">No withdrawal data available.</p>;
   }
 
   return (
-    <div className="p-4 md:p-8 space-y-6">
-      <h1 className="text-2xl font-bold text-center">Withdrawal Information</h1>
+    <div className="max-w-xl mx-auto mt-10">
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold flex items-center">
+            <Wallet className="mr-2" /> Withdrawal Info
+          </h2>
+          <Button variant="outline" onClick={fetchWithdrawalInfo}>
+            Refresh
+          </Button>
+        </div>
 
-      <Card className="p-6 space-y-3">
-        <p>
-          <strong>Customer ID:</strong> {withdrawalInfo.customerId}
+        <p><strong>Amount:</strong> BDT {withdrawalInfo.amount}</p>
+        <p><strong>Method:</strong> {withdrawalInfo.method}</p>
+        <p><strong>Status:</strong> {withdrawalInfo.status || "Pending"}</p>
+        <p className="mt-4 text-sm text-gray-500">
+          {withdrawalInfo.message || "Ensure you’ve completed all required tasks before withdrawal."}
         </p>
-        <p>
-          <strong>Amount:</strong> {withdrawalInfo.amount} BDT
-        </p>
-        <p>
-          <strong>Method:</strong> {withdrawalInfo.method}
-        </p>
-        <p>
-          <strong>Status:</strong>{" "}
-          <span
-            className={
-              withdrawalInfo.status === "completed"
-                ? "text-green-600 font-semibold"
-                : withdrawalInfo.status === "pending"
-                ? "text-yellow-600 font-semibold"
-                : "text-gray-600"
-            }
-          >
-            {withdrawalInfo.status || "N/A"}
-          </span>
-        </p>
-        {withdrawalInfo.message && (
-          <p className="text-sm text-gray-500 italic">
-            {withdrawalInfo.message}
-          </p>
-        )}
       </Card>
-
-      <div className="flex justify-center">
-        <Button onClick={fetchWithdrawalInfo}>🔄 Refresh</Button>
-      </div>
     </div>
   );
 }
